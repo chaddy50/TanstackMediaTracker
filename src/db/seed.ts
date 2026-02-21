@@ -6,6 +6,11 @@ const { db } = await import('./index.ts')
 const { mediaItems, mediaInstances, userEntries } = await import('./schema.ts')
 
 async function seed() {
+  console.log('Clearing existing data...')
+  await db.delete(mediaInstances)
+  await db.delete(userEntries)
+  await db.delete(mediaItems)
+
   console.log('Seeding database...')
 
   // --- Media Items ---
@@ -174,13 +179,13 @@ async function seed() {
     .values([
       { mediaItemId: nameOfTheWind.id, status: 'completed' },
       { mediaItemId: dune.id, status: 'in_progress' },      // re-read in progress
-      { mediaItemId: projectHailMary.id, status: 'want_to' },
+      { mediaItemId: projectHailMary.id, status: 'backlog' },
       { mediaItemId: shawshank.id, status: 'completed' },
       { mediaItemId: oppenheimer.id, status: 'completed' },
-      { mediaItemId: inception.id, status: 'want_to' },
+      { mediaItemId: inception.id, status: 'backlog' },
       { mediaItemId: breakingBad.id, status: 'completed' },
       { mediaItemId: lastOfUs.id, status: 'in_progress' },
-      { mediaItemId: severance.id, status: 'want_to' },
+      { mediaItemId: severance.id, status: 'backlog' },
       { mediaItemId: hollowKnight.id, status: 'completed' },
       { mediaItemId: eldenRing.id, status: 'in_progress' },
       { mediaItemId: bg3.id, status: 'on_hold' },

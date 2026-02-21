@@ -21,7 +21,7 @@ export const mediaTypeEnum = pgEnum('media_type', [
 ])
 
 export const entryStatusEnum = pgEnum('entry_status', [
-  'want_to',
+  'backlog',
   'in_progress',
   'completed',
   'dropped',
@@ -94,7 +94,7 @@ export const userEntries = pgTable('user_entries', {
   mediaItemId: integer('media_item_id')
     .notNull()
     .references(() => mediaItems.id, { onDelete: 'cascade' }),
-  status: entryStatusEnum('status').notNull().default('want_to'),
+  status: entryStatusEnum('status').notNull().default('backlog'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

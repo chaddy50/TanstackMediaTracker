@@ -21,7 +21,7 @@ const TYPE_FILTERS = [
 
 const STATUS_FILTERS = [
   { value: undefined, labelKey: 'library.allStatuses' },
-  { value: 'want_to', labelKey: 'status.want_to' },
+  { value: 'backlog', labelKey: 'status.backlog' },
   { value: 'in_progress', labelKey: 'status.in_progress' },
   { value: 'completed', labelKey: 'status.completed' },
   { value: 'dropped', labelKey: 'status.dropped' },
