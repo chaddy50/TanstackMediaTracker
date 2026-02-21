@@ -12,7 +12,7 @@ export const en = {
     video_game: 'Game',
   },
   status: {
-    want_to: 'Want To',
+    backlog: 'Backlog',
     in_progress: 'In Progress',
     completed: 'Completed',
     dropped: 'Dropped',
