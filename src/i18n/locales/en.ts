@@ -33,6 +33,16 @@ export const en = {
 		started: "Started",
 		completed: "Completed",
 	},
+	search: {
+		addButton: "+ Add",
+		placeholder: "Search for books, movies, TV shows, games...",
+		title: "Search & Add",
+		prompt: "Start typing to search.",
+		searching: "Searching...",
+		noResults: "No results found.",
+		addToLibrary: "Add",
+		adding: "Adding...",
+	},
 	metadata: {
 		author: "Author",
 		pageCount: "Pages",
