@@ -8,6 +8,7 @@ import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
 import { Toggle } from "#/components/ui/toggle";
 import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLibrary, type LibraryItem } from "#/server/library";
 import { SearchPopup } from "@/components/searchPopup/SearchPopup";
 
@@ -18,19 +19,19 @@ const searchSchema = z.object({
 
 const TYPE_FILTERS = [
 	{ value: undefined, labelKey: "library.allTypes" },
-	{ value: "book", labelKey: "mediaType.book" },
-	{ value: "movie", labelKey: "mediaType.movie" },
-	{ value: "tv_show", labelKey: "mediaType.tv_show" },
-	{ value: "video_game", labelKey: "mediaType.video_game" },
+	{ value: MediaItemType.BOOK, labelKey: "mediaType.book" },
+	{ value: MediaItemType.MOVIE, labelKey: "mediaType.movie" },
+	{ value: MediaItemType.TV_SHOW, labelKey: "mediaType.tv_show" },
+	{ value: MediaItemType.VIDEO_GAME, labelKey: "mediaType.video_game" },
 ] as const;
 
 const STATUS_FILTERS = [
 	{ value: undefined, labelKey: "library.allStatuses" },
-	{ value: "backlog", labelKey: "status.backlog" },
-	{ value: "in_progress", labelKey: "status.in_progress" },
-	{ value: "completed", labelKey: "status.completed" },
-	{ value: "dropped", labelKey: "status.dropped" },
-	{ value: "on_hold", labelKey: "status.on_hold" },
+	{ value: MediaItemStatus.BACKLOG, labelKey: "status.backlog" },
+	{ value: MediaItemStatus.IN_PROGRESS, labelKey: "status.in_progress" },
+	{ value: MediaItemStatus.COMPLETED, labelKey: "status.completed" },
+	{ value: MediaItemStatus.DROPPED, labelKey: "status.dropped" },
+	{ value: MediaItemStatus.ON_HOLD, labelKey: "status.on_hold" },
 ] as const;
 
 export const Route = createFileRoute("/")({

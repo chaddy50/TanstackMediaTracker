@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
+import { MediaItemType } from "#/lib/enums";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
 export function MetadataList({
@@ -25,7 +26,7 @@ export function MetadataList({
 	if (metadata) {
 		const m = metadata as Record<string, unknown>;
 		switch (type) {
-			case "book":
+			case MediaItemType.BOOK:
 				if (typeof m.author === "string")
 					fields.push({ label: t("metadata.author"), value: m.author });
 				if (typeof m.pageCount === "number")
@@ -39,7 +40,7 @@ export function MetadataList({
 						value: m.genres.join(", "),
 					});
 				break;
-			case "movie":
+			case MediaItemType.MOVIE:
 				if (typeof m.director === "string")
 					fields.push({ label: t("metadata.director"), value: m.director });
 				if (typeof m.runtime === "number")
@@ -53,7 +54,7 @@ export function MetadataList({
 						value: m.genres.join(", "),
 					});
 				break;
-			case "tv_show":
+			case MediaItemType.TV_SHOW:
 				if (typeof m.creator === "string")
 					fields.push({ label: t("metadata.creator"), value: m.creator });
 				if (typeof m.seasons === "number")
@@ -64,7 +65,7 @@ export function MetadataList({
 						value: m.genres.join(", "),
 					});
 				break;
-			case "video_game":
+			case MediaItemType.VIDEO_GAME:
 				if (typeof m.developer === "string")
 					fields.push({ label: t("metadata.developer"), value: m.developer });
 				if (Array.isArray(m.platforms) && m.platforms.length)

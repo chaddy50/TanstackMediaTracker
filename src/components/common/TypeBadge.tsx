@@ -1,8 +1,8 @@
-import type { mediaTypeEnum } from "@/db/schema";
 import { useTranslation } from "react-i18next";
+import type { MediaItemType } from "#/lib/enums";
 
 interface TypeBadgeProps {
-	type: (typeof mediaTypeEnum.enumValues)[number];
+	type: MediaItemType;
 }
 
 export function TypeBadge(props: TypeBadgeProps) {
