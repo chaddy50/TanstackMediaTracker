@@ -7,7 +7,7 @@ interface ArtworkProps {
 export function Artwork(props: ArtworkProps) {
 	const { mediaItemDetails } = props;
 	return (
-		<div className="shrink-0 w-full md:w-52">
+		<div className="shrink-0 w-full md:w-75">
 			<div className="aspect-2/3 bg-muted rounded-lg overflow-hidden">
 				{mediaItemDetails.coverImageUrl ? (
 					<img
