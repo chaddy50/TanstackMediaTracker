@@ -9,7 +9,7 @@ export function Description(props: DescriptionProps) {
 	return (
 		<>
 			{mediaItemDetails.description && (
-				<p className="text-gray-300 text-sm leading-relaxed">
+				<p className="text-muted-foreground text-sm leading-relaxed">
 					{mediaItemDetails.description}
 				</p>
 			)}

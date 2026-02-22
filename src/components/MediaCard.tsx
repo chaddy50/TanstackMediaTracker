@@ -19,9 +19,9 @@ export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
 			params={{ mediaItemId: String(mediaItem.id) }}
-			className="flex flex-col bg-gray-900 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-600 transition-colors"
+			className="flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors"
 		>
-			<div className="aspect-2/3 bg-gray-800 relative">
+			<div className="aspect-2/3 bg-muted relative">
 				{mediaItem.coverImageUrl ? (
 					<img
 						src={mediaItem.coverImageUrl}
@@ -32,19 +32,19 @@ export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 						}}
 					/>
 				) : (
-					<div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
+					<div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
 						No Cover
 					</div>
 				)}
 			</div>
 
 			<div className="p-3 flex flex-col gap-2">
-				<p className="text-sm font-medium text-white leading-snug line-clamp-2">
+				<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
 					{mediaItem.title}
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					<span className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+					<span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
 						{t(`mediaType.${mediaItem.type}`)}
 					</span>
 					<span

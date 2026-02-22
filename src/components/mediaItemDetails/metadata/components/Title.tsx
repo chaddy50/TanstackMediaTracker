@@ -13,7 +13,7 @@ export function Title(props: TitleProps) {
 			<h1 className="text-3xl font-bold leading-tight">
 				{mediaItemDetails.title}
 			</h1>
-			<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 shrink-0">
+			<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
 				{t(`mediaType.${mediaItemDetails.type}`)}
 			</span>
 		</div>

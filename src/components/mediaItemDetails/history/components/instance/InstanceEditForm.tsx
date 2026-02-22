@@ -66,12 +66,12 @@ export function InstanceEditForm({
 	const reviewTextId = useId();
 
 	return (
-		<div className="p-4 rounded-lg border border-gray-700 bg-gray-900 flex flex-col gap-5">
+		<div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-5">
 			{/* Rating */}
 			<div className="flex flex-col gap-2">
-				<span className="text-sm text-gray-400">
+				<span className="text-sm text-muted-foreground">
 					{t("mediaItemDetails.rating")}:{" "}
-					<span className="text-white font-medium">{rating.toFixed(1)}</span>
+					<span className="text-foreground font-medium">{rating.toFixed(1)}</span>
 				</span>
 				<Slider
 					min={0}
@@ -86,7 +86,7 @@ export function InstanceEditForm({
 			{/* Dates */}
 			<div className="grid grid-cols-2 gap-4 max-w-sm">
 				<div className="flex flex-col gap-1.5">
-					<label className="text-sm text-gray-400" htmlFor={startedAtId}>
+					<label className="text-sm text-muted-foreground" htmlFor={startedAtId}>
 						{t("mediaItemDetails.started")}
 					</label>
 					<Input
@@ -97,7 +97,7 @@ export function InstanceEditForm({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label className="text-sm text-gray-400" htmlFor={completedAtId}>
+					<label className="text-sm text-muted-foreground" htmlFor={completedAtId}>
 						{t("mediaItemDetails.completed")}
 					</label>
 					<Input
@@ -111,7 +111,7 @@ export function InstanceEditForm({
 
 			{/* Review */}
 			<div className="flex flex-col gap-1.5">
-				<label className="text-sm text-gray-400" htmlFor={reviewTextId}>
+				<label className="text-sm text-muted-foreground" htmlFor={reviewTextId}>
 					{t("mediaItemDetails.review")}
 				</label>
 				<Textarea

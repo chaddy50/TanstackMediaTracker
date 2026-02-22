@@ -8,7 +8,7 @@ export function Artwork(props: ArtworkProps) {
 	const { mediaItemDetails } = props;
 	return (
 		<div className="shrink-0 w-full md:w-52">
-			<div className="aspect-2/3 bg-gray-800 rounded-lg overflow-hidden">
+			<div className="aspect-2/3 bg-muted rounded-lg overflow-hidden">
 				{mediaItemDetails.coverImageUrl ? (
 					<img
 						src={mediaItemDetails.coverImageUrl}
@@ -16,7 +16,7 @@ export function Artwork(props: ArtworkProps) {
 						className="w-full h-full object-cover"
 					/>
 				) : (
-					<div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
+					<div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
 						No Cover
 					</div>
 				)}
