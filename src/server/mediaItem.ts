@@ -113,3 +113,11 @@ export const deleteInstance = createServerFn({ method: "POST" })
 			.delete(mediaItemInstances)
 			.where(eq(mediaItemInstances.id, instanceId));
 	});
+
+export const removeFromLibrary = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ metadataId: z.number() }))
+	.handler(async ({ data: { metadataId } }) => {
+		await db
+			.delete(mediaItemMetadata)
+			.where(eq(mediaItemMetadata.id, metadataId));
+	});

@@ -32,6 +32,7 @@ export const en = {
 		review: "Review",
 		started: "Started",
 		completed: "Completed",
+		removeFromLibrary: "Remove from Library",
 	},
 	search: {
 		addButton: "+ Add",
