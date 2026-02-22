@@ -9,6 +9,26 @@ import {
 	mediaItemStatusEnum,
 	mediaItems,
 } from "#/db/schema";
+import { MediaItemStatus } from "#/lib/enums";
+
+function inferStatusAfterInstanceEdit(
+	startedAt?: string | null,
+	completedAt?: string | null,
+) {
+	if (completedAt) return MediaItemStatus.COMPLETED;
+	if (startedAt) return MediaItemStatus.IN_PROGRESS;
+	return null;
+}
+
+type InstanceDateRow = { startedAt: string | null; completedAt: string | null };
+
+function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
+	if (remainingInstances.some((i) => i.startedAt && !i.completedAt))
+		return MediaItemStatus.IN_PROGRESS;
+	if (remainingInstances.some((i) => i.completedAt))
+		return MediaItemStatus.COMPLETED;
+	return MediaItemStatus.BACKLOG;
+}
 
 export const getMediaItemDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))
@@ -103,15 +123,47 @@ export const saveInstance = createServerFn({ method: "POST" })
 					.insert(mediaItemInstances)
 					.values({ mediaItemId: mediaItemId, ...values });
 			}
+
+			const newStatus = inferStatusAfterInstanceEdit(startedAt, completedAt);
+			if (newStatus) {
+				await db
+					.update(mediaItems)
+					.set({ status: newStatus })
+					.where(eq(mediaItems.id, mediaItemId));
+			}
 		},
 	);
 
 export const deleteInstance = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ instanceId: z.number() }))
 	.handler(async ({ data: { instanceId } }) => {
+		const [instanceBeingDeleted] = await db
+			.select({
+				mediaItemId: mediaItemInstances.mediaItemId,
+			})
+			.from(mediaItemInstances)
+			.where(eq(mediaItemInstances.id, instanceId));
+
+		if (!instanceBeingDeleted) return;
+
 		await db
 			.delete(mediaItemInstances)
 			.where(eq(mediaItemInstances.id, instanceId));
+
+		const remainingInstances = await db
+			.select({
+				startedAt: mediaItemInstances.startedAt,
+				completedAt: mediaItemInstances.completedAt,
+			})
+			.from(mediaItemInstances)
+			.where(
+				eq(mediaItemInstances.mediaItemId, instanceBeingDeleted.mediaItemId),
+			);
+
+		await db
+			.update(mediaItems)
+			.set({ status: inferStatusAfterInstanceDelete(remainingInstances) })
+			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
 	});
 
 export const removeFromLibrary = createServerFn({ method: "POST" })
