@@ -8,10 +8,10 @@ interface BackButtonProps {
 export function BackButton(props: BackButtonProps) {
 	const { caption, destination } = props;
 	return (
-		<div className="px-6 py-4 border-b border-gray-800">
+		<div className="px-6 py-4 border-b border-border">
 			<Link
 				to={destination}
-				className="text-gray-400 hover:text-white text-sm transition-colors"
+				className="text-muted-foreground hover:text-foreground text-sm transition-colors"
 			>
 				← {caption}
 			</Link>

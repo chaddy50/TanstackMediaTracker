@@ -88,8 +88,8 @@ export function MetadataList({
 			{fields.map(({ label, value }) => (
 				<Fragment key={label}>
 					<div className="flex gap-3">
-						<span className="text-gray-400 min-w-20 shrink-0">{label}</span>
-						<span className="text-gray-200">{value}</span>
+						<span className="text-muted-foreground min-w-20 shrink-0">{label}</span>
+						<span className="text-foreground">{value}</span>
 					</div>
 				</Fragment>
 			))}

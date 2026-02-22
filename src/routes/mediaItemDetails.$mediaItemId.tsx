@@ -15,7 +15,7 @@ function EntryDetailPage() {
 	const { t } = useTranslation();
 
 	return (
-		<div className="min-h-screen bg-gray-950 text-white">
+		<div className="min-h-screen bg-background text-foreground">
 			<BackButton
 				destination="/"
 				caption={t("mediaItemDetails.backToLibrary")}

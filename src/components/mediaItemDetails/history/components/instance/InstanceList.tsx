@@ -23,7 +23,7 @@ export function InstanceList(props: InstanceListProps) {
 
 	if (mediaItemDetails.instances.length === 0 && idBeingEdited !== "new") {
 		return (
-			<p className="text-gray-500 text-sm">
+			<p className="text-muted-foreground text-sm">
 				{t("mediaItemDetails.noInstances")}
 			</p>
 		);

@@ -43,12 +43,12 @@ function LibraryPage() {
 	const navigate = useNavigate();
 
 	return (
-		<div className="min-h-screen bg-gray-950 text-white">
-			<header className="px-6 py-4 border-b border-gray-800">
+		<div className="min-h-screen bg-background text-foreground">
+			<header className="px-6 py-4 border-b border-border">
 				<h1 className="text-2xl font-bold">{t("library.title")}</h1>
 			</header>
 
-			<div className="px-6 py-4 border-b border-gray-800 flex flex-col gap-3">
+			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
 				<div className="flex gap-2 flex-wrap">
 					{TYPE_FILTERS.map((filter) => (
 						<Toggle
@@ -88,7 +88,7 @@ function LibraryPage() {
 
 			<main className="px-6 py-6">
 				{mediaItems.length === 0 ? (
-					<p className="text-gray-500 text-center py-12">
+					<p className="text-muted-foreground text-center py-12">
 						{t("library.empty")}
 					</p>
 				) : (
