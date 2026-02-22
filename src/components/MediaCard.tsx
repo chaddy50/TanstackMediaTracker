@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
+import { RatingBadge } from "#/components/common/RatingBadge";
 import type { LibraryItem } from "#/server/library";
 
 const STATUS_CLASSES: Record<string, string> = {
@@ -55,10 +56,8 @@ export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 				</div>
 
 				{mediaItem.rating && (
-					<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-400/15 dark:text-yellow-300 self-start">
-						★ {mediaItem.rating}
-					</span>
-				)}
+				<RatingBadge rating={mediaItem.rating} className="self-start" />
+			)}
 			</div>
 		</Link>
 	);

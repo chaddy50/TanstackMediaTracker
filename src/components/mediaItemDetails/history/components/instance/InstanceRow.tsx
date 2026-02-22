@@ -1,8 +1,9 @@
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
-import { Button } from "#/components/ui/button";
-import { formatDateRange } from "#/lib/utils";
-import type { MediaItemDetails } from "@/server/mediaItem";
+import { RatingBadge } from '#/components/common/RatingBadge';
+import { Button } from '#/components/ui/button';
+import { formatDateRange } from '#/lib/utils';
+import type { MediaItemDetails } from '@/server/mediaItem';
 
 export function InstanceRow({
 	index,
@@ -21,11 +22,7 @@ export function InstanceRow({
 			<div className="flex flex-col gap-1.5 min-w-0">
 				<div className="flex items-center gap-3 flex-wrap">
 					<span className="text-sm font-medium text-muted-foreground">#{index}</span>
-					{instance.rating && (
-						<span className="text-yellow-400 text-sm font-medium">
-							★ {instance.rating}
-						</span>
-					)}
+					{instance.rating && <RatingBadge rating={instance.rating} />}
 					{dateRange && (
 						<span className="text-muted-foreground text-sm">{dateRange}</span>
 					)}
