@@ -55,9 +55,9 @@ export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 				</div>
 
 				{mediaItem.rating && (
-					<p className="text-sm text-yellow-400 font-medium">
+					<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-400/15 dark:text-yellow-300 self-start">
 						★ {mediaItem.rating}
-					</p>
+					</span>
 				)}
 			</div>
 		</Link>
