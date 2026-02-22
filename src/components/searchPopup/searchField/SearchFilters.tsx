@@ -1,17 +1,15 @@
 import { Toggle } from "@/components/ui/toggle";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { MediaItemType } from "#/lib/enums";
 import type { SearchType } from "../SearchPopup";
 
 const TYPE_OPTIONS = [
 	{ value: "all" as SearchType, labelKey: "library.allTypes" as const },
-	{ value: "book" as SearchType, labelKey: "mediaType.book" as const },
-	{ value: "movie" as SearchType, labelKey: "mediaType.movie" as const },
-	{ value: "tv_show" as SearchType, labelKey: "mediaType.tv_show" as const },
-	{
-		value: "video_game" as SearchType,
-		labelKey: "mediaType.video_game" as const,
-	},
+	{ value: MediaItemType.BOOK as SearchType, labelKey: "mediaType.book" as const },
+	{ value: MediaItemType.MOVIE as SearchType, labelKey: "mediaType.movie" as const },
+	{ value: MediaItemType.TV_SHOW as SearchType, labelKey: "mediaType.tv_show" as const },
+	{ value: MediaItemType.VIDEO_GAME as SearchType, labelKey: "mediaType.video_game" as const },
 ];
 
 interface SearchFiltersProps {

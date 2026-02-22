@@ -11,21 +11,23 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+
 // --- Enums ---
 
 export const mediaTypeEnum = pgEnum("media_type", [
-	"book",
-	"movie",
-	"tv_show",
-	"video_game",
+	MediaItemType.BOOK,
+	MediaItemType.MOVIE,
+	MediaItemType.TV_SHOW,
+	MediaItemType.VIDEO_GAME,
 ]);
 
 export const mediaItemStatusEnum = pgEnum("media_item_status", [
-	"backlog",
-	"in_progress",
-	"completed",
-	"dropped",
-	"on_hold",
+	MediaItemStatus.BACKLOG,
+	MediaItemStatus.IN_PROGRESS,
+	MediaItemStatus.COMPLETED,
+	MediaItemStatus.DROPPED,
+	MediaItemStatus.ON_HOLD,
 ]);
 
 // --- Metadata types (typed at the TS level; JSONB is schemaless in Postgres) ---

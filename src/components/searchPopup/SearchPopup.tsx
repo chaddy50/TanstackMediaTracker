@@ -4,7 +4,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { mediaTypeEnum } from "#/db/schema";
+import type { MediaItemType } from "#/lib/enums";
 import { type SearchResultWithStatus, searchMedia } from "#/server/search";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,7 @@ import { SearchEntryField } from "./searchField/SearchEntryField";
 import { SearchFilters } from "./searchField/SearchFilters";
 import { SearchResults } from "./searchResults/SearchResults";
 
-export type SearchType = "all" | (typeof mediaTypeEnum.enumValues)[number];
+export type SearchType = "all" | MediaItemType;
 
 interface SearchPopupProps {
 	isOpen: boolean;

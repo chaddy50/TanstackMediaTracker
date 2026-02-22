@@ -3,22 +3,18 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
-import {
-	mediaItemMetadata,
-	type mediaItemStatusEnum,
-	mediaItems,
-	mediaTypeEnum,
-} from "#/db/schema";
+import { mediaItemMetadata, mediaItems, mediaTypeEnum } from "#/db/schema";
 import * as igdb from "#/lib/api/igdb";
 import * as openLibrary from "#/lib/api/openLibrary";
 import * as tmdb from "#/lib/api/tmdb";
 import type { ExternalSearchResult } from "#/lib/api/types";
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
 export type SearchResultWithStatus = ExternalSearchResult & {
 	mediaItemId?: number;
-	status?: (typeof mediaItemStatusEnum.enumValues)[number];
+	status?: MediaItemStatus;
 };
 
 export const searchMedia = createServerFn({ method: "GET" })
@@ -32,15 +28,15 @@ export const searchMedia = createServerFn({ method: "GET" })
 		// Call relevant external APIs in parallel
 		const apiCalls: Promise<ExternalSearchResult[]>[] = [];
 
-		if (type === "book" || type === "all") {
+		if (type === MediaItemType.BOOK || type === "all") {
 			apiCalls.push(openLibrary.search(query));
 		}
-		if (type === "movie" || type === "all") {
-			apiCalls.push(tmdb.search(query, type === "all" ? "all" : "movie"));
-		} else if (type === "tv_show") {
-			apiCalls.push(tmdb.search(query, "tv_show"));
+		if (type === MediaItemType.MOVIE || type === "all") {
+			apiCalls.push(tmdb.search(query, type === "all" ? "all" : MediaItemType.MOVIE));
+		} else if (type === MediaItemType.TV_SHOW) {
+			apiCalls.push(tmdb.search(query, MediaItemType.TV_SHOW));
 		}
-		if (type === "video_game" || type === "all") {
+		if (type === MediaItemType.VIDEO_GAME || type === "all") {
 			apiCalls.push(igdb.search(query));
 		}
 
@@ -152,7 +148,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 		// Create the user's library entry
 		const [newItem] = await db
 			.insert(mediaItems)
-			.values({ mediaItemMetadataId: metadataId, status: "backlog" })
+			.values({ mediaItemMetadataId: metadataId, status: MediaItemStatus.BACKLOG })
 			.returning({ id: mediaItems.id });
 
 		if (!newItem) throw new Error("Failed to create library entry");

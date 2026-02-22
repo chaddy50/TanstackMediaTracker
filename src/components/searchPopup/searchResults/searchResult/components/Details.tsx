@@ -1,10 +1,10 @@
+import type { MediaItemType } from "#/lib/enums";
 import { TypeBadge } from "@/components/common/TypeBadge";
-import type { mediaTypeEnum } from "@/db/schema";
 
 interface DetailsProps {
 	title: string;
 	year: string | undefined;
-	type: (typeof mediaTypeEnum.enumValues)[number];
+	type: MediaItemType;
 }
 
 export function Details(props: DetailsProps) {
