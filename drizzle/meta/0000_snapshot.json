@@ -1,11 +1,11 @@
 {
-  "id": "f0220e74-8358-4c51-b43e-7078bfb7eade",
+  "id": "155ab091-88de-41ec-b796-bb6cbde98caf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.media_instances": {
-      "name": "media_instances",
+    "public.media_item_instances": {
+      "name": "media_item_instances",
       "schema": "",
       "columns": {
         "id": {
@@ -14,8 +14,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "user_entry_id": {
-          "name": "user_entry_id",
+        "media_item_id": {
+          "name": "media_item_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -61,12 +61,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "media_instances_user_entry_id_user_entries_id_fk": {
-          "name": "media_instances_user_entry_id_user_entries_id_fk",
-          "tableFrom": "media_instances",
-          "tableTo": "user_entries",
+        "media_item_instances_media_item_id_media_items_id_fk": {
+          "name": "media_item_instances_media_item_id_media_items_id_fk",
+          "tableFrom": "media_item_instances",
+          "tableTo": "media_items",
           "columnsFrom": [
-            "user_entry_id"
+            "media_item_id"
           ],
           "columnsTo": [
             "id"
@@ -81,8 +81,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.media_items": {
-      "name": "media_items",
+    "public.media_metadata": {
+      "name": "media_metadata",
       "schema": "",
       "columns": {
         "id": {
@@ -149,8 +149,8 @@
         }
       },
       "indexes": {
-        "media_items_external_unique": {
-          "name": "media_items_external_unique",
+        "media_item_metadata_external_unique": {
+          "name": "media_item_metadata_external_unique",
           "columns": [
             {
               "expression": "external_id",
@@ -178,8 +178,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user_entries": {
-      "name": "user_entries",
+    "public.media_items": {
+      "name": "media_items",
       "schema": "",
       "columns": {
         "id": {
@@ -188,8 +188,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "media_item_id": {
-          "name": "media_item_id",
+        "media_item_metadata_id": {
+          "name": "media_item_metadata_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -200,7 +200,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'want_to'"
+          "default": "'backlog'"
         },
         "created_at": {
           "name": "created_at",
@@ -219,12 +219,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_entries_media_item_id_media_items_id_fk": {
-          "name": "user_entries_media_item_id_media_items_id_fk",
-          "tableFrom": "user_entries",
-          "tableTo": "media_items",
+        "media_items_media_item_metadata_id_media_metadata_id_fk": {
+          "name": "media_items_media_item_metadata_id_media_metadata_id_fk",
+          "tableFrom": "media_items",
+          "tableTo": "media_metadata",
           "columnsFrom": [
-            "media_item_id"
+            "media_item_metadata_id"
           ],
           "columnsTo": [
             "id"
@@ -245,7 +245,7 @@
       "name": "entry_status",
       "schema": "public",
       "values": [
-        "want_to",
+        "backlog",
         "in_progress",
         "completed",
         "dropped",

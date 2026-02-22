@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MediaItemDetailsMediaItemIdRouteImport } from './routes/mediaItemDetails.$mediaItemId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -17,6 +18,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MediaItemDetailsMediaItemIdRoute =
+  MediaItemDetailsMediaItemIdRouteImport.update({
+    id: '/mediaItemDetails/$mediaItemId',
+    path: '/mediaItemDetails/$mediaItemId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -25,27 +32,31 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/auth/$'
+  fullPaths: '/' | '/mediaItemDetails/$mediaItemId' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/auth/$'
-  id: '__root__' | '/' | '/api/auth/$'
+  to: '/' | '/mediaItemDetails/$mediaItemId' | '/api/auth/$'
+  id: '__root__' | '/' | '/mediaItemDetails/$mediaItemId' | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MediaItemDetailsMediaItemIdRoute: typeof MediaItemDetailsMediaItemIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -56,6 +67,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mediaItemDetails/$mediaItemId': {
+      id: '/mediaItemDetails/$mediaItemId'
+      path: '/mediaItemDetails/$mediaItemId'
+      fullPath: '/mediaItemDetails/$mediaItemId'
+      preLoaderRoute: typeof MediaItemDetailsMediaItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -70,6 +88,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MediaItemDetailsMediaItemIdRoute: MediaItemDetailsMediaItemIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
