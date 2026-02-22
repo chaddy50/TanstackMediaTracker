@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
+import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
 import { Toggle } from "#/components/ui/toggle";
@@ -48,12 +49,14 @@ function LibraryPage() {
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<header className="px-6 py-4 border-b border-border flex items-center justify-between">
-				<h1 className="text-2xl font-bold">{t("library.title")}</h1>
-				<Button onClick={() => setIsSearchOpen(true)}>
-					{t("search.addButton")}
-				</Button>
-			</header>
+			<PageHeader
+				left={<h1 className="text-2xl font-bold">{t("library.title")}</h1>}
+				right={
+					<Button onClick={() => setIsSearchOpen(true)}>
+						{t("search.addButton")}
+					</Button>
+				}
+			/>
 			<SearchPopup
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
