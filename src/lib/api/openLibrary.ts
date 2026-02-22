@@ -34,7 +34,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		type: "book" as const,
 		title: doc.title,
 		coverImageUrl: doc.cover_i
-			? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+			? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
 			: undefined,
 		releaseDate: doc.first_publish_year
 			? `${doc.first_publish_year}-01-01`

@@ -50,7 +50,7 @@ async function searchMovies(query: string): Promise<ExternalSearchResult[]> {
 		title: movie.title,
 		description: movie.overview || undefined,
 		coverImageUrl: movie.poster_path
-			? `https://image.tmdb.org/t/p/w185${movie.poster_path}`
+			? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
 			: undefined,
 		releaseDate: movie.release_date || undefined,
 		metadata: {},
@@ -79,7 +79,7 @@ async function searchTvShows(query: string): Promise<ExternalSearchResult[]> {
 		title: show.name,
 		description: show.overview || undefined,
 		coverImageUrl: show.poster_path
-			? `https://image.tmdb.org/t/p/w185${show.poster_path}`
+			? `https://image.tmdb.org/t/p/w500${show.poster_path}`
 			: undefined,
 		releaseDate: show.first_air_date || undefined,
 		metadata: {},

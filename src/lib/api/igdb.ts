@@ -78,7 +78,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		title: game.name,
 		description: game.summary || undefined,
 		coverImageUrl: game.cover?.url
-			? `https:${game.cover.url.replace("t_thumb", "t_cover_big")}`
+			? `https:${game.cover.url.replace("t_thumb", "t_cover_big_2x")}`
 			: undefined,
 		releaseDate: game.first_release_date
 			? new Date(game.first_release_date * 1000).toISOString().split("T")[0]
