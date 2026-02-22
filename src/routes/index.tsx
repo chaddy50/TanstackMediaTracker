@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import { MediaCard } from '#/components/MediaCard'
+import { Toggle } from '#/components/ui/toggle'
 import { entryStatusEnum, mediaTypeEnum } from '#/db/schema'
 import { getLibrary, type LibraryEntry } from '#/server/library'
 
@@ -39,6 +40,7 @@ function LibraryPage() {
   const entries: LibraryEntry[] = Route.useLoaderData()
   const { type, status } = Route.useSearch()
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -49,35 +51,31 @@ function LibraryPage() {
       <div className="px-6 py-4 border-b border-gray-800 flex flex-col gap-3">
         <div className="flex gap-2 flex-wrap">
           {TYPE_FILTERS.map((filter) => (
-            <Link
+            <Toggle
               key={filter.labelKey}
-              to="/"
-              search={(prev) => ({ ...prev, type: filter.value })}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                type === filter.value
-                  ? 'bg-white text-gray-950'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              variant="outline"
+              pressed={type === filter.value}
+              onPressedChange={() =>
+                navigate({ to: '/', search: (prev) => ({ ...prev, type: filter.value }) })
+              }
             >
               {t(filter.labelKey)}
-            </Link>
+            </Toggle>
           ))}
         </div>
 
         <div className="flex gap-2 flex-wrap">
           {STATUS_FILTERS.map((filter) => (
-            <Link
+            <Toggle
               key={filter.labelKey}
-              to="/"
-              search={(prev) => ({ ...prev, status: filter.value })}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                status === filter.value
-                  ? 'bg-white text-gray-950'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              variant="outline"
+              pressed={status === filter.value}
+              onPressedChange={() =>
+                navigate({ to: '/', search: (prev) => ({ ...prev, status: filter.value }) })
+              }
             >
               {t(filter.labelKey)}
-            </Link>
+            </Toggle>
           ))}
         </div>
       </div>
