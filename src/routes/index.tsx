@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { MediaCard } from "#/components/MediaCard";
+import { Button } from "#/components/ui/button";
 import { Toggle } from "#/components/ui/toggle";
 import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
 import { getLibrary, type LibraryItem } from "#/server/library";
+import { SearchPopup } from "@/components/searchPopup/SearchPopup";
 
 const searchSchema = z.object({
 	type: z.enum(mediaTypeEnum.enumValues).optional(),
@@ -41,12 +44,20 @@ function LibraryPage() {
 	const { type, status } = Route.useSearch();
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<header className="px-6 py-4 border-b border-border">
+			<header className="px-6 py-4 border-b border-border flex items-center justify-between">
 				<h1 className="text-2xl font-bold">{t("library.title")}</h1>
+				<Button onClick={() => setIsSearchOpen(true)}>
+					{t("search.addButton")}
+				</Button>
 			</header>
+			<SearchPopup
+				isOpen={isSearchOpen}
+				onClose={() => setIsSearchOpen(false)}
+			/>
 
 			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
 				<div className="flex gap-2 flex-wrap">

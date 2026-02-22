@@ -3,15 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import { RatingBadge } from "#/components/common/RatingBadge";
 import type { LibraryItem } from "#/server/library";
-
-const STATUS_CLASSES: Record<string, string> = {
-	want_to: "bg-gray-600 text-gray-200",
-	in_progress: "bg-blue-600 text-blue-100",
-	completed: "bg-green-700 text-green-100",
-	dropped: "bg-rose-700 text-rose-100",
-	on_hold: "bg-amber-600 text-amber-100",
-	backlog: "bg-gray-700 text-gray-300",
-};
+import { StatusBadge } from "./common/StatusBadge";
+import { TypeBadge } from "./common/TypeBadge";
 
 export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 	const { t } = useTranslation();
@@ -45,19 +38,13 @@ export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					<span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-						{t(`mediaType.${mediaItem.type}`)}
-					</span>
-					<span
-						className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CLASSES[mediaItem.status]}`}
-					>
-						{t(`status.${mediaItem.status}`)}
-					</span>
+					<TypeBadge type={mediaItem.type} />
+					<StatusBadge status={mediaItem.status} />
 				</div>
 
 				{mediaItem.rating && (
-				<RatingBadge rating={mediaItem.rating} className="self-start" />
-			)}
+					<RatingBadge rating={mediaItem.rating} className="self-start" />
+				)}
 			</div>
 		</Link>
 	);
