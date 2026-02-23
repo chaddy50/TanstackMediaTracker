@@ -37,12 +37,15 @@ type BookMetadata = {
 	isbn?: string;
 	pageCount?: number;
 	genres?: string[];
+	series?: string;
+	seriesBookNumber?: string;
 };
 
 type MovieMetadata = {
 	director?: string;
 	runtime?: number; // minutes
 	genres?: string[];
+	series?: string;
 };
 
 type TvMetadata = {
@@ -55,6 +58,7 @@ type GameMetadata = {
 	developer?: string;
 	platforms?: string[];
 	genres?: string[];
+	series?: string;
 };
 
 type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;

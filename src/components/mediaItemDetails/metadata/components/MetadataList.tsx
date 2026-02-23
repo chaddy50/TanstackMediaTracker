@@ -29,6 +29,13 @@ export function MetadataList({
 			case MediaItemType.BOOK:
 				if (typeof m.author === "string")
 					fields.push({ label: t("metadata.author"), value: m.author });
+				if (typeof m.series === "string") {
+					const seriesLabel =
+						typeof m.seriesBookNumber === "string"
+							? `${m.series} #${m.seriesBookNumber}`
+							: m.series;
+					fields.push({ label: t("metadata.series"), value: seriesLabel });
+				}
 				if (typeof m.pageCount === "number")
 					fields.push({
 						label: t("metadata.pageCount"),
@@ -41,6 +48,8 @@ export function MetadataList({
 					});
 				break;
 			case MediaItemType.MOVIE:
+				if (typeof m.series === "string")
+					fields.push({ label: t("metadata.series"), value: m.series });
 				if (typeof m.director === "string")
 					fields.push({ label: t("metadata.director"), value: m.director });
 				if (typeof m.runtime === "number")
@@ -66,6 +75,8 @@ export function MetadataList({
 					});
 				break;
 			case MediaItemType.VIDEO_GAME:
+				if (typeof m.series === "string")
+					fields.push({ label: t("metadata.series"), value: m.series });
 				if (typeof m.developer === "string")
 					fields.push({ label: t("metadata.developer"), value: m.developer });
 				if (Array.isArray(m.platforms) && m.platforms.length)
