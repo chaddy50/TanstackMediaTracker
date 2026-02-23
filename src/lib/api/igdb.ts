@@ -12,6 +12,7 @@ type IgdbGame = {
 	cover?: { url: string };
 	first_release_date?: number; // Unix timestamp
 	genres?: { name: string }[];
+	collections?: { name: string }[];
 };
 
 let cachedToken: { accessToken: string; expiresAt: number } | null = null;
@@ -56,7 +57,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 
 	const accessToken = await getAccessToken();
 
-	const body = `fields name,cover.url,first_release_date,summary,genres.name; search "${query.replace(/"/g, "")}"; limit 10;`;
+	const body = `fields name,cover.url,first_release_date,summary,genres.name,collections.name; search "${query.replace(/"/g, "")}"; limit 10;`;
 
 	const result = await fetch("https://api.igdb.com/v4/games", {
 		method: "POST",
@@ -85,6 +86,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 			: undefined,
 		metadata: {
 			genres: game.genres?.map((g) => g.name),
+			...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
 		},
 	}));
 }

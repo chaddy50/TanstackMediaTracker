@@ -4,9 +4,10 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import { mediaItemMetadata, mediaItems, mediaTypeEnum } from "#/db/schema";
+import * as hardcover from "#/lib/api/hardcover";
 import * as igdb from "#/lib/api/igdb";
-import * as openLibrary from "#/lib/api/openLibrary";
 import * as tmdb from "#/lib/api/tmdb";
+
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 
@@ -29,7 +30,7 @@ export const searchMedia = createServerFn({ method: "GET" })
 		const apiCalls: Promise<ExternalSearchResult[]>[] = [];
 
 		if (type === MediaItemType.BOOK || type === "all") {
-			apiCalls.push(openLibrary.search(query));
+			apiCalls.push(hardcover.search(query));
 		}
 		if (type === MediaItemType.MOVIE || type === "all") {
 			apiCalls.push(tmdb.search(query, type === "all" ? "all" : MediaItemType.MOVIE));
@@ -106,6 +107,16 @@ export const addToLibrary = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		// For TMDB movies, enrich metadata with collection/franchise info before saving.
+		// belongs_to_collection is only on the movie details endpoint, not search.
+		let metadata = data.metadata;
+		if (data.externalSource === "tmdb" && data.type === "movie") {
+			const collectionInfo = await tmdb.fetchMovieCollection(data.externalId);
+			if (collectionInfo.series) {
+				metadata = { ...metadata, ...collectionInfo };
+			}
+		}
+
 		// Upsert metadata (no-op on conflict, then fetch existing if needed)
 		const inserted = await db
 			.insert(mediaItemMetadata)
@@ -117,7 +128,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 				description: data.description ?? null,
 				coverImageUrl: data.coverImageUrl ?? null,
 				releaseDate: data.releaseDate ?? null,
-				metadata: data.metadata,
+				metadata,
 			})
 			.onConflictDoNothing()
 			.returning({ id: mediaItemMetadata.id });

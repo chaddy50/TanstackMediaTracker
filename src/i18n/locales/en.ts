@@ -54,5 +54,6 @@ export const en = {
 		developer: "Developer",
 		platforms: "Platforms",
 		genres: "Genres",
+		series: "Series",
 	},
 } as const;

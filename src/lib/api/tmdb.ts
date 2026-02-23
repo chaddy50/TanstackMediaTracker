@@ -86,6 +86,30 @@ async function searchTvShows(query: string): Promise<ExternalSearchResult[]> {
 	}));
 }
 
+type TmdbMovieDetails = {
+	belongs_to_collection?: { name: string } | null;
+};
+
+export async function fetchMovieCollection(
+	movieId: string,
+): Promise<{ series?: string }> {
+	try {
+		const params = new URLSearchParams({ api_key: getApiKey() });
+		const res = await fetch(
+			`https://api.themoviedb.org/3/movie/${movieId}?${params.toString()}`,
+		);
+		if (!res.ok) return {};
+
+		const data: TmdbMovieDetails = await res.json();
+		if (data.belongs_to_collection?.name) {
+			return { series: data.belongs_to_collection.name };
+		}
+		return {};
+	} catch {
+		return {};
+	}
+}
+
 export async function search(
 	query: string,
 	type: "movie" | "tv_show" | "all",
