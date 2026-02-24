@@ -1,9 +1,9 @@
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { RatingField } from "#/components/common/RatingField";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Slider } from "#/components/ui/slider";
 import { Textarea } from "#/components/ui/textarea";
 import {
 	deleteInstance,
@@ -23,8 +23,8 @@ export function InstanceEditForm({
 	onCancel: () => void;
 }) {
 	const { t } = useTranslation();
-	const [rating, setRating] = useState(
-		instance?.rating ? parseFloat(instance.rating) : 7,
+	const [rating, setRating] = useState<number | null>(
+		instance?.rating ? parseFloat(instance.rating) : null,
 	);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
 	const [startedAt, setStartedAt] = useState(instance?.startedAt ?? "");
@@ -38,7 +38,7 @@ export function InstanceEditForm({
 				data: {
 					mediaItemId: mediaItemId,
 					instanceId: instance?.id,
-					rating: rating.toFixed(1),
+					rating: rating !== null ? rating.toFixed(1) : undefined,
 					reviewText: reviewText || undefined,
 					startedAt: startedAt || undefined,
 					completedAt: completedAt || undefined,
@@ -68,25 +68,15 @@ export function InstanceEditForm({
 	return (
 		<div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-5">
 			{/* Rating */}
-			<div className="flex flex-col gap-2">
-				<span className="text-sm text-muted-foreground">
-					{t("mediaItemDetails.rating")}:{" "}
-					<span className="text-foreground font-medium">{rating.toFixed(1)}</span>
-				</span>
-				<Slider
-					min={0}
-					max={10}
-					step={0.5}
-					value={[rating]}
-					onValueChange={(vals) => setRating(vals[0] ?? rating)}
-					className="max-w-sm"
-				/>
-			</div>
+			<RatingField rating={rating} onSave={async (v) => setRating(v)} />
 
 			{/* Dates */}
 			<div className="grid grid-cols-2 gap-4 max-w-sm">
 				<div className="flex flex-col gap-1.5">
-					<label className="text-sm text-muted-foreground" htmlFor={startedAtId}>
+					<label
+						className="text-sm text-muted-foreground"
+						htmlFor={startedAtId}
+					>
 						{t("mediaItemDetails.started")}
 					</label>
 					<Input
@@ -97,7 +87,10 @@ export function InstanceEditForm({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<label className="text-sm text-muted-foreground" htmlFor={completedAtId}>
+					<label
+						className="text-sm text-muted-foreground"
+						htmlFor={completedAtId}
+					>
 						{t("mediaItemDetails.completed")}
 					</label>
 					<Input

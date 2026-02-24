@@ -28,6 +28,8 @@ export const en = {
 		save: "Save",
 		cancel: "Cancel",
 		delete: "Delete",
+		addRating: "Add Rating",
+		removeRating: "Remove Rating",
 		rating: "Rating",
 		review: "Review",
 		started: "Started",
@@ -43,6 +45,10 @@ export const en = {
 		noResults: "No results found.",
 		addToLibrary: "Add",
 		adding: "Adding...",
+	},
+	seriesDetails: {
+		items: "Items in Series",
+		rateSeries: "Rate Series",
 	},
 	metadata: {
 		author: "Author",

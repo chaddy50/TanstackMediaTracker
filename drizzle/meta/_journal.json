@@ -15,6 +15,13 @@
       "when": 1771728087530,
       "tag": "0001_right_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771887123617,
+      "tag": "0002_redundant_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }
