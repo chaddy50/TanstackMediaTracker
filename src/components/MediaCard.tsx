@@ -32,7 +32,7 @@ export function MediaCard({ mediaItem }: MediaCardProps) {
 					<img
 						src={mediaItem.coverImageUrl}
 						alt={mediaItem.title}
-						className="w-full h-full object-cover"
+						className="w-full h-full object-fill"
 						onError={(e) => {
 							e.currentTarget.style.display = "none";
 						}}

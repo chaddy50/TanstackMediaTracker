@@ -13,7 +13,7 @@ export function Artwork(props: ArtworkProps) {
 					<img
 						src={mediaItemDetails.coverImageUrl}
 						alt={mediaItemDetails.title}
-						className="w-full h-full object-cover"
+						className="w-full h-full object-fill"
 					/>
 				) : (
 					<div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
