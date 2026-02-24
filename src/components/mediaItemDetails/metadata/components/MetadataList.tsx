@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,13 +9,19 @@ export function MetadataList({
 	type,
 	metadata,
 	releaseDate,
+	seriesId,
 }: {
 	type: MediaItemDetails["type"];
 	metadata: MediaItemDetails["metadata"];
 	releaseDate: MediaItemDetails["releaseDate"];
+	seriesId?: number | null;
 }) {
 	const { t } = useTranslation();
-	const fields: Array<{ label: string; value: string }> = [];
+	const fields: Array<{
+		label: string;
+		value: string;
+		shouldSeriesNameBeLink?: boolean;
+	}> = [];
 
 	if (releaseDate) {
 		fields.push({
@@ -34,7 +41,11 @@ export function MetadataList({
 						typeof m.seriesBookNumber === "string"
 							? `${m.series} #${m.seriesBookNumber}`
 							: m.series;
-					fields.push({ label: t("metadata.series"), value: seriesLabel });
+					fields.push({
+						label: t("metadata.series"),
+						value: seriesLabel,
+						shouldSeriesNameBeLink: !!seriesId,
+					});
 				}
 				if (typeof m.pageCount === "number")
 					fields.push({
@@ -49,7 +60,11 @@ export function MetadataList({
 				break;
 			case MediaItemType.MOVIE:
 				if (typeof m.series === "string")
-					fields.push({ label: t("metadata.series"), value: m.series });
+					fields.push({
+						label: t("metadata.series"),
+						value: m.series,
+						shouldSeriesNameBeLink: !!seriesId,
+					});
 				if (typeof m.director === "string")
 					fields.push({ label: t("metadata.director"), value: m.director });
 				if (typeof m.runtime === "number")
@@ -76,7 +91,11 @@ export function MetadataList({
 				break;
 			case MediaItemType.VIDEO_GAME:
 				if (typeof m.series === "string")
-					fields.push({ label: t("metadata.series"), value: m.series });
+					fields.push({
+						label: t("metadata.series"),
+						value: m.series,
+						shouldSeriesNameBeLink: !!seriesId,
+					});
 				if (typeof m.developer === "string")
 					fields.push({ label: t("metadata.developer"), value: m.developer });
 				if (Array.isArray(m.platforms) && m.platforms.length)
@@ -97,11 +116,23 @@ export function MetadataList({
 
 	return (
 		<div className="flex flex-col gap-1.5 text-sm">
-			{fields.map(({ label, value }) => (
+			{fields.map(({ label, value, shouldSeriesNameBeLink }) => (
 				<Fragment key={label}>
 					<div className="flex gap-3">
-						<span className="text-muted-foreground min-w-20 shrink-0">{label}</span>
-						<span className="text-foreground">{value}</span>
+						<span className="text-muted-foreground min-w-20 shrink-0">
+							{label}
+						</span>
+						{shouldSeriesNameBeLink && seriesId ? (
+							<Link
+								to="/series/$seriesId"
+								params={{ seriesId: String(seriesId) }}
+								className="text-foreground hover:underline"
+							>
+								{value}
+							</Link>
+						) : (
+							<span className="text-foreground">{value}</span>
+						)}
 					</div>
 				</Fragment>
 			))}

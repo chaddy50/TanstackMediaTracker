@@ -37,6 +37,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.select({
 				id: mediaItems.id,
 				status: mediaItems.status,
+				seriesId: mediaItems.seriesId,
 				metadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,

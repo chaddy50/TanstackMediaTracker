@@ -1,15 +1,24 @@
 import { RatingBadge } from "#/components/common/RatingBadge";
-import type { LibraryItem } from "#/server/library";
+import type { MediaItemType } from "@/lib/enums";
 import { Link } from "@tanstack/react-router";
 import { StatusBadge } from "./common/StatusBadge";
 import { TypeBadge } from "./common/TypeBadge";
 
-export function MediaCard({ mediaItem }: { mediaItem: LibraryItem }) {
+type MediaCardItem = {
+	id: number;
+	status: string;
+	title: string;
+	type: MediaItemType;
+	coverImageUrl: string | null;
+	rating: string | null;
+};
+
+export function MediaCard({ mediaItem }: { mediaItem: MediaCardItem }) {
 	return (
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
 			params={{ mediaItemId: String(mediaItem.id) }}
-			className="flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors md:w-60"
+			className="flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors"
 		>
 			<div className="aspect-2/3 bg-muted relative">
 				{mediaItem.coverImageUrl ? (

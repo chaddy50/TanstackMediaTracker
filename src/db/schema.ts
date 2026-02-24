@@ -66,6 +66,23 @@ type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
 // --- Tables ---
 
 /**
+ * A named series (e.g. "The Lord of the Rings", "Star Wars").
+ * Holds the user's overall status and rating for the whole series.
+ */
+export const series = pgTable("series", {
+	id: serial("id").primaryKey(),
+	name: text("name").notNull(),
+	type: mediaTypeEnum("type").notNull(),
+	status: mediaItemStatusEnum("status").notNull().default("backlog"),
+	rating: decimal("rating", { precision: 3, scale: 1 }),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.notNull()
+		.$onUpdateFn(() => new Date()),
+});
+
+/**
  * Stores media data fetched from external APIs (TMDB, IGDB, Open Library).
  * Acts as a local cache — once fetched, never fetched again.
  */
@@ -103,6 +120,9 @@ export const mediaItems = pgTable("media_items", {
 	mediaItemMetadataId: integer("media_item_metadata_id")
 		.notNull()
 		.references(() => mediaItemMetadata.id, { onDelete: "cascade" }),
+	seriesId: integer("series_id").references(() => series.id, {
+		onDelete: "set null",
+	}),
 	status: mediaItemStatusEnum("status").notNull().default("backlog"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")

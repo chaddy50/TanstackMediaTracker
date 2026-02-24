@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
-import { mediaItemMetadata, mediaItems, mediaTypeEnum } from "#/db/schema";
+import { mediaItemMetadata, mediaItems, mediaTypeEnum, series } from "#/db/schema";
 import * as hardcover from "#/lib/api/hardcover";
 import * as igdb from "#/lib/api/igdb";
 import * as tmdb from "#/lib/api/tmdb";
@@ -146,20 +146,52 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			metadataId = existing.id;
 		}
 
+		// Find or create a series entity if this item belongs to one
+		const seriesName = (metadata as Record<string, unknown>)?.series;
+		let seriesId: number | null = null;
+		if (typeof seriesName === "string" && seriesName) {
+			const [existingSeries] = await db
+				.select({ id: series.id })
+				.from(series)
+				.where(
+					and(eq(series.name, seriesName), eq(series.type, data.type)),
+				);
+			if (existingSeries) {
+				seriesId = existingSeries.id;
+			} else {
+				const [newSeries] = await db
+					.insert(series)
+					.values({ name: seriesName, type: data.type })
+					.returning({ id: series.id });
+				if (newSeries) seriesId = newSeries.id;
+			}
+		}
+
 		// Check if a mediaItems row already exists
 		const [existingItem] = await db
-			.select({ id: mediaItems.id })
+			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
 			.from(mediaItems)
 			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
 
 		if (existingItem) {
+			// Backfill seriesId if the item was added before series support
+			if (seriesId && !existingItem.seriesId) {
+				await db
+					.update(mediaItems)
+					.set({ seriesId })
+					.where(eq(mediaItems.id, existingItem.id));
+			}
 			return { mediaItemId: existingItem.id };
 		}
 
 		// Create the user's library entry
 		const [newItem] = await db
 			.insert(mediaItems)
-			.values({ mediaItemMetadataId: metadataId, status: MediaItemStatus.BACKLOG })
+			.values({
+				mediaItemMetadataId: metadataId,
+				status: MediaItemStatus.BACKLOG,
+				seriesId,
+			})
 			.returning({ id: mediaItems.id });
 
 		if (!newItem) throw new Error("Failed to create library entry");
