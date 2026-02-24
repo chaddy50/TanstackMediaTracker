@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaItemType } from "#/lib/enums";
+import { SeriesLink } from "@/components/common/SeriesLink";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
 export function MetadataList({
@@ -122,14 +122,8 @@ export function MetadataList({
 						<span className="text-muted-foreground min-w-20 shrink-0">
 							{label}
 						</span>
-						{shouldSeriesNameBeLink && seriesId ? (
-							<Link
-								to="/series/$seriesId"
-								params={{ seriesId: String(seriesId) }}
-								className="text-foreground hover:underline"
-							>
-								{value}
-							</Link>
+						{shouldSeriesNameBeLink ? (
+							<SeriesLink seriesId={seriesId} seriesName={value} />
 						) : (
 							<span className="text-foreground">{value}</span>
 						)}

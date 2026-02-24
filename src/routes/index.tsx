@@ -51,9 +51,9 @@ function LibraryPage() {
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader
-				left={<h1 className="text-2xl font-bold">{t("library.title")}</h1>}
+				title={t("library.title")}
 				right={
-					<Button onClick={() => setIsSearchOpen(true)}>
+					<Button variant="outline" onClick={() => setIsSearchOpen(true)}>
 						{t("search.addButton")}
 					</Button>
 				}

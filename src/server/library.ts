@@ -9,6 +9,7 @@ import {
 	mediaItemStatusEnum,
 	mediaItems,
 	mediaTypeEnum,
+	series,
 } from "#/db/schema";
 
 const libraryFiltersSchema = z.object({
@@ -27,12 +28,15 @@ export const getLibrary = createServerFn({ method: "GET" })
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,
 				coverImageUrl: mediaItemMetadata.coverImageUrl,
+				seriesId: mediaItems.seriesId,
+				seriesName: series.name,
 			})
 			.from(mediaItems)
 			.innerJoin(
 				mediaItemMetadata,
 				eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 			)
+			.leftJoin(series, eq(mediaItems.seriesId, series.id))
 			.where(
 				and(
 					type ? eq(mediaItemMetadata.type, type) : undefined,
