@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -34,7 +34,13 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 				eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 			)
 			.where(eq(mediaItems.seriesId, id))
-			.orderBy(mediaItemMetadata.releaseDate);
+			.orderBy(
+				sql`
+					NULLIF(media_metadata.metadata->>'seriesBookNumber', '')::numeric
+					NULLS LAST
+			  	`,
+				mediaItemMetadata.releaseDate,
+			);
 
 		if (items.length === 0) return { ...row, items: [] };
 
