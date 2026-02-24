@@ -1,6 +1,7 @@
 import { RatingBadge } from "#/components/common/RatingBadge";
 import type { MediaItemType } from "@/lib/enums";
 import { Link } from "@tanstack/react-router";
+import { SeriesLink } from "./common/SeriesLink";
 import { StatusBadge } from "./common/StatusBadge";
 import { TypeBadge } from "./common/TypeBadge";
 
@@ -11,9 +12,15 @@ type MediaCardItem = {
 	type: MediaItemType;
 	coverImageUrl: string | null;
 	rating: string | null;
+	seriesId?: number | null | undefined;
+	seriesName?: string | null | undefined;
 };
 
-export function MediaCard({ mediaItem }: { mediaItem: MediaCardItem }) {
+interface MediaCardProps {
+	mediaItem: MediaCardItem;
+}
+
+export function MediaCard({ mediaItem }: MediaCardProps) {
 	return (
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
@@ -38,8 +45,15 @@ export function MediaCard({ mediaItem }: { mediaItem: MediaCardItem }) {
 			</div>
 
 			<div className="p-3 flex flex-col gap-2">
-				<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
+				<p className="text-md font-medium text-card-foreground leading-snug line-clamp-2">
 					{mediaItem.title}
+				</p>
+
+				<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
+					<SeriesLink
+						seriesId={mediaItem.seriesId}
+						seriesName={mediaItem.seriesName}
+					/>
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">

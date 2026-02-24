@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -35,14 +35,7 @@ function EntryDetailPage() {
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader
-				left={
-					<Link
-						to="/"
-						className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-					>
-						← {t("mediaItemDetails.backToLibrary")}
-					</Link>
-				}
+				backButtonDestination="/"
 				right={
 					<Button
 						variant="destructive"

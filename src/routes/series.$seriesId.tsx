@@ -1,5 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { PageHeader } from "#/components/common/PageHeader";
 import { SeriesInfo } from "#/components/seriesDetails/SeriesInfo";
@@ -14,20 +13,9 @@ export const Route = createFileRoute("/series/$seriesId")({
 
 function SeriesPage() {
 	const seriesDetails = Route.useLoaderData();
-	const { t } = useTranslation();
-
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader
-				left={
-					<Link
-						to="/"
-						className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-					>
-						← {t("mediaItemDetails.backToLibrary")}
-					</Link>
-				}
-			/>
+			<PageHeader backButtonDestination="/" />
 
 			<div className="px-6 py-8 max-w-5xl mx-auto">
 				<SeriesInfo seriesDetails={seriesDetails} />
