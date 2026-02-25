@@ -63,6 +63,16 @@ type GameMetadata = {
 
 type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
 
+export type FictionRatingField = { rating: number; comment?: string };
+
+export type FictionRating = {
+	setting: FictionRatingField;
+	character: FictionRatingField;
+	plot: FictionRatingField;
+	enjoyment: FictionRatingField;
+	emotionalImpact: FictionRatingField;
+};
+
 // --- Tables ---
 
 /**
@@ -143,6 +153,7 @@ export const mediaItemInstances = pgTable("media_item_instances", {
 		.notNull()
 		.references(() => mediaItems.id, { onDelete: "cascade" }),
 	rating: decimal("rating", { precision: 3, scale: 1 }),
+	fictionRating: jsonb("fiction_rating").$type<FictionRating>(),
 	reviewText: text("review_text"),
 	startedAt: date("started_at"),
 	completedAt: date("completed_at"), // null = still in progress

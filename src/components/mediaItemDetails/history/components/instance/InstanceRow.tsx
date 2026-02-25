@@ -33,6 +33,18 @@ export function InstanceRow({
 						{instance.reviewText}
 					</p>
 				)}
+				{instance.fictionRating && (
+					<div className="flex flex-col gap-1 mt-0.5">
+						{(
+							Object.entries(instance.fictionRating) as [keyof typeof instance.fictionRating, { rating: number; comment?: string }][]
+						).filter(([, field]) => field.comment).map(([key, field]) => (
+							<p key={key} className="text-sm">
+								<span className="text-muted-foreground">{t(`fictionRating.${key}`)}: </span>
+								<span className="text-foreground/80">{field.comment}</span>
+							</p>
+						))}
+					</div>
+				)}
 			</div>
 			<Button variant="ghost" size="sm" onClick={onEdit} className="shrink-0">
 				{t("mediaItemDetails.edit")}

@@ -1,0 +1,1 @@
+ALTER TABLE "media_item_instances" ADD COLUMN "fiction_rating" jsonb;
