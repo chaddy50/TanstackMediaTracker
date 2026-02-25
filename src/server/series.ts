@@ -42,7 +42,8 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 				mediaItemMetadata.releaseDate,
 			);
 
-		if (items.length === 0) return { ...row, items: [] };
+		if (items.length === 0)
+			return { ...row, rating: parseFloat(row.rating ?? "") || 0, items: [] };
 
 		// Attach the most recent completed-instance rating to each item
 		const itemIds = items.map((item) => item.id);
@@ -66,9 +67,10 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 
 		return {
 			...row,
+			rating: parseFloat(row.rating ?? "") || 0,
 			items: items.map((item) => ({
 				...item,
-				rating: ratingMap.get(item.id) ?? null,
+				rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
 			})),
 		};
 	});

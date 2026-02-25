@@ -69,7 +69,7 @@ export const getLibrary = createServerFn({ method: "GET" })
 
 		return items.map((item) => ({
 			...item,
-			rating: ratingMap.get(item.mediaItemId) ?? null,
+			rating: parseFloat(ratingMap.get(item.mediaItemId) ?? "") || 0,
 		}));
 	});
 

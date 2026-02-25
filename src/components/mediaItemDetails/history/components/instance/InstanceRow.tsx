@@ -1,9 +1,8 @@
-import { useTranslation } from 'react-i18next';
-
-import { RatingBadge } from '#/components/common/RatingBadge';
-import { Button } from '#/components/ui/button';
-import { formatDateRange } from '#/lib/utils';
-import type { MediaItemDetails } from '@/server/mediaItem';
+import { Button } from "#/components/ui/button";
+import { formatDateRange } from "#/lib/utils";
+import { RatingStars } from "@/components/common/rating/RatingStars";
+import type { MediaItemDetails } from "@/server/mediaItem";
+import { useTranslation } from "react-i18next";
 
 export function InstanceRow({
 	index,
@@ -21,11 +20,13 @@ export function InstanceRow({
 		<div className="flex items-start justify-between gap-4 p-4 rounded-lg border border-border bg-card">
 			<div className="flex flex-col gap-1.5 min-w-0">
 				<div className="flex items-center gap-3 flex-wrap">
-					<span className="text-sm font-medium text-muted-foreground">#{index}</span>
-					{instance.rating && <RatingBadge rating={instance.rating} />}
+					<span className="text-sm font-medium text-muted-foreground">
+						#{index}
+					</span>
 					{dateRange && (
 						<span className="text-muted-foreground text-sm">{dateRange}</span>
 					)}
+					<RatingStars rating={instance.rating} />
 				</div>
 				{instance.reviewText && (
 					<p className="text-sm text-foreground/80 line-clamp-3">

@@ -1,7 +1,3 @@
-import { useRouter } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
-
-import { RatingField } from "#/components/common/RatingField";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +11,9 @@ import {
 	updateSeriesRating,
 	updateSeriesStatus,
 } from "#/server/series";
+import { useRouter } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { RatingStars } from "../common/rating/RatingStars";
 
 interface SeriesInfoProps {
 	seriesDetails: SeriesDetails;
@@ -68,9 +67,10 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				</SelectContent>
 			</Select>
 
-			<RatingField
-				rating={seriesDetails.rating ? parseFloat(seriesDetails.rating) : null}
-				onSave={handleRatingSave}
+			<RatingStars
+				rating={seriesDetails.rating}
+				updateRating={handleRatingSave}
+				shouldShowIfNoRating={true}
 			/>
 		</div>
 	);
