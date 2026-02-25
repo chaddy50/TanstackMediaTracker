@@ -139,7 +139,7 @@ export function InstanceEditForm({
 						<Button
 							variant="destructive"
 							size="sm"
-							className="text-muted-foreground ml-auto"
+							className="ml-auto"
 							onClick={onRemoveDetailedRating}
 							disabled={saving}
 						>
