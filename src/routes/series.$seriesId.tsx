@@ -15,7 +15,7 @@ function SeriesPage() {
 	const seriesDetails = Route.useLoaderData();
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader backButtonDestination="/" />
+			<PageHeader shouldShowBackButton />
 
 			<div className="px-6 py-8 max-w-5xl mx-auto">
 				<SeriesInfo seriesDetails={seriesDetails} />

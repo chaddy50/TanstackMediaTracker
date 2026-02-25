@@ -35,7 +35,7 @@ function EntryDetailPage() {
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader
-				backButtonDestination="/"
+				shouldShowBackButton
 				right={
 					<DeleteButton onClick={handleDelete} disabled={deleting}>
 						{t("mediaItemDetails.removeFromLibrary")}
