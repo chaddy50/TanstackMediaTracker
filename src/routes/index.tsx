@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
@@ -7,6 +7,11 @@ import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
 import { Toggle } from "#/components/ui/toggle";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
 import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLibrary, type LibraryItem } from "#/server/library";
@@ -48,14 +53,33 @@ function LibraryPage() {
 	const navigate = useNavigate();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+	useEffect(() => {
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "/") {
+				const tag = (e.target as HTMLElement).tagName;
+				if (tag !== "INPUT" && tag !== "TEXTAREA") {
+					e.preventDefault();
+					setIsSearchOpen(true);
+				}
+			}
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader
 				title={t("library.title")}
 				right={
-					<Button variant="outline" onClick={() => setIsSearchOpen(true)}>
-						{t("search.addButton")}
-					</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button variant="outline" onClick={() => setIsSearchOpen(true)}>
+								{t("search.addButton")}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Press / to open</TooltipContent>
+					</Tooltip>
 				}
 			/>
 			<SearchPopup

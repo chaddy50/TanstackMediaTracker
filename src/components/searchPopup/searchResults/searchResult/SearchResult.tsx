@@ -11,7 +11,7 @@ export function SearchResult(props: SearchResultProps) {
 	const { result } = props;
 
 	return (
-		<div className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+		<div tabIndex={-1} data-result="" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 focus:bg-muted/50 focus:outline-none transition-colors">
 			<Thumbnail url={result.coverImageUrl} title={result.title} />
 
 			<Details
