@@ -67,7 +67,13 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.where(eq(mediaItemInstances.mediaItemId, id))
 			.orderBy(asc(mediaItemInstances.id));
 
-		return { ...row, instances };
+		return {
+			...row,
+			instances: instances.map((i) => ({
+				...i,
+				rating: parseFloat(i.rating ?? "") || 0,
+			})),
+		};
 	});
 
 export type MediaItemDetails = Awaited<ReturnType<typeof getMediaItemDetails>>;

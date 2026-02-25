@@ -1,6 +1,6 @@
-import { RatingBadge } from "#/components/common/RatingBadge";
 import type { MediaItemType } from "@/lib/enums";
 import { Link } from "@tanstack/react-router";
+import { RatingStars } from "./common/rating/RatingStars";
 import { SeriesLink } from "./common/SeriesLink";
 import { StatusBadge } from "./common/StatusBadge";
 import { TypeBadge } from "./common/TypeBadge";
@@ -11,7 +11,7 @@ type MediaCardItem = {
 	title: string;
 	type: MediaItemType;
 	coverImageUrl: string | null;
-	rating: string | null;
+	rating: number;
 	seriesId?: number | null | undefined;
 	seriesName?: string | null | undefined;
 };
@@ -61,9 +61,7 @@ export function MediaCard({ mediaItem }: MediaCardProps) {
 					<StatusBadge status={mediaItem.status} />
 				</div>
 
-				{mediaItem.rating && (
-					<RatingBadge rating={mediaItem.rating} className="self-start" />
-				)}
+				<RatingStars rating={mediaItem.rating} />
 			</div>
 		</Link>
 	);

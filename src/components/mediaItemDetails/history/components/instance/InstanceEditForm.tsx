@@ -1,31 +1,30 @@
-import { useId, useState } from "react";
-import { useTranslation } from "react-i18next";
-
-import { RatingField } from "#/components/common/RatingField";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
+import { RatingStars } from "@/components/common/rating/RatingStars";
 import {
 	deleteInstance,
 	type MediaItemDetails,
 	saveInstance,
 } from "@/server/mediaItem";
+import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+interface InstanceEditFormProps {
+	instance?: MediaItemDetails["instances"][number];
+	mediaItemId: number;
+	onSave: () => void;
+	onCancel: () => void;
+}
 
 export function InstanceEditForm({
 	instance,
 	mediaItemId,
 	onSave,
 	onCancel,
-}: {
-	instance?: MediaItemDetails["instances"][number];
-	mediaItemId: number;
-	onSave: () => void;
-	onCancel: () => void;
-}) {
+}: InstanceEditFormProps) {
 	const { t } = useTranslation();
-	const [rating, setRating] = useState<number | null>(
-		instance?.rating ? parseFloat(instance.rating) : null,
-	);
+	const [rating, setRating] = useState<number>(instance?.rating ?? 0);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
 	const [startedAt, setStartedAt] = useState(instance?.startedAt ?? "");
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
@@ -67,9 +66,6 @@ export function InstanceEditForm({
 
 	return (
 		<div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-5">
-			{/* Rating */}
-			<RatingField rating={rating} onSave={async (v) => setRating(v)} />
-
 			{/* Dates */}
 			<div className="grid grid-cols-2 gap-4 max-w-sm">
 				<div className="flex flex-col gap-1.5">
@@ -101,6 +97,13 @@ export function InstanceEditForm({
 					/>
 				</div>
 			</div>
+
+			{/* Rating */}
+			<RatingStars
+				rating={rating}
+				updateRating={setRating}
+				shouldShowIfNoRating={true}
+			/>
 
 			{/* Review */}
 			<div className="flex flex-col gap-1.5">
