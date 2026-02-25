@@ -35,7 +35,9 @@ export function InstanceEditForm({
 		!!instance?.fictionRating,
 	);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
-	const [startedAt, setStartedAt] = useState(instance?.startedAt ?? "");
+	const [startedAt, setStartedAt] = useState(
+		instance?.startedAt ?? (instance === undefined ? new Date().toISOString().split("T")[0] : ""),
+	);
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
 	const [saving, setSaving] = useState(false);
 	const startedAtId = useId();
