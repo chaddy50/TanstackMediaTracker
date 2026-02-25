@@ -59,6 +59,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.select({
 				id: mediaItemInstances.id,
 				rating: mediaItemInstances.rating,
+				fictionRating: mediaItemInstances.fictionRating,
 				reviewText: mediaItemInstances.reviewText,
 				startedAt: mediaItemInstances.startedAt,
 				completedAt: mediaItemInstances.completedAt,
@@ -98,6 +99,15 @@ export const saveInstance = createServerFn({ method: "POST" })
 			mediaItemId: z.number(),
 			instanceId: z.number().optional(),
 			rating: z.string().optional(),
+			fictionRating: z
+				.object({
+					setting: z.object({ rating: z.number(), comment: z.string().optional() }),
+					character: z.object({ rating: z.number(), comment: z.string().optional() }),
+					plot: z.object({ rating: z.number(), comment: z.string().optional() }),
+					enjoyment: z.object({ rating: z.number(), comment: z.string().optional() }),
+					emotionalImpact: z.object({ rating: z.number(), comment: z.string().optional() }),
+				})
+				.optional(),
 			reviewText: z.string().optional(),
 			startedAt: z.string().optional(),
 			completedAt: z.string().optional(),
@@ -109,6 +119,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 				mediaItemId,
 				instanceId,
 				rating,
+				fictionRating,
 				reviewText,
 				startedAt,
 				completedAt,
@@ -116,6 +127,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 		}) => {
 			const values = {
 				rating: rating ?? null,
+				fictionRating: fictionRating ?? null,
 				reviewText: reviewText || null,
 				startedAt: startedAt || null,
 				completedAt: completedAt || null,

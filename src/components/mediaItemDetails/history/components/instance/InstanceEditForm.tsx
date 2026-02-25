@@ -1,6 +1,8 @@
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
+import type { FictionRating } from "#/db/schema";
+import { FictionRatingForm } from "@/components/common/rating/fictionRating/FictionRatingForm";
 import { RatingStars } from "@/components/common/rating/RatingStars";
 import {
 	deleteInstance,
@@ -25,12 +27,21 @@ export function InstanceEditForm({
 }: InstanceEditFormProps) {
 	const { t } = useTranslation();
 	const [rating, setRating] = useState<number>(instance?.rating ?? 0);
+	const [fictionRating, setFictionRating] = useState<FictionRating | null>(
+		instance?.fictionRating ?? null,
+	);
+	const [showFictionRating, setShowFictionRating] = useState(
+		!!instance?.fictionRating,
+	);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
 	const [startedAt, setStartedAt] = useState(instance?.startedAt ?? "");
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
 	const [saving, setSaving] = useState(false);
+	const startedAtId = useId();
+	const completedAtId = useId();
+	const reviewTextId = useId();
 
-	async function handleSave() {
+	async function onSaveInstance() {
 		setSaving(true);
 		try {
 			await saveInstance({
@@ -38,6 +49,7 @@ export function InstanceEditForm({
 					mediaItemId: mediaItemId,
 					instanceId: instance?.id,
 					rating: rating !== null ? rating.toFixed(1) : undefined,
+					fictionRating: fictionRating ?? undefined,
 					reviewText: reviewText || undefined,
 					startedAt: startedAt || undefined,
 					completedAt: completedAt || undefined,
@@ -49,7 +61,30 @@ export function InstanceEditForm({
 		}
 	}
 
-	async function handleDelete() {
+	async function onRemoveDetailedRating() {
+		setShowFictionRating(false);
+		setFictionRating(null);
+		setRating(0);
+		if (instance?.id) {
+			setSaving(true);
+			try {
+				await saveInstance({
+					data: {
+						mediaItemId,
+						instanceId: instance.id,
+						rating: "0",
+						reviewText: reviewText || undefined,
+						startedAt: startedAt || undefined,
+						completedAt: completedAt || undefined,
+					},
+				});
+			} finally {
+				setSaving(false);
+			}
+		}
+	}
+
+	async function onDeleteInstance() {
 		if (!instance) return;
 		setSaving(true);
 		try {
@@ -59,10 +94,6 @@ export function InstanceEditForm({
 			setSaving(false);
 		}
 	}
-
-	const startedAtId = useId();
-	const completedAtId = useId();
-	const reviewTextId = useId();
 
 	return (
 		<div className="p-4 rounded-lg border border-border bg-card flex flex-col gap-5">
@@ -98,12 +129,46 @@ export function InstanceEditForm({
 				</div>
 			</div>
 
-			{/* Rating */}
-			<RatingStars
-				rating={rating}
-				updateRating={setRating}
-				shouldShowIfNoRating={true}
-			/>
+			{showFictionRating ? (
+				<div className="flex flex-col gap-2">
+					<div className="flex flex-row items-center gap-2">
+						<span className="text-sm text-muted-foreground w-32">
+							{t("mediaItemDetails.overallRating")}
+						</span>
+						<RatingStars rating={rating} shouldShowIfNoRating={true} />
+						<Button
+							variant="destructive"
+							size="sm"
+							className="text-muted-foreground ml-auto"
+							onClick={onRemoveDetailedRating}
+							disabled={saving}
+						>
+							{t("mediaItemDetails.removeDetailedRating")}
+						</Button>
+					</div>
+					<hr className="border-border" />
+					<FictionRatingForm
+						initialValue={fictionRating}
+						updateRating={setRating}
+						updateFictionRating={setFictionRating}
+					/>
+				</div>
+			) : (
+				<div className="flex flex-row items-center gap-2">
+					<RatingStars
+						rating={rating}
+						updateRating={setRating}
+						shouldShowIfNoRating={true}
+					/>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setShowFictionRating(true)}
+					>
+						{t("mediaItemDetails.detailedRating")}
+					</Button>
+				</div>
+			)}
 
 			{/* Review */}
 			<div className="flex flex-col gap-1.5">
@@ -121,7 +186,7 @@ export function InstanceEditForm({
 
 			{/* Actions */}
 			<div className="flex gap-2">
-				<Button size="sm" onClick={handleSave} disabled={saving}>
+				<Button size="sm" onClick={onSaveInstance} disabled={saving}>
 					{t("mediaItemDetails.save")}
 				</Button>
 				<Button
@@ -136,7 +201,7 @@ export function InstanceEditForm({
 					<Button
 						variant="destructive"
 						size="sm"
-						onClick={handleDelete}
+						onClick={onDeleteInstance}
 						disabled={saving}
 						className="ml-auto"
 					>

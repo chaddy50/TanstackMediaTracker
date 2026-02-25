@@ -35,6 +35,9 @@ export const en = {
 		started: "Started",
 		completed: "Completed",
 		removeFromLibrary: "Remove from Library",
+		overallRating: "Overall Rating",
+		detailedRating: "Detailed Rating",
+		removeDetailedRating: "Remove",
 	},
 	search: {
 		addButton: "+ Add",
@@ -45,6 +48,13 @@ export const en = {
 		noResults: "No results found.",
 		addToLibrary: "Add",
 		adding: "Adding...",
+	},
+	fictionRating: {
+		setting: "Setting",
+		character: "Characters",
+		plot: "Plot",
+		enjoyment: "Enjoyment",
+		emotionalImpact: "Emotional Impact",
 	},
 	seriesDetails: {
 		items: "Items in Series",
