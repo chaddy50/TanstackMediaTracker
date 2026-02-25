@@ -55,6 +55,7 @@ export const en = {
 		plot: "Plot",
 		enjoyment: "Enjoyment",
 		emotionalImpact: "Emotional Impact",
+		addComment: "+ Comment",
 	},
 	seriesDetails: {
 		items: "Items in Series",
