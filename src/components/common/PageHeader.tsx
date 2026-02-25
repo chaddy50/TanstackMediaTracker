@@ -1,26 +1,33 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 
 interface PageHeaderProps {
-	backButtonDestination?: string | undefined;
+	shouldShowBackButton?: boolean;
 	right?: React.ReactNode;
 	title?: string;
 }
 
 export function PageHeader({
-	backButtonDestination,
+	shouldShowBackButton,
 	right,
 	title,
 }: PageHeaderProps) {
 	const { t } = useTranslation();
+	const router = useRouter();
 	return (
 		<header className="px-6 py-4 border-b border-border flex items-center justify-between">
-			<span>
-				{backButtonDestination && (
-					<Button variant="outline">
-						<Link to={backButtonDestination}>
-							← {t("mediaItemDetails.backToLibrary")}
+			<span className="flex items-center gap-2">
+				{shouldShowBackButton && (
+					<Button variant="outline" onClick={() => router.history.back()}>
+						← {t("mediaItemDetails.back")}
+					</Button>
+				)}
+				{shouldShowBackButton && (
+					<Button variant="outline" size="icon" asChild>
+						<Link to="/">
+							<Home />
 						</Link>
 					</Button>
 				)}

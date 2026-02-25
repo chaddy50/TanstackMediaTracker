@@ -19,7 +19,7 @@ export const en = {
 		on_hold: "On Hold",
 	},
 	mediaItemDetails: {
-		backToLibrary: "Back to Library",
+		back: "Back",
 		history: "History",
 		addInstance: "+ Add Entry",
 		noInstances: "No history yet.",
