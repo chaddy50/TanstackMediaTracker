@@ -2,10 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DeleteButton } from "@/components/common/DeleteButton";
 import { PageHeader } from "@/components/common/PageHeader";
 import { History } from "@/components/mediaItemDetails/history/History";
 import { Metadata } from "@/components/mediaItemDetails/metadata/Metadata";
-import { Button } from "@/components/ui/button";
 import { getMediaItemDetails, removeFromLibrary } from "@/server/mediaItem";
 
 export const Route = createFileRoute("/mediaItemDetails/$mediaItemId")({
@@ -37,14 +37,9 @@ function EntryDetailPage() {
 			<PageHeader
 				backButtonDestination="/"
 				right={
-					<Button
-						variant="destructive"
-						size="sm"
-						onClick={handleDelete}
-						disabled={deleting}
-					>
+					<DeleteButton onClick={handleDelete} disabled={deleting}>
 						{t("mediaItemDetails.removeFromLibrary")}
-					</Button>
+					</DeleteButton>
 				}
 			/>
 
