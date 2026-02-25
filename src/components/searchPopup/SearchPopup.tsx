@@ -6,7 +6,7 @@ import {
 } from "#/components/ui/dialog";
 import type { MediaItemType } from "#/lib/enums";
 import { type SearchResultWithStatus, searchMedia } from "#/server/search";
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchEntryField } from "./searchField/SearchEntryField";
 import { SearchFilters } from "./searchField/SearchFilters";
@@ -70,9 +70,82 @@ export function SearchPopup(props: SearchPopupProps) {
 		};
 	}, [query, filterType]);
 
+	function focusActiveFilter(filters: HTMLElement[]) {
+		const activeFilter = filters.find(
+			(f) => f.getAttribute("aria-pressed") === "true",
+		);
+		(activeFilter ?? filters[0])?.focus();
+	}
+
+	function handleKeyDown(keyboardEvent: KeyboardEvent<HTMLElement>) {
+		const targetContainer = keyboardEvent.currentTarget as HTMLElement;
+		const resultElements = Array.from(
+			targetContainer.querySelectorAll<HTMLElement>("[data-result]"),
+		);
+		const filterElements = Array.from(
+			targetContainer.querySelectorAll<HTMLElement>("[data-filter]"),
+		);
+		const activeElement = document.activeElement as HTMLElement;
+
+		const resultIndex = resultElements.indexOf(activeElement);
+		const filterIndex = filterElements.indexOf(activeElement);
+		const isOnInput = activeElement === inputRef.current;
+		const isOnFilter = filterIndex >= 0;
+		const isOnResult = resultIndex >= 0;
+
+		switch (keyboardEvent.key) {
+			case "ArrowDown":
+				keyboardEvent.preventDefault();
+				if (isOnInput) {
+					focusActiveFilter(filterElements);
+				} else if (isOnFilter) {
+					resultElements[0]?.focus();
+				} else if (isOnResult && resultIndex < resultElements.length - 1) {
+					resultElements[resultIndex + 1]?.focus();
+				}
+				break;
+			case "ArrowUp":
+				keyboardEvent.preventDefault();
+				if (isOnFilter) {
+					inputRef.current?.focus();
+				} else if (isOnResult && resultIndex === 0) {
+					focusActiveFilter(filterElements);
+				} else if (isOnResult) {
+					resultElements[resultIndex - 1]?.focus();
+				}
+				break;
+			case "Enter":
+				if (!isOnResult) return;
+				keyboardEvent.preventDefault();
+				activeElement
+					.querySelector<HTMLElement>("button:not([disabled])")
+					?.click();
+				break;
+			case "ArrowLeft":
+			case "ArrowRight": {
+				if (!isOnFilter) return;
+				keyboardEvent.preventDefault();
+				const next =
+					keyboardEvent.key === "ArrowRight"
+						? filterIndex + 1
+						: filterIndex - 1;
+				const nextFilter =
+					filterElements[
+						(next + filterElements.length) % filterElements.length
+					];
+				nextFilter?.focus();
+				nextFilter?.click();
+				break;
+			}
+		}
+	}
+
 	return (
 		<Dialog open={isOpen} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent className="sm:max-w-xl p-0 gap-0">
+			<DialogContent
+				className="sm:max-w-xl p-0 gap-0"
+				onKeyDown={handleKeyDown}
+			>
 				<DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
 					<DialogTitle className="sr-only">{t("search.title")}</DialogTitle>
 
