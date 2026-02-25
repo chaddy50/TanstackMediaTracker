@@ -2,6 +2,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import type { FictionRating } from "#/db/schema";
+import { DeleteButton } from "@/components/common/DeleteButton";
 import { FictionRatingForm } from "@/components/common/rating/fictionRating/FictionRatingForm";
 import { RatingStars } from "@/components/common/rating/RatingStars";
 import {
@@ -136,15 +137,13 @@ export function InstanceEditForm({
 							{t("mediaItemDetails.overallRating")}
 						</span>
 						<RatingStars rating={rating} shouldShowIfNoRating={true} />
-						<Button
-							variant="destructive"
-							size="sm"
+						<DeleteButton
 							className="ml-auto"
 							onClick={onRemoveDetailedRating}
 							disabled={saving}
 						>
 							{t("mediaItemDetails.removeDetailedRating")}
-						</Button>
+						</DeleteButton>
 					</div>
 					<hr className="border-border" />
 					<FictionRatingForm
@@ -198,15 +197,13 @@ export function InstanceEditForm({
 					{t("mediaItemDetails.cancel")}
 				</Button>
 				{instance && (
-					<Button
-						variant="destructive"
-						size="sm"
+					<DeleteButton
+						className="ml-auto"
 						onClick={onDeleteInstance}
 						disabled={saving}
-						className="ml-auto"
 					>
 						{t("mediaItemDetails.delete")}
-					</Button>
+					</DeleteButton>
 				)}
 			</div>
 		</div>
