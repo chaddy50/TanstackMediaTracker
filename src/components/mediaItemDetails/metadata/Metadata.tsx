@@ -3,6 +3,7 @@ import { Artwork } from "./components/Artwork";
 import { Description } from "./components/Description";
 import { EditMetadataDialog } from "./components/EditMetadataDialog";
 import { MetadataList } from "./components/MetadataList";
+import { PurchasedToggle } from "./components/PurchasedToggle";
 import { StatusSelect } from "./components/StatusSelect";
 import { Title } from "./components/Title";
 
@@ -23,7 +24,10 @@ export function Metadata(props: MetadataProps) {
 					<EditMetadataDialog mediaItemDetails={mediaItemDetails} />
 				</div>
 
-				<StatusSelect mediaItemDetails={mediaItemDetails} />
+				<div className="flex items-center gap-3">
+					<StatusSelect mediaItemDetails={mediaItemDetails} />
+					<PurchasedToggle mediaItemDetails={mediaItemDetails} />
+				</div>
 
 				<Description mediaItemDetails={mediaItemDetails} />
 

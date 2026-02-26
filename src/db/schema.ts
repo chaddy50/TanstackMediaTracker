@@ -1,4 +1,5 @@
 import {
+	boolean,
 	date,
 	decimal,
 	integer,
@@ -135,6 +136,7 @@ export const mediaItems = pgTable("media_items", {
 		onDelete: "set null",
 	}),
 	status: mediaItemStatusEnum("status").notNull().default("backlog"),
+	isPurchased: boolean("is_purchased").notNull().default(false),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

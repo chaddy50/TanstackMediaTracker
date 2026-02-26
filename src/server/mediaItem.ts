@@ -37,6 +37,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.select({
 				id: mediaItems.id,
 				status: mediaItems.status,
+				isPurchased: mediaItems.isPurchased,
 				seriesId: mediaItems.seriesId,
 				metadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
@@ -207,6 +208,20 @@ export const updateMediaItemMetadata = createServerFn({ method: "POST" })
 				metadata: data.metadata,
 			})
 			.where(eq(mediaItemMetadata.id, data.metadataId));
+	});
+
+export const togglePurchased = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			mediaItemId: z.number(),
+			isPurchased: z.boolean(),
+		}),
+	)
+	.handler(async ({ data: { mediaItemId, isPurchased } }) => {
+		await db
+			.update(mediaItems)
+			.set({ isPurchased })
+			.where(eq(mediaItems.id, mediaItemId));
 	});
 
 export const removeFromLibrary = createServerFn({ method: "POST" })

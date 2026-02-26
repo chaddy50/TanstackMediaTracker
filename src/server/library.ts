@@ -24,6 +24,7 @@ export const getLibrary = createServerFn({ method: "GET" })
 			.select({
 				id: mediaItems.id,
 				status: mediaItems.status,
+				isPurchased: mediaItems.isPurchased,
 				mediaItemId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,

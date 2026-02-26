@@ -11,6 +11,10 @@ export const en = {
 		tv_show: "TV Show",
 		video_game: "Game",
 	},
+	purchased: {
+		purchased: "Purchased",
+		notPurchased: "Not Purchased",
+	},
 	status: {
 		backlog: "Backlog",
 		next_up: "Next Up",

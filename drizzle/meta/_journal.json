@@ -36,6 +36,20 @@
       "when": 1772140899909,
       "tag": "0004_illegal_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772141383994,
+      "tag": "0005_good_nightcrawler",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772200000000,
+      "tag": "0006_rename_purchased",
+      "breakpoints": true
     }
   ]
 }

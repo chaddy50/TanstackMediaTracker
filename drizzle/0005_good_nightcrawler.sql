@@ -1,0 +1,1 @@
+ALTER TABLE "media_items" ADD COLUMN "purchased" boolean DEFAULT false NOT NULL;
