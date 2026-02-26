@@ -36,7 +36,8 @@ export function InstanceEditForm({
 	);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
 	const [startedAt, setStartedAt] = useState(
-		instance?.startedAt ?? (instance === undefined ? new Date().toISOString().split("T")[0] : ""),
+		instance?.startedAt ??
+			(instance === undefined ? new Date().toISOString().split("T")[0] : ""),
 	);
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
 	const [saving, setSaving] = useState(false);
@@ -204,7 +205,7 @@ export function InstanceEditForm({
 						onClick={onDeleteInstance}
 						disabled={saving}
 					>
-						{t("mediaItemDetails.delete")}
+						{t("mediaItemDetails.removeEntry")}
 					</DeleteButton>
 				)}
 			</div>

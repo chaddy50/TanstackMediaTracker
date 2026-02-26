@@ -27,7 +27,7 @@ export const en = {
 		edit: "Edit",
 		save: "Save",
 		cancel: "Cancel",
-		delete: "Delete Entry",
+		removeEntry: "Remove Entry",
 		addRating: "Add Rating",
 		removeRating: "Remove Rating",
 		rating: "Rating",
