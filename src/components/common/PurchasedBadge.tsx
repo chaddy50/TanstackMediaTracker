@@ -18,22 +18,18 @@ export function PurchasedBadge(props: PurchasedBadgeProps) {
 		? t("purchased.purchased")
 		: t("purchased.notPurchased");
 
-	const commonClasses = `flex items-center text-xs px-2 py-0.5 rounded-full transition-colors duration-300 ${colorClasses}`;
-
-	const textClasses = `overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${
-		isPurchased ? "max-w-20 ml-0.5" : "max-w-0"
-	}`;
+	const commonClasses = `flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-full transition-colors duration-300 ${colorClasses}`;
 
 	const content = (
 		<>
 			<DollarSign size={11} />
-			<span className={textClasses}>{t("purchased.purchased")}</span>
+			{label}
 		</>
 	);
 
 	if (onClick) {
 		return (
-			<button type="button" onClick={onClick} className={commonClasses} aria-label={label}>
+			<button type="button" onClick={onClick} className={commonClasses}>
 				{content}
 			</button>
 		);
