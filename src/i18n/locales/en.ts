@@ -13,6 +13,7 @@ export const en = {
 	},
 	status: {
 		backlog: "Backlog",
+		next_up: "Next Up",
 		in_progress: "In Progress",
 		completed: "Completed",
 		dropped: "Dropped",
@@ -68,7 +69,7 @@ export const en = {
 		nextInSeries: "Next Up",
 		recentlyFinished: "Recently Finished",
 		emptyInProgress: "Nothing in progress.",
-		emptyNextInSeries: "No upcoming series items.",
+		emptyNextInSeries: "Nothing marked as next up.",
 		emptyRecentlyFinished: "Nothing finished in the last 30 days.",
 	},
 	metadata: {
