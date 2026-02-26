@@ -24,6 +24,7 @@ async function fetchInProgressItems() {
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
 			title: mediaItemMetadata.title,
 			type: mediaItemMetadata.type,
 			coverImageUrl: mediaItemMetadata.coverImageUrl,
@@ -49,6 +50,7 @@ async function fetchRecentlyFinishedItems() {
 		.selectDistinctOn([mediaItems.id], {
 			id: mediaItems.id,
 			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
 			title: mediaItemMetadata.title,
 			type: mediaItemMetadata.type,
 			coverImageUrl: mediaItemMetadata.coverImageUrl,
@@ -88,6 +90,7 @@ async function fetchExplicitNextUpItems() {
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
 			title: mediaItemMetadata.title,
 			type: mediaItemMetadata.type,
 			coverImageUrl: mediaItemMetadata.coverImageUrl,
@@ -128,6 +131,7 @@ async function fetchNextInSeriesItems(
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
 			title: mediaItemMetadata.title,
 			type: mediaItemMetadata.type,
 			coverImageUrl: mediaItemMetadata.coverImageUrl,

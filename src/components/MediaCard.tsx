@@ -1,5 +1,7 @@
-import type { MediaItemType } from "@/lib/enums";
 import { Link } from "@tanstack/react-router";
+
+import type { MediaItemType } from "@/lib/enums";
+import { PurchasedBadge } from "./common/PurchasedBadge";
 import { RatingStars } from "./common/rating/RatingStars";
 import { SeriesLink } from "./common/SeriesLink";
 import { StatusBadge } from "./common/StatusBadge";
@@ -8,6 +10,7 @@ import { TypeBadge } from "./common/TypeBadge";
 type MediaCardItem = {
 	id: number;
 	status: string;
+	isPurchased: boolean;
 	title: string;
 	type: MediaItemType;
 	coverImageUrl: string | null;
@@ -59,6 +62,7 @@ export function MediaCard({ mediaItem }: MediaCardProps) {
 				<div className="flex items-center gap-1.5 flex-wrap">
 					<TypeBadge type={mediaItem.type} />
 					<StatusBadge status={mediaItem.status} />
+					<PurchasedBadge isPurchased={mediaItem.isPurchased} />
 				</div>
 
 				<RatingStars rating={mediaItem.rating} />
