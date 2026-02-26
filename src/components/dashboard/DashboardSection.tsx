@@ -21,7 +21,7 @@ export function DashboardSection({
 				<div className="flex gap-4 overflow-x-auto pb-2">
 					{items.map((item) => (
 						<div key={item.id} className="flex-none w-44">
-							<MediaCard mediaItem={item} />
+							<MediaCard mediaItem={item} shouldShowStatus={false} />
 						</div>
 					))}
 				</div>
