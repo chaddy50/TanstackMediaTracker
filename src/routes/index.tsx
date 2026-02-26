@@ -30,23 +30,23 @@ function DashboardPage() {
 					</div>
 				}
 			/>
-			<main className="px-6 py-4 flex flex-col gap-6">
-				<div className="flex flex-wrap gap-x-24 gap-y-6 items-start">
+			<main className="px-6 py-4 flex flex-wrap gap-x-24 gap-y-6 items-start">
+				<div className="w-full">
 					<DashboardSection
 						title={t("dashboard.inProgress")}
 						items={inProgressItems}
 						emptyMessage={t("dashboard.emptyInProgress")}
-					/>
-					<DashboardSection
-						title={t("dashboard.nextInSeries")}
-						items={nextInSeriesItems}
-						emptyMessage={t("dashboard.emptyNextInSeries")}
 					/>
 				</div>
 				<DashboardSection
 					title={t("dashboard.recentlyFinished")}
 					items={recentlyFinishedItems}
 					emptyMessage={t("dashboard.emptyRecentlyFinished")}
+				/>
+				<DashboardSection
+					title={t("dashboard.nextInSeries")}
+					items={nextInSeriesItems}
+					emptyMessage={t("dashboard.emptyNextInSeries")}
 				/>
 			</main>
 		</div>
