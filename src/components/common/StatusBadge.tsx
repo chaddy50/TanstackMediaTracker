@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {
 	want_to: "bg-gray-600 text-gray-200",
+	backlog: "bg-gray-700 text-gray-300",
+	next_up: "bg-purple-600 text-purple-100",
 	in_progress: "bg-blue-600 text-blue-100",
 	completed: "bg-green-700 text-green-100",
 	dropped: "bg-rose-700 text-rose-100",
 	on_hold: "bg-amber-600 text-amber-100",
-	backlog: "bg-gray-700 text-gray-300",
 };
 
 interface StatusBadgeProps {

@@ -83,6 +83,27 @@ async function fetchRecentlyFinishedItems() {
 	});
 }
 
+async function fetchExplicitNextUpItems() {
+	return db
+		.select({
+			id: mediaItems.id,
+			status: mediaItems.status,
+			title: mediaItemMetadata.title,
+			type: mediaItemMetadata.type,
+			coverImageUrl: mediaItemMetadata.coverImageUrl,
+			seriesId: mediaItems.seriesId,
+			seriesName: series.name,
+		})
+		.from(mediaItems)
+		.innerJoin(
+			mediaItemMetadata,
+			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
+		)
+		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.where(eq(mediaItems.status, MediaItemStatus.NEXT_UP))
+		.orderBy(asc(mediaItemMetadata.title));
+}
+
 async function fetchNextInSeriesItems(
 	inProgressItems: Awaited<ReturnType<typeof fetchInProgressItems>>,
 	recentlyFinishedItems: Awaited<ReturnType<typeof fetchRecentlyFinishedItems>>,
@@ -210,10 +231,16 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 			fetchRecentlyFinishedItems(),
 		]);
 
-		const nextInSeriesItemsRaw = await fetchNextInSeriesItems(
-			inProgressItemsRaw,
-			recentlyFinishedItemsRaw,
+		const [explicitNextUpItemsRaw, autoNextInSeriesItemsRaw] = await Promise.all([
+			fetchExplicitNextUpItems(),
+			fetchNextInSeriesItems(inProgressItemsRaw, recentlyFinishedItemsRaw),
+		]);
+
+		const explicitNextUpIds = new Set(explicitNextUpItemsRaw.map((item) => item.id));
+		const dedupedAutoItems = autoNextInSeriesItemsRaw.filter(
+			(item) => !explicitNextUpIds.has(item.id),
 		);
+		const nextInSeriesItemsRaw = [...explicitNextUpItemsRaw, ...dedupedAutoItems];
 
 		const recentlyFinishedWithoutCompletedAt = recentlyFinishedItemsRaw.map(
 			({ completedAt: _completedAt, ...rest }) => rest,

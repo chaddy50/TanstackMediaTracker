@@ -24,6 +24,7 @@ export const mediaTypeEnum = pgEnum("media_type", [
 
 export const mediaItemStatusEnum = pgEnum("media_item_status", [
 	MediaItemStatus.BACKLOG,
+	MediaItemStatus.NEXT_UP,
 	MediaItemStatus.IN_PROGRESS,
 	MediaItemStatus.COMPLETED,
 	MediaItemStatus.DROPPED,

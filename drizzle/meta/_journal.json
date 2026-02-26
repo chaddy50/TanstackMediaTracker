@@ -29,6 +29,13 @@
       "when": 1771985714178,
       "tag": "0003_closed_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772140899909,
+      "tag": "0004_illegal_proudstar",
+      "breakpoints": true
     }
   ]
 }

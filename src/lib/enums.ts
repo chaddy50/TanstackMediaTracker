@@ -1,5 +1,6 @@
 export const MediaItemStatus = {
 	BACKLOG: "backlog",
+	NEXT_UP: "next_up",
 	IN_PROGRESS: "in_progress",
 	COMPLETED: "completed",
 	DROPPED: "dropped",

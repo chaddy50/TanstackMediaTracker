@@ -1,0 +1,1 @@
+ALTER TYPE "public"."media_item_status" ADD VALUE 'next_up' BEFORE 'in_progress';
