@@ -1,6 +1,7 @@
 import type { MediaItemDetails } from "@/server/mediaItem";
 import { Artwork } from "./components/Artwork";
 import { Description } from "./components/Description";
+import { EditMetadataDialog } from "./components/EditMetadataDialog";
 import { MetadataList } from "./components/MetadataList";
 import { StatusSelect } from "./components/StatusSelect";
 import { Title } from "./components/Title";
@@ -17,7 +18,10 @@ export function Metadata(props: MetadataProps) {
 			<Artwork mediaItemDetails={mediaItemDetails} />
 
 			<div className="flex flex-col gap-5 flex-1 min-w-0">
-				<Title mediaItemDetails={mediaItemDetails} />
+				<div className="flex items-start justify-between gap-2">
+					<Title mediaItemDetails={mediaItemDetails} />
+					<EditMetadataDialog mediaItemDetails={mediaItemDetails} />
+				</div>
 
 				<StatusSelect mediaItemDetails={mediaItemDetails} />
 

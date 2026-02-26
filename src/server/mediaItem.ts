@@ -185,6 +185,30 @@ export const deleteInstance = createServerFn({ method: "POST" })
 			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
 	});
 
+export const updateMediaItemMetadata = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			metadataId: z.number(),
+			title: z.string(),
+			description: z.string().optional(),
+			coverImageUrl: z.string().optional(),
+			releaseDate: z.string().optional(),
+			metadata: z.any(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		await db
+			.update(mediaItemMetadata)
+			.set({
+				title: data.title,
+				description: data.description || null,
+				coverImageUrl: data.coverImageUrl || null,
+				releaseDate: data.releaseDate || null,
+				metadata: data.metadata,
+			})
+			.where(eq(mediaItemMetadata.id, data.metadataId));
+	});
+
 export const removeFromLibrary = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ metadataId: z.number() }))
 	.handler(async ({ data: { metadataId } }) => {
