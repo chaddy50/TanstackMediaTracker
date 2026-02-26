@@ -17,7 +17,7 @@ export function PageHeader({
 	const { t } = useTranslation();
 	const router = useRouter();
 	return (
-		<header className="px-6 py-4 border-b border-border flex items-center justify-between">
+		<header className="px-6 py-4 border-b border-border relative flex items-center justify-between">
 			<span className="flex items-center gap-2">
 				{shouldShowBackButton && (
 					<Button variant="outline" onClick={() => router.history.back()}>
@@ -32,10 +32,12 @@ export function PageHeader({
 					</Button>
 				)}
 			</span>
-			<span>
-				{title && <h1 className="text-2xl font-bold">{t("library.title")}</h1>}
-			</span>
-			{right}
+			{title && (
+				<span className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
+					<h1 className="text-2xl font-bold">{title}</h1>
+				</span>
+			)}
+			<span>{right}</span>
 		</header>
 	);
 }

@@ -61,6 +61,16 @@ export const en = {
 		items: "Items in Series",
 		rateSeries: "Rate Series",
 	},
+	dashboard: {
+		title: "Dashboard",
+		libraryLink: "My Library",
+		inProgress: "In Progress",
+		nextInSeries: "Next Up",
+		recentlyFinished: "Recently Finished",
+		emptyInProgress: "Nothing in progress.",
+		emptyNextInSeries: "No upcoming series items.",
+		emptyRecentlyFinished: "Nothing finished in the last 30 days.",
+	},
 	metadata: {
 		title: "Title",
 		description: "Description",

@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SeriesSeriesIdRouteImport } from './routes/series.$seriesId'
 import { Route as MediaItemDetailsMediaItemIdRouteImport } from './routes/mediaItemDetails.$mediaItemId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -38,12 +44,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -51,6 +59,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,18 +68,21 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
+    | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/api/auth/$'
@@ -78,6 +90,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LibraryRoute: typeof LibraryRoute
   MediaItemDetailsMediaItemIdRoute: typeof MediaItemDetailsMediaItemIdRoute
   SeriesSeriesIdRoute: typeof SeriesSeriesIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -85,6 +98,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -118,6 +138,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LibraryRoute: LibraryRoute,
   MediaItemDetailsMediaItemIdRoute: MediaItemDetailsMediaItemIdRoute,
   SeriesSeriesIdRoute: SeriesSeriesIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

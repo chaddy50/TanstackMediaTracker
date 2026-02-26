@@ -1,142 +1,53 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { z } from "zod";
 
+import { AddMediaButton } from "#/components/common/AddMediaButton";
 import { PageHeader } from "#/components/common/PageHeader";
-import { MediaCard } from "#/components/MediaCard";
+import { DashboardSection } from "#/components/dashboard/DashboardSection";
 import { Button } from "#/components/ui/button";
-import { Toggle } from "#/components/ui/toggle";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "#/components/ui/tooltip";
-import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import { getLibrary, type LibraryItem } from "#/server/library";
-import { SearchPopup } from "@/components/searchPopup/SearchPopup";
-
-const searchSchema = z.object({
-	type: z.enum(mediaTypeEnum.enumValues).optional(),
-	status: z.enum(mediaItemStatusEnum.enumValues).optional(),
-});
-
-const TYPE_FILTERS = [
-	{ value: undefined, labelKey: "library.allTypes" },
-	{ value: MediaItemType.BOOK, labelKey: "mediaType.book" },
-	{ value: MediaItemType.MOVIE, labelKey: "mediaType.movie" },
-	{ value: MediaItemType.TV_SHOW, labelKey: "mediaType.tv_show" },
-	{ value: MediaItemType.VIDEO_GAME, labelKey: "mediaType.video_game" },
-] as const;
-
-const STATUS_FILTERS = [
-	{ value: undefined, labelKey: "library.allStatuses" },
-	{ value: MediaItemStatus.BACKLOG, labelKey: "status.backlog" },
-	{ value: MediaItemStatus.IN_PROGRESS, labelKey: "status.in_progress" },
-	{ value: MediaItemStatus.COMPLETED, labelKey: "status.completed" },
-	{ value: MediaItemStatus.DROPPED, labelKey: "status.dropped" },
-	{ value: MediaItemStatus.ON_HOLD, labelKey: "status.on_hold" },
-] as const;
+import { getDashboardData } from "#/server/dashboard";
 
 export const Route = createFileRoute("/")({
-	validateSearch: searchSchema,
-	loaderDeps: ({ search }) => search,
-	loader: ({ deps }) => getLibrary({ data: deps }),
-	component: LibraryPage,
+	loader: () => getDashboardData(),
+	component: DashboardPage,
 });
 
-function LibraryPage() {
-	const mediaItems: LibraryItem[] = Route.useLoaderData();
-	const { type, status } = Route.useSearch();
+function DashboardPage() {
+	const { inProgressItems, nextInSeriesItems, recentlyFinishedItems } =
+		Route.useLoaderData();
 	const { t } = useTranslation();
-	const navigate = useNavigate();
-	const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-	useEffect(() => {
-		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === "/") {
-				const tag = (e.target as HTMLElement).tagName;
-				if (tag !== "INPUT" && tag !== "TEXTAREA") {
-					e.preventDefault();
-					setIsSearchOpen(true);
-				}
-			}
-		}
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, []);
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader
-				title={t("library.title")}
+				title={t("dashboard.title")}
 				right={
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button variant="outline" onClick={() => setIsSearchOpen(true)}>
-								{t("search.addButton")}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>Press / to open</TooltipContent>
-					</Tooltip>
+					<div className="flex items-center gap-2">
+						<Link to="/library">
+							<Button variant="outline">{t("dashboard.libraryLink")}</Button>
+						</Link>
+						<AddMediaButton />
+					</div>
 				}
 			/>
-			<SearchPopup
-				isOpen={isSearchOpen}
-				onClose={() => setIsSearchOpen(false)}
-			/>
-
-			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
-				<div className="flex gap-2 flex-wrap">
-					{TYPE_FILTERS.map((filter) => (
-						<Toggle
-							key={filter.labelKey}
-							variant="outline"
-							pressed={type === filter.value}
-							onPressedChange={() =>
-								navigate({
-									to: "/",
-									search: (prev) => ({ ...prev, type: filter.value }),
-								})
-							}
-						>
-							{t(filter.labelKey)}
-						</Toggle>
-					))}
+			<main className="px-6 py-4 flex flex-col gap-6">
+				<div className="flex flex-wrap gap-x-24 gap-y-6 items-start">
+					<DashboardSection
+						title={t("dashboard.inProgress")}
+						items={inProgressItems}
+						emptyMessage={t("dashboard.emptyInProgress")}
+					/>
+					<DashboardSection
+						title={t("dashboard.nextInSeries")}
+						items={nextInSeriesItems}
+						emptyMessage={t("dashboard.emptyNextInSeries")}
+					/>
 				</div>
-
-				<div className="flex gap-2 flex-wrap">
-					{STATUS_FILTERS.map((filter) => (
-						<Toggle
-							key={filter.labelKey}
-							variant="outline"
-							pressed={status === filter.value}
-							onPressedChange={() =>
-								navigate({
-									to: "/",
-									search: (prev) => ({ ...prev, status: filter.value }),
-								})
-							}
-						>
-							{t(filter.labelKey)}
-						</Toggle>
-					))}
-				</div>
-			</div>
-
-			<main className="px-6 py-6">
-				{mediaItems.length === 0 ? (
-					<p className="text-muted-foreground text-center py-12">
-						{t("library.empty")}
-					</p>
-				) : (
-					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-						{mediaItems.map((mediaItem) => (
-							<MediaCard key={mediaItem.id} mediaItem={mediaItem} />
-						))}
-					</div>
-				)}
+				<DashboardSection
+					title={t("dashboard.recentlyFinished")}
+					items={recentlyFinishedItems}
+					emptyMessage={t("dashboard.emptyRecentlyFinished")}
+				/>
 			</main>
 		</div>
 	);
