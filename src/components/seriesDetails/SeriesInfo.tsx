@@ -1,3 +1,6 @@
+import { useRouter } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+
 import {
 	Select,
 	SelectContent,
@@ -11,8 +14,6 @@ import {
 	updateSeriesRating,
 	updateSeriesStatus,
 } from "#/server/series";
-import { useRouter } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
 import { RatingStars } from "../common/rating/RatingStars";
 
 interface SeriesInfoProps {
@@ -54,7 +55,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				</span>
 			</div>
 
-			<Select value={seriesDetails.status} onValueChange={handleStatusChange}>
+			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={seriesDetails.isStatusAutoOverridden}>
 				<SelectTrigger className="w-44">
 					<SelectValue />
 				</SelectTrigger>

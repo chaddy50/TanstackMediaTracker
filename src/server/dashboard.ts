@@ -1,5 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	sql,
+} from "drizzle-orm";
 
 import { db } from "#/db/index";
 import {
@@ -64,8 +73,12 @@ async function fetchRecentlyFinishedItems() {
 
 	// Re-sort by completedAt desc after distinct
 	return items.sort((a, b) => {
-		if (a.completedAt === null) { return 1; }
-		if (b.completedAt === null) { return -1; }
+		if (a.completedAt === null) {
+			return 1;
+		}
+		if (b.completedAt === null) {
+			return -1;
+		}
 		return b.completedAt.localeCompare(a.completedAt);
 	});
 }
@@ -106,12 +119,7 @@ async function fetchNextInSeriesItems(
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.innerJoin(series, eq(mediaItems.seriesId, series.id))
-		.where(
-			and(
-				inArray(mediaItems.seriesId, uniqueSeriesIds),
-				ne(series.status, MediaItemStatus.DROPPED),
-			),
-		)
+		.where(inArray(mediaItems.seriesId, uniqueSeriesIds))
 		.orderBy(
 			mediaItems.seriesId,
 			sql`NULLIF(media_metadata.metadata->>'seriesBookNumber', '')::numeric NULLS LAST`,
@@ -121,12 +129,16 @@ async function fetchNextInSeriesItems(
 	// Group all series items by seriesId, preserving DB order
 	const allItemsBySeriesId = new Map<number, typeof allSeriesItems>();
 	for (const item of allSeriesItems) {
-		if (item.seriesId === null) { continue; }
+		if (item.seriesId === null) {
+			continue;
+		}
 		if (!allItemsBySeriesId.has(item.seriesId)) {
 			allItemsBySeriesId.set(item.seriesId, []);
 		}
 		const existing = allItemsBySeriesId.get(item.seriesId);
-		if (existing) { existing.push(item); }
+		if (existing) {
+			existing.push(item);
+		}
 	}
 
 	// Build the set of active item IDs (in progress or recently finished)
@@ -144,7 +156,9 @@ async function fetchNextInSeriesItems(
 				lastActiveIndex = index;
 			}
 		}
-		if (lastActiveIndex === -1) { continue; }
+		if (lastActiveIndex === -1) {
+			continue;
+		}
 
 		const nextItem = items.slice(lastActiveIndex + 1).find((item) => {
 			return item.status === MediaItemStatus.BACKLOG;
