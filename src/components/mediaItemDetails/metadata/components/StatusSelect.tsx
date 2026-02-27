@@ -6,6 +6,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { mediaItemStatusEnum } from "@/db/schema";
+import { SERIES_ONLY_STATUSES } from "@/lib/enums";
 import {
 	type MediaItemDetails,
 	updateMediaItemStatus,
@@ -38,11 +39,13 @@ export function StatusSelect(props: StatusSelectProps) {
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
-				{mediaItemStatusEnum.enumValues.map((status) => (
-					<SelectItem key={status} value={status}>
-						{t(`status.${status}`)}
-					</SelectItem>
-				))}
+				{mediaItemStatusEnum.enumValues
+					.filter((status) => !SERIES_ONLY_STATUSES.has(status))
+					.map((status) => (
+						<SelectItem key={status} value={status}>
+							{t(`status.${status}`)}
+						</SelectItem>
+					))}
 			</SelectContent>
 		</Select>
 	);

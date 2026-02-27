@@ -27,9 +27,10 @@ export const mediaItemStatusEnum = pgEnum("media_item_status", [
 	MediaItemStatus.BACKLOG,
 	MediaItemStatus.NEXT_UP,
 	MediaItemStatus.IN_PROGRESS,
+	MediaItemStatus.ON_HOLD,
+	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
 	MediaItemStatus.COMPLETED,
 	MediaItemStatus.DROPPED,
-	MediaItemStatus.ON_HOLD,
 ]);
 
 // --- Metadata types (typed at the TS level; JSONB is schemaless in Postgres) ---

@@ -19,9 +19,10 @@ export const en = {
 		backlog: "Backlog",
 		next_up: "Next Up",
 		in_progress: "In Progress",
+		on_hold: "On Hold",
+		waiting_for_next_release: "Waiting for Next Release",
 		completed: "Completed",
 		dropped: "Dropped",
-		on_hold: "On Hold",
 	},
 	mediaItemDetails: {
 		back: "Back",
