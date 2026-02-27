@@ -56,7 +56,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 			</div>
 
 			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={seriesDetails.isStatusAutoOverridden}>
-				<SelectTrigger className="w-44">
+				<SelectTrigger className="w-56">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

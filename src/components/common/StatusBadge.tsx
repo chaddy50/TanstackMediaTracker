@@ -1,3 +1,4 @@
+import { type MediaItemStatus } from "@/lib/enums";
 import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {
@@ -8,10 +9,11 @@ const STATUS_CLASSES: Record<string, string> = {
 	completed: "bg-green-700 text-green-100",
 	dropped: "bg-rose-700 text-rose-100",
 	on_hold: "bg-amber-600 text-amber-100",
+	waiting_for_next_release: "bg-sky-700 text-sky-100",
 };
 
 interface StatusBadgeProps {
-	status: string | undefined;
+	status: MediaItemStatus | undefined;
 	onClick?: () => void;
 	disabled?: boolean;
 }
