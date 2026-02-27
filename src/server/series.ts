@@ -110,6 +110,46 @@ export const updateSeriesStatus = createServerFn({ method: "POST" })
 		await db.update(series).set({ status }).where(eq(series.id, seriesId));
 	});
 
+export const updateSeriesMetadata = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			seriesId: z.number(),
+			name: z.string(),
+			description: z.string().optional(),
+			isComplete: z.boolean(),
+		}),
+	)
+	.handler(async ({ data: { seriesId, name, description, isComplete } }) => {
+		const [currentSeries] = await db
+			.select({ name: series.name })
+			.from(series)
+			.where(eq(series.id, seriesId));
+
+		await db
+			.update(series)
+			.set({ name, description: description || null, isComplete })
+			.where(eq(series.id, seriesId));
+
+		// If the name changed, sync it into each item's metadata JSONB so the
+		// series name shown on media item detail pages stays consistent.
+		if (currentSeries && currentSeries.name !== name) {
+			await db
+				.update(mediaItemMetadata)
+				.set({
+					metadata: sql`jsonb_set(${mediaItemMetadata.metadata}, '{series}', ${JSON.stringify(name)}::jsonb)`,
+				})
+				.where(
+					inArray(
+						mediaItemMetadata.id,
+						db
+							.select({ id: mediaItems.mediaItemMetadataId })
+							.from(mediaItems)
+							.where(eq(mediaItems.seriesId, seriesId)),
+					),
+				);
+		}
+	});
+
 export const updateSeriesRating = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({

@@ -15,6 +15,7 @@ import {
 	updateSeriesStatus,
 } from "#/server/series";
 import { RatingStars } from "../common/rating/RatingStars";
+import { EditSeriesDialog } from "./EditSeriesDialog";
 import { SeriesCompletionBadge } from "./SeriesCompletionBadge";
 
 interface SeriesInfoProps {
@@ -47,14 +48,17 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 
 	return (
 		<div className="flex flex-col gap-5 mb-10">
-			<div className="flex items-start gap-3 flex-wrap">
-				<h1 className="text-3xl font-bold leading-tight">
-					{seriesDetails.name}
-				</h1>
-				<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
-					{t(`mediaType.${seriesDetails.type}`)}
-				</span>
-				<SeriesCompletionBadge isComplete={seriesDetails.isComplete} />
+			<div className="flex items-start justify-between gap-2">
+				<div className="flex items-start gap-3 flex-wrap">
+					<h1 className="text-3xl font-bold leading-tight">
+						{seriesDetails.name}
+					</h1>
+					<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
+						{t(`mediaType.${seriesDetails.type}`)}
+					</span>
+					<SeriesCompletionBadge isComplete={seriesDetails.isComplete} />
+				</div>
+				<EditSeriesDialog seriesDetails={seriesDetails} />
 			</div>
 
 			{seriesDetails.description && (

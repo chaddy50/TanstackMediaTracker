@@ -68,6 +68,7 @@ export const en = {
 		rateSeries: "Rate Series",
 		complete: "Complete",
 		ongoing: "Ongoing",
+		edit: "Edit Series",
 	},
 	dashboard: {
 		title: "Dashboard",
