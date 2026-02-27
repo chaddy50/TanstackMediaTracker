@@ -1,13 +1,18 @@
 import { DollarSign } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
+
 interface PurchasedBadgeProps {
 	isPurchased: boolean;
 	onClick?: () => void;
 }
 
-export function PurchasedBadge(props: PurchasedBadgeProps) {
-	const { isPurchased, onClick } = props;
+export function PurchasedBadge({ isPurchased, onClick }: PurchasedBadgeProps) {
 	const { t } = useTranslation();
 
 	const colorClasses = isPurchased
@@ -18,26 +23,22 @@ export function PurchasedBadge(props: PurchasedBadgeProps) {
 		? t("purchased.purchased")
 		: t("purchased.notPurchased");
 
-	const commonClasses = `flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-full transition-colors duration-300 ${colorClasses}`;
-
-	const content = (
-		<>
-			<DollarSign size={11} />
-			{label}
-		</>
-	);
-
-	if (onClick) {
-		return (
-			<button type="button" onClick={onClick} className={commonClasses}>
-				{content}
-			</button>
-		);
-	}
+	const commonClasses = `inline-flex items-center justify-center p-1.5 rounded-full transition-colors duration-300 ${colorClasses}`;
 
 	return (
-		<span role="img" className={commonClasses} aria-label={label}>
-			{content}
-		</span>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				{onClick ? (
+					<button type="button" onClick={onClick} className={commonClasses}>
+						<DollarSign size={12} />
+					</button>
+				) : (
+					<span className={commonClasses}>
+						<DollarSign size={12} />
+					</span>
+				)}
+			</TooltipTrigger>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
 	);
 }

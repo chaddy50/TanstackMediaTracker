@@ -15,6 +15,7 @@ import {
 	updateSeriesStatus,
 } from "#/server/series";
 import { RatingStars } from "../common/rating/RatingStars";
+import { TypeBadge } from "../common/TypeBadge";
 import { EditSeriesDialog } from "./EditSeriesDialog";
 import { SeriesCompletionBadge } from "./SeriesCompletionBadge";
 
@@ -53,8 +54,8 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 					<h1 className="text-3xl font-bold leading-tight">
 						{seriesDetails.name}
 					</h1>
-					<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
-						{t(`mediaType.${seriesDetails.type}`)}
+					<span className="mt-2 shrink-0">
+						<TypeBadge type={seriesDetails.type} />
 					</span>
 					<SeriesCompletionBadge isComplete={seriesDetails.isComplete} />
 				</div>
