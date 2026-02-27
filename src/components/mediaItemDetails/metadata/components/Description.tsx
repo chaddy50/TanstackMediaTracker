@@ -1,3 +1,4 @@
+import { ExpandableDescription } from "@/components/common/ExpandableDescription";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
 interface DescriptionProps {
@@ -6,13 +7,8 @@ interface DescriptionProps {
 
 export function Description(props: DescriptionProps) {
 	const { mediaItemDetails } = props;
-	return (
-		<>
-			{mediaItemDetails.description && (
-				<p className="text-muted-foreground text-sm leading-relaxed">
-					{mediaItemDetails.description}
-				</p>
-			)}
-		</>
-	);
+	if (!mediaItemDetails.description) {
+		return null;
+	}
+	return <ExpandableDescription text={mediaItemDetails.description} />;
 }
