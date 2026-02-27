@@ -24,6 +24,10 @@ export const en = {
 		completed: "Completed",
 		dropped: "Dropped",
 	},
+	common: {
+		showMore: "Show more",
+		showLess: "Show less",
+	},
 	mediaItemDetails: {
 		back: "Back",
 		history: "History",
