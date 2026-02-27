@@ -9,7 +9,7 @@ import { TypeBadge } from "./common/TypeBadge";
 
 type MediaCardItem = {
 	id: number;
-	status: string;
+	status: MediaItemStatus;
 	isPurchased: boolean;
 	title: string;
 	type: MediaItemType;
@@ -22,9 +22,14 @@ type MediaCardItem = {
 interface MediaCardProps {
 	mediaItem: MediaCardItem;
 	shouldShowStatus?: boolean;
+	shouldShowType?: boolean;
 }
 
-export function MediaCard({ mediaItem, shouldShowStatus = true }: MediaCardProps) {
+export function MediaCard({
+	mediaItem,
+	shouldShowStatus = true,
+	shouldShowType = true,
+}: MediaCardProps) {
 	return (
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
@@ -61,14 +66,14 @@ export function MediaCard({ mediaItem, shouldShowStatus = true }: MediaCardProps
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					<TypeBadge type={mediaItem.type} />
+					{shouldShowType && <TypeBadge type={mediaItem.type} />}
 					{shouldShowStatus && <StatusBadge status={mediaItem.status} />}
 					{mediaItem.status !== MediaItemStatus.IN_PROGRESS &&
-					mediaItem.status !== MediaItemStatus.ON_HOLD &&
-					mediaItem.status !== MediaItemStatus.COMPLETED &&
-					mediaItem.status !== MediaItemStatus.DROPPED && (
-						<PurchasedBadge isPurchased={mediaItem.isPurchased} />
-					)}
+						mediaItem.status !== MediaItemStatus.ON_HOLD &&
+						mediaItem.status !== MediaItemStatus.COMPLETED &&
+						mediaItem.status !== MediaItemStatus.DROPPED && (
+							<PurchasedBadge isPurchased={mediaItem.isPurchased} />
+						)}
 				</div>
 
 				<RatingStars rating={mediaItem.rating} />
