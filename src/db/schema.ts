@@ -88,6 +88,8 @@ export const series = pgTable("series", {
 	type: mediaTypeEnum("type").notNull(),
 	status: mediaItemStatusEnum("status").notNull().default("backlog"),
 	rating: decimal("rating", { precision: 3, scale: 1 }),
+	description: text("description"),
+	isComplete: boolean("is_complete").notNull().default(false),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

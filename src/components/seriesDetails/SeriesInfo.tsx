@@ -15,6 +15,7 @@ import {
 	updateSeriesStatus,
 } from "#/server/series";
 import { RatingStars } from "../common/rating/RatingStars";
+import { SeriesCompletionBadge } from "./SeriesCompletionBadge";
 
 interface SeriesInfoProps {
 	seriesDetails: SeriesDetails;
@@ -53,7 +54,14 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<span className="mt-2 text-s px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
 					{t(`mediaType.${seriesDetails.type}`)}
 				</span>
+				<SeriesCompletionBadge isComplete={seriesDetails.isComplete} />
 			</div>
+
+			{seriesDetails.description && (
+				<p className="text-muted-foreground text-sm leading-relaxed">
+					{seriesDetails.description}
+				</p>
+			)}
 
 			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={seriesDetails.isStatusAutoOverridden}>
 				<SelectTrigger className="w-56">

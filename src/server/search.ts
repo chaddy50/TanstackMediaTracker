@@ -159,9 +159,19 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			if (existingSeries) {
 				seriesId = existingSeries.id;
 			} else {
+				const seriesInfo =
+					data.externalSource === "hardcover"
+						? await hardcover.fetchSeriesInfo(seriesName)
+						: null;
+
 				const [newSeries] = await db
 					.insert(series)
-					.values({ name: seriesName, type: data.type })
+					.values({
+						name: seriesName,
+						type: data.type,
+						description: seriesInfo?.description ?? null,
+						isComplete: seriesInfo?.isComplete ?? false,
+					})
 					.returning({ id: series.id });
 				if (newSeries) seriesId = newSeries.id;
 			}
