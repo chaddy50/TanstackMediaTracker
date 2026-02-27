@@ -66,6 +66,8 @@ export const en = {
 	seriesDetails: {
 		items: "Items in Series",
 		rateSeries: "Rate Series",
+		complete: "Complete",
+		ongoing: "Ongoing",
 	},
 	dashboard: {
 		title: "Dashboard",

@@ -37,6 +37,21 @@ type SearchHit = {
   release_year?: number;
 };
 
+// Step 3: fetch series description and completion status by name
+const SERIES_INFO_QUERY = `
+  query SeriesInfo($name: String!) {
+    series(where: { name: { _eq: $name } }, limit: 1) {
+      description
+      is_completed
+    }
+  }
+`;
+
+type SeriesInfoResult = {
+  description: string | null;
+  is_completed: boolean | null;
+};
+
 type BookImage = {
   id: number;
   image: { url: string } | null;
@@ -74,6 +89,25 @@ function parseHits(results: unknown): SearchHit[] {
 		return (r.hits ?? []).map((h) => h.document);
 	}
 	return [];
+}
+
+export async function fetchSeriesInfo(
+	name: string,
+): Promise<{ description: string | null; isComplete: boolean } | null> {
+	const data = await gql<{ series: SeriesInfoResult[] }>(SERIES_INFO_QUERY, {
+		name,
+	});
+	if (!data || data.series.length === 0) {
+		return null;
+	}
+	const row = data.series[0];
+	if (!row) {
+		return null;
+	}
+	return {
+		description: row.description ?? null,
+		isComplete: row.is_completed ?? false,
+	};
 }
 
 export async function search(query: string): Promise<ExternalSearchResult[]> {

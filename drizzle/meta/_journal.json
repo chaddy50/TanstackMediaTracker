@@ -64,6 +64,13 @@
       "when": 1772200000002,
       "tag": "0008_wet_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772200000003,
+      "tag": "0009_fuzzy_alice",
+      "breakpoints": true
     }
   ]
 }

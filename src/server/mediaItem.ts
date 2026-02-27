@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { asc, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -8,6 +8,7 @@ import {
 	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
+	series,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
 
@@ -227,7 +228,25 @@ export const togglePurchased = createServerFn({ method: "POST" })
 export const removeFromLibrary = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ metadataId: z.number() }))
 	.handler(async ({ data: { metadataId } }) => {
+		// Capture the seriesId before the cascade delete removes the media_items row
+		const [item] = await db
+			.select({ seriesId: mediaItems.seriesId })
+			.from(mediaItems)
+			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
+
 		await db
 			.delete(mediaItemMetadata)
 			.where(eq(mediaItemMetadata.id, metadataId));
+
+		// If the item belonged to a series, delete the series if it's now empty
+		if (item?.seriesId) {
+			const [remaining] = await db
+				.select({ itemCount: count() })
+				.from(mediaItems)
+				.where(eq(mediaItems.seriesId, item.seriesId));
+
+			if (remaining?.itemCount === 0) {
+				await db.delete(series).where(eq(series.id, item.seriesId));
+			}
+		}
 	});
