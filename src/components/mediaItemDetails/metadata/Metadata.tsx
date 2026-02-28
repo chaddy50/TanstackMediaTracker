@@ -36,6 +36,7 @@ export function Metadata(props: MetadataProps) {
 					metadata={mediaItemDetails.metadata}
 					releaseDate={mediaItemDetails.releaseDate}
 					seriesId={mediaItemDetails.seriesId}
+					seriesName={mediaItemDetails.seriesName}
 				/>
 			</div>
 		</div>
