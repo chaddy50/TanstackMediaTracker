@@ -53,8 +53,13 @@ export function MediaCard({
 				)}
 			</div>
 
-			<div className="p-3 flex flex-col gap-2">
+			<div className="p-2 flex flex-col gap-2">
 				<p className="text-md font-medium text-card-foreground leading-snug line-clamp-2">
+					{shouldShowType && (
+						<span className="mr-2">
+							<TypeBadge type={mediaItem.type} />
+						</span>
+					)}
 					{mediaItem.title}
 				</p>
 
@@ -66,7 +71,6 @@ export function MediaCard({
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					{shouldShowType && <TypeBadge type={mediaItem.type} />}
 					{shouldShowStatus && <StatusBadge status={mediaItem.status} />}
 					{mediaItem.status !== MediaItemStatus.IN_PROGRESS &&
 						mediaItem.status !== MediaItemStatus.ON_HOLD &&
