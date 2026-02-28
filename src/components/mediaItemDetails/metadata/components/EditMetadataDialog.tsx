@@ -13,12 +13,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { type MediaItemDetails, updateMediaItemMetadata } from "@/server/mediaItem";
+import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "@/server/mediaItem";
 import { BookFields } from "./editMetadata/BookFields";
 import { MovieFields } from "./editMetadata/MovieFields";
 import { TvShowFields } from "./editMetadata/TvShowFields";
 import { GameFields } from "./editMetadata/GameFields";
 import { FormField } from "./editMetadata/FormField";
+import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
 
 interface EditMetadataDialogProps {
 	mediaItemDetails: MediaItemDetails;
@@ -44,6 +45,15 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			: "",
 	);
 	const [typeMetadata, setTypeMetadata] = useState<Record<string, unknown>>(rawMetadata);
+	const [seriesFieldValue, setSeriesFieldValue] = useState<SeriesFieldValue>(
+		mediaItemDetails.seriesId !== null && mediaItemDetails.seriesId !== undefined
+			? { mode: "existing", seriesId: mediaItemDetails.seriesId }
+			: { mode: "none" },
+	);
+
+	const isSaveDisabled =
+		isSaving ||
+		(seriesFieldValue.mode === "new" && seriesFieldValue.name.trim() === "");
 
 	async function handleSave() {
 		setIsSaving(true);
@@ -59,6 +69,23 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					metadata: typeMetadata,
 				},
 			});
+
+			await updateMediaItemSeries({
+				data: {
+					mediaItemId: mediaItemDetails.id,
+					metadataId: mediaItemDetails.metadataId,
+					type: mediaItemDetails.type,
+					seriesId:
+						seriesFieldValue.mode === "existing"
+							? seriesFieldValue.seriesId
+							: null,
+					newSeriesName:
+						seriesFieldValue.mode === "new"
+							? seriesFieldValue.name.trim()
+							: undefined,
+				},
+			});
+
 			router.invalidate();
 			setIsOpen(false);
 		} catch (err) {
@@ -118,6 +145,12 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							/>
 						</FormField>
 
+						<SeriesField
+							type={mediaItemDetails.type}
+							initialSeriesId={mediaItemDetails.seriesId ?? null}
+							onChange={setSeriesFieldValue}
+						/>
+
 						{mediaItemDetails.type === MediaItemType.BOOK && (
 							<BookFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
 						)}
@@ -140,7 +173,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					)}
 
 					<div className="flex gap-2 pt-2">
-						<Button size="sm" onClick={handleSave} disabled={isSaving}>
+						<Button size="sm" onClick={handleSave} disabled={isSaveDisabled}>
 							{t("mediaItemDetails.save")}
 						</Button>
 						<Button
