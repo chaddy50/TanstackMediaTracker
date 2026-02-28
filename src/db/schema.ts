@@ -66,6 +66,18 @@ type GameMetadata = {
 
 type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
 
+export type ViewSubject = "items" | "series";
+
+export type ViewFilters = {
+	mediaTypes?: MediaItemType[];
+	statuses?: MediaItemStatus[];
+	isPurchased?: boolean;
+	completedThisYear?: boolean;
+	completedYearStart?: number;
+	completedYearEnd?: number;
+	isSeriesComplete?: boolean;
+};
+
 export type FictionRatingField = { rating: number; comment?: string };
 
 export type FictionRating = {
@@ -163,6 +175,23 @@ export const mediaItemInstances = pgTable("media_item_instances", {
 	reviewText: text("review_text"),
 	startedAt: date("started_at"),
 	completedAt: date("completed_at"), // null = still in progress
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.notNull()
+		.$onUpdateFn(() => new Date()),
+});
+
+/**
+ * User-defined views — named, saved filter configurations that can show
+ * either media items or series.
+ */
+export const views = pgTable("views", {
+	id: serial("id").primaryKey(),
+	name: text("name").notNull(),
+	subject: text("subject").notNull().$type<ViewSubject>(), // 'items' | 'series'
+	filters: jsonb("filters").notNull().default({}).$type<ViewFilters>(),
+	displayOrder: integer("display_order").notNull().default(0),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

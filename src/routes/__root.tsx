@@ -1,3 +1,5 @@
+import { TooltipProvider } from "#/components/ui/tooltip";
+import { Sidebar, SidebarProvider } from "@/components/common/sidebar/Sidebar";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -6,11 +8,10 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TooltipProvider } from "#/components/ui/tooltip";
+import "../i18n";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
-import "../i18n";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
@@ -49,7 +50,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<TanStackQueryProvider>
 					<TooltipProvider>
-						{children}
+						<SidebarProvider>
+							<div className="flex h-screen overflow-hidden bg-background text-foreground">
+								<Sidebar />
+								<div className="flex-1 overflow-y-auto">{children}</div>
+							</div>
+						</SidebarProvider>
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",

@@ -32,6 +32,35 @@ function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
 	return MediaItemStatus.BACKLOG;
 }
 
+async function syncSeriesStatus(seriesId: number, justCompleted = false) {
+	const items = await db
+		.select({ status: mediaItems.status })
+		.from(mediaItems)
+		.where(eq(mediaItems.seriesId, seriesId));
+
+	if (items.length === 0) return;
+
+	const statuses = items.map((i) => i.status);
+	const allDone = statuses.every(
+		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
+	);
+
+	let newStatus: MediaItemStatus | null = null;
+	if (statuses.some((s) => s === MediaItemStatus.IN_PROGRESS)) {
+		newStatus = MediaItemStatus.IN_PROGRESS;
+	} else if (allDone) {
+		newStatus = MediaItemStatus.COMPLETED;
+	} else if (justCompleted) {
+		// An item was just completed in a series that still has items remaining —
+		// treat the series as actively in progress.
+		newStatus = MediaItemStatus.IN_PROGRESS;
+	}
+
+	if (newStatus !== null) {
+		await db.update(series).set({ status: newStatus }).where(eq(series.id, seriesId));
+	}
+}
+
 export const getMediaItemDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))
 	.handler(async ({ data: { id } }) => {
@@ -92,10 +121,19 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { mediaItemId, status } }) => {
+		const [item] = await db
+			.select({ seriesId: mediaItems.seriesId })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, mediaItemId));
+
 		await db
 			.update(mediaItems)
 			.set({ status })
 			.where(eq(mediaItems.id, mediaItemId));
+
+		if (item?.seriesId) {
+			await syncSeriesStatus(item.seriesId);
+		}
 	});
 
 export const saveInstance = createServerFn({ method: "POST" })
@@ -154,6 +192,15 @@ export const saveInstance = createServerFn({ method: "POST" })
 					.update(mediaItems)
 					.set({ status: newStatus })
 					.where(eq(mediaItems.id, mediaItemId));
+
+				const [item] = await db
+					.select({ seriesId: mediaItems.seriesId })
+					.from(mediaItems)
+					.where(eq(mediaItems.id, mediaItemId));
+
+				if (item?.seriesId) {
+					await syncSeriesStatus(item.seriesId, newStatus === MediaItemStatus.COMPLETED);
+				}
 			}
 		},
 	);
@@ -188,6 +235,15 @@ export const deleteInstance = createServerFn({ method: "POST" })
 			.update(mediaItems)
 			.set({ status: inferStatusAfterInstanceDelete(remainingInstances) })
 			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
+
+		const [item] = await db
+			.select({ seriesId: mediaItems.seriesId })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
+
+		if (item?.seriesId) {
+			await syncSeriesStatus(item.seriesId);
+		}
 	});
 
 export const updateMediaItemMetadata = createServerFn({ method: "POST" })
@@ -225,6 +281,11 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		const [currentItem] = await db
+			.select({ seriesId: mediaItems.seriesId })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, data.mediaItemId));
+
 		let resolvedSeriesId = data.seriesId;
 		let resolvedSeriesName: string | null = null;
 
@@ -264,6 +325,14 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 				})
 				.where(eq(mediaItemMetadata.id, data.metadataId));
 		}
+
+		// Sync the old series (item left) and new series (item joined)
+		if (currentItem?.seriesId) {
+			await syncSeriesStatus(currentItem.seriesId);
+		}
+		if (resolvedSeriesId && resolvedSeriesId !== currentItem?.seriesId) {
+			await syncSeriesStatus(resolvedSeriesId);
+		}
 	});
 
 export const togglePurchased = createServerFn({ method: "POST" })
@@ -293,7 +362,8 @@ export const removeFromLibrary = createServerFn({ method: "POST" })
 			.delete(mediaItemMetadata)
 			.where(eq(mediaItemMetadata.id, metadataId));
 
-		// If the item belonged to a series, delete the series if it's now empty
+		// If the item belonged to a series, delete the series if it's now empty,
+		// otherwise sync the series status to reflect the removed item.
 		if (item?.seriesId) {
 			const [remaining] = await db
 				.select({ itemCount: count() })
@@ -302,6 +372,8 @@ export const removeFromLibrary = createServerFn({ method: "POST" })
 
 			if (remaining?.itemCount === 0) {
 				await db.delete(series).where(eq(series.id, item.seriesId));
+			} else {
+				await syncSeriesStatus(item.seriesId);
 			}
 		}
 	});

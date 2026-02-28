@@ -47,11 +47,7 @@ function LibraryPage() {
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader
-				title={t("library.title")}
-				shouldShowBackButton
-				right={<AddMediaButton />}
-			/>
+			<PageHeader title={t("library.title")} right={<AddMediaButton />} />
 
 			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
 				<div className="flex gap-2 flex-wrap">

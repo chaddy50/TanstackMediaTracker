@@ -9,6 +9,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { mediaItemStatusEnum } from "#/db/schema";
+import { MediaItemStatus } from "#/lib/enums";
 import {
 	type SeriesDetails,
 	updateSeriesRating,
@@ -27,6 +28,10 @@ interface SeriesInfoProps {
 export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	const router = useRouter();
 	const { t } = useTranslation();
+
+	const isStatusDerived = seriesDetails.items.some(
+		(item) => item.status === MediaItemStatus.IN_PROGRESS,
+	);
 
 	async function handleStatusChange(status: string) {
 		await updateSeriesStatus({
@@ -67,7 +72,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<ExpandableDescription text={seriesDetails.description} />
 			)}
 
-			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={seriesDetails.isStatusAutoOverridden}>
+			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>
 				<SelectTrigger className="w-56">
 					<SelectValue />
 				</SelectTrigger>

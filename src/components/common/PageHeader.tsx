@@ -1,6 +1,6 @@
-import { Link, useRouter } from "@tanstack/react-router";
-import { Home } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+
 import { Button } from "../ui/button";
 
 interface PageHeaderProps {
@@ -16,19 +16,13 @@ export function PageHeader({
 }: PageHeaderProps) {
 	const { t } = useTranslation();
 	const router = useRouter();
+
 	return (
 		<header className="px-6 py-4 border-b border-border relative flex items-center justify-between">
 			<span className="flex items-center gap-2">
 				{shouldShowBackButton && (
 					<Button variant="outline" onClick={() => router.history.back()}>
 						← {t("mediaItemDetails.back")}
-					</Button>
-				)}
-				{shouldShowBackButton && (
-					<Button variant="outline" size="icon" asChild>
-						<Link to="/">
-							<Home />
-						</Link>
 					</Button>
 				)}
 			</span>

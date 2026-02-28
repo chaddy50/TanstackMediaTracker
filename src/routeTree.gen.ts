@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ViewsViewIdRouteImport } from './routes/views.$viewId'
 import { Route as SeriesSeriesIdRouteImport } from './routes/series.$seriesId'
 import { Route as MediaItemDetailsMediaItemIdRouteImport } from './routes/mediaItemDetails.$mediaItemId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -23,6 +24,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViewsViewIdRoute = ViewsViewIdRouteImport.update({
+  id: '/views/$viewId',
+  path: '/views/$viewId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SeriesSeriesIdRoute = SeriesSeriesIdRouteImport.update({
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
+  '/views/$viewId': typeof ViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
+  '/views/$viewId': typeof ViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof SeriesSeriesIdRoute
+  '/views/$viewId': typeof ViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
+    | '/views/$viewId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
+    | '/views/$viewId'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
+    | '/views/$viewId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   MediaItemDetailsMediaItemIdRoute: typeof MediaItemDetailsMediaItemIdRoute
   SeriesSeriesIdRoute: typeof SeriesSeriesIdRoute
+  ViewsViewIdRoute: typeof ViewsViewIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -110,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/views/$viewId': {
+      id: '/views/$viewId'
+      path: '/views/$viewId'
+      fullPath: '/views/$viewId'
+      preLoaderRoute: typeof ViewsViewIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/series/$seriesId': {
@@ -141,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   MediaItemDetailsMediaItemIdRoute: MediaItemDetailsMediaItemIdRoute,
   SeriesSeriesIdRoute: SeriesSeriesIdRoute,
+  ViewsViewIdRoute: ViewsViewIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
