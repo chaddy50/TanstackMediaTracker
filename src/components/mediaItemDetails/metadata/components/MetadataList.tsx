@@ -10,11 +10,13 @@ export function MetadataList({
 	metadata,
 	releaseDate,
 	seriesId,
+	seriesName,
 }: {
 	type: MediaItemDetails["type"];
 	metadata: MediaItemDetails["metadata"];
 	releaseDate: MediaItemDetails["releaseDate"];
 	seriesId?: number | null;
+	seriesName?: string | null;
 }) {
 	const { t } = useTranslation();
 	const fields: Array<{
@@ -36,11 +38,11 @@ export function MetadataList({
 			case MediaItemType.BOOK:
 				if (typeof m.author === "string")
 					fields.push({ label: t("metadata.author"), value: m.author });
-				if (typeof m.series === "string") {
+				if (seriesName) {
 					const seriesLabel =
 						typeof m.seriesBookNumber === "string"
-							? `${m.series} #${m.seriesBookNumber}`
-							: m.series;
+							? `${seriesName} #${m.seriesBookNumber}`
+							: seriesName;
 					fields.push({
 						label: t("metadata.series"),
 						value: seriesLabel,
@@ -59,10 +61,10 @@ export function MetadataList({
 					});
 				break;
 			case MediaItemType.MOVIE:
-				if (typeof m.series === "string")
+				if (seriesName)
 					fields.push({
 						label: t("metadata.series"),
-						value: m.series,
+						value: seriesName,
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.director === "string")
@@ -79,6 +81,12 @@ export function MetadataList({
 					});
 				break;
 			case MediaItemType.TV_SHOW:
+				if (seriesName)
+					fields.push({
+						label: t("metadata.series"),
+						value: seriesName,
+						shouldSeriesNameBeLink: !!seriesId,
+					});
 				if (typeof m.creator === "string")
 					fields.push({ label: t("metadata.creator"), value: m.creator });
 				if (typeof m.seasons === "number")
@@ -90,10 +98,10 @@ export function MetadataList({
 					});
 				break;
 			case MediaItemType.VIDEO_GAME:
-				if (typeof m.series === "string")
+				if (seriesName)
 					fields.push({
 						label: t("metadata.series"),
-						value: m.series,
+						value: seriesName,
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.developer === "string")

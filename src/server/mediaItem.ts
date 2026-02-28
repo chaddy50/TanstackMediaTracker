@@ -41,6 +41,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				status: mediaItems.status,
 				isPurchased: mediaItems.isPurchased,
 				seriesId: mediaItems.seriesId,
+				seriesName: series.name,
 				metadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,
@@ -54,6 +55,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				mediaItemMetadata,
 				eq(mediaItemMetadata.id, mediaItems.mediaItemMetadataId),
 			)
+			.leftJoin(series, eq(mediaItems.seriesId, series.id))
 			.where(eq(mediaItems.id, id));
 
 		if (!row) throw new Error(`Entry ${id} not found`);
