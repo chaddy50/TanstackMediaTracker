@@ -93,6 +93,50 @@ export const searchMedia = createServerFn({ method: "GET" })
 		});
 	});
 
+export const createCustomItem = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			type: z.enum(mediaTypeEnum.enumValues),
+			title: z.string().min(1),
+			description: z.string().optional(),
+			coverImageUrl: z.string().optional(),
+			releaseDate: z.string().optional(),
+			metadata: z.record(z.string(), z.any()),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const externalId = crypto.randomUUID();
+		const externalSource = "custom";
+
+		const [inserted] = await db
+			.insert(mediaItemMetadata)
+			.values({
+				externalId,
+				externalSource,
+				type: data.type,
+				title: data.title,
+				description: data.description ?? null,
+				coverImageUrl: data.coverImageUrl ?? null,
+				releaseDate: data.releaseDate ?? null,
+				metadata: data.metadata,
+			})
+			.returning({ id: mediaItemMetadata.id });
+
+		if (!inserted) throw new Error("Failed to create metadata");
+
+		const [newItem] = await db
+			.insert(mediaItems)
+			.values({
+				mediaItemMetadataId: inserted.id,
+				status: MediaItemStatus.BACKLOG,
+				seriesId: null,
+			})
+			.returning({ id: mediaItems.id });
+
+		if (!newItem) throw new Error("Failed to create library entry");
+		return { mediaItemId: newItem.id };
+	});
+
 export const addToLibrary = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({

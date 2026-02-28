@@ -6,6 +6,13 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+export function toTitleCase(text: string): string {
+	return text
+		.split(" ")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+		.join(" ");
+}
+
 export function formatDate(dateStr: string | null | undefined): string | null {
 	if (!dateStr) return null;
 	return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {

@@ -58,6 +58,11 @@ export const en = {
 		noResults: "No results found.",
 		addToLibrary: "Add",
 		adding: "Adding...",
+		createCustom: "Create manually",
+		createCustomTitle: "Create Custom Item",
+		creating: "Creating...",
+		type: "Type",
+		selectType: "Select a type...",
 	},
 	fictionRating: {
 		setting: "Setting",
