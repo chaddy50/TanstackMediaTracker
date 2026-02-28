@@ -18,7 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed-views": "dotenv -e .env.local -- tsx src/db/seedViews.ts"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "^10.34.0",

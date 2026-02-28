@@ -11,8 +11,6 @@ import {
 	mediaTypeEnum,
 	series,
 } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
-
 export const getSeriesListByType = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ type: z.enum(mediaTypeEnum.enumValues) }))
 	.handler(async ({ data: { type } }) => {
@@ -58,21 +56,16 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 		if (items.length === 0) {
 			return {
 				...row,
-				status: row.status,
-				isStatusAutoOverridden: false,
 				rating: parseFloat(row.rating ?? "") || 0,
 				items: [],
 			};
 		}
 
-		// Attach the most recent completed-instance rating to each item,
-		// and also capture completedAt for the auto-override check.
 		const itemIds = items.map((item) => item.id);
 		const latestRatings = await db
 			.selectDistinctOn([mediaItemInstances.mediaItemId], {
 				mediaItemId: mediaItemInstances.mediaItemId,
 				rating: mediaItemInstances.rating,
-				completedAt: mediaItemInstances.completedAt,
 			})
 			.from(mediaItemInstances)
 			.where(
@@ -87,19 +80,8 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 			latestRatings.map((r) => [r.mediaItemId, r.rating]),
 		);
 
-		const thirtyDaysAgo = new Date();
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-		const cutoffDate = thirtyDaysAgo.toISOString().slice(0, 10);
-
-		const isStatusAutoOverridden = (
-			items.some((item) => item.status === MediaItemStatus.IN_PROGRESS) ||
-			latestRatings.some((r) => r.completedAt !== null && r.completedAt >= cutoffDate)
-		);
-
 		return {
 			...row,
-			status: isStatusAutoOverridden ? MediaItemStatus.IN_PROGRESS : row.status,
-			isStatusAutoOverridden,
 			rating: parseFloat(row.rating ?? "") || 0,
 			items: items.map((item) => ({
 				...item,

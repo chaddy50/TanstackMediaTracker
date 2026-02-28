@@ -71,6 +71,20 @@
       "when": 1772200000003,
       "tag": "0009_fuzzy_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772306477484,
+      "tag": "0010_busy_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772307604352,
+      "tag": "0011_worthless_overlord",
+      "breakpoints": true
     }
   ]
 }
