@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -8,6 +8,7 @@ import {
 	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
+	mediaTypeEnum,
 	series,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
@@ -209,6 +210,58 @@ export const updateMediaItemMetadata = createServerFn({ method: "POST" })
 				metadata: data.metadata,
 			})
 			.where(eq(mediaItemMetadata.id, data.metadataId));
+	});
+
+export const updateMediaItemSeries = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			mediaItemId: z.number(),
+			metadataId: z.number(),
+			type: z.enum(mediaTypeEnum.enumValues),
+			seriesId: z.number().nullable(),
+			newSeriesName: z.string().optional(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		let resolvedSeriesId = data.seriesId;
+		let resolvedSeriesName: string | null = null;
+
+		if (data.newSeriesName) {
+			const [newSeries] = await db
+				.insert(series)
+				.values({ name: data.newSeriesName, type: data.type })
+				.returning({ id: series.id });
+			if (!newSeries) throw new Error("Failed to create series");
+			resolvedSeriesId = newSeries.id;
+			resolvedSeriesName = data.newSeriesName;
+		} else if (data.seriesId !== null) {
+			const [existing] = await db
+				.select({ name: series.name })
+				.from(series)
+				.where(eq(series.id, data.seriesId));
+			resolvedSeriesName = existing?.name ?? null;
+		}
+
+		await db
+			.update(mediaItems)
+			.set({ seriesId: resolvedSeriesId })
+			.where(eq(mediaItems.id, data.mediaItemId));
+
+		if (resolvedSeriesName) {
+			await db
+				.update(mediaItemMetadata)
+				.set({
+					metadata: sql`jsonb_set(coalesce(${mediaItemMetadata.metadata}, '{}'), '{series}', ${JSON.stringify(resolvedSeriesName)}::jsonb)`,
+				})
+				.where(eq(mediaItemMetadata.id, data.metadataId));
+		} else {
+			await db
+				.update(mediaItemMetadata)
+				.set({
+					metadata: sql`${mediaItemMetadata.metadata} - 'series'`,
+				})
+				.where(eq(mediaItemMetadata.id, data.metadataId));
+		}
 	});
 
 export const togglePurchased = createServerFn({ method: "POST" })

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -8,9 +8,20 @@ import {
 	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
+	mediaTypeEnum,
 	series,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
+
+export const getSeriesListByType = createServerFn({ method: "GET" })
+	.inputValidator(z.object({ type: z.enum(mediaTypeEnum.enumValues) }))
+	.handler(async ({ data: { type } }) => {
+		return db
+			.select({ id: series.id, name: series.name })
+			.from(series)
+			.where(eq(series.type, type))
+			.orderBy(asc(series.name));
+	});
 
 export const getSeriesDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))

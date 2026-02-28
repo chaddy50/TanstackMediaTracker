@@ -104,5 +104,8 @@ export const en = {
 		platforms: "Platforms",
 		genres: "Genres",
 		series: "Series",
+		noSeries: "No series",
+		createNewSeries: "Create new series...",
+		newSeriesName: "New series name",
 	},
 } as const;
