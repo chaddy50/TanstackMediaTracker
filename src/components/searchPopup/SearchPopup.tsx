@@ -1,3 +1,4 @@
+import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -8,6 +9,7 @@ import type { MediaItemType } from "#/lib/enums";
 import { type SearchResultWithStatus, searchMedia } from "#/server/search";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CreateCustomItemDialog } from "./CreateCustomItemDialog";
 import { SearchEntryField } from "./searchField/SearchEntryField";
 import { SearchFilters } from "./searchField/SearchFilters";
 import { SearchResults } from "./searchResults/SearchResults";
@@ -26,7 +28,9 @@ export function SearchPopup(props: SearchPopupProps) {
 	const [filterType, setFilterType] = useState<SearchType>("all");
 	const [results, setResults] = useState<SearchResultWithStatus[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
+	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const createButtonRef = useRef<HTMLButtonElement>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Focus input when modal opens
@@ -38,6 +42,7 @@ export function SearchPopup(props: SearchPopupProps) {
 			setQuery("");
 			setResults([]);
 			setIsSearching(false);
+			setIsCreateDialogOpen(false);
 		}
 	}, [isOpen]);
 
@@ -92,6 +97,7 @@ export function SearchPopup(props: SearchPopupProps) {
 		const isOnInput = activeElement === inputRef.current;
 		const isOnFilter = filterIndex >= 0;
 		const isOnResult = resultIndex >= 0;
+		const isOnCreateButton = activeElement === createButtonRef.current;
 
 		switch (keyboardEvent.key) {
 			case "ArrowDown":
@@ -99,14 +105,26 @@ export function SearchPopup(props: SearchPopupProps) {
 				if (isOnInput) {
 					focusActiveFilter(filterElements);
 				} else if (isOnFilter) {
-					resultElements[0]?.focus();
+					if (resultElements.length > 0) {
+						resultElements[0]?.focus();
+					} else {
+						createButtonRef.current?.focus();
+					}
 				} else if (isOnResult && resultIndex < resultElements.length - 1) {
 					resultElements[resultIndex + 1]?.focus();
+				} else if (isOnResult && resultIndex === resultElements.length - 1) {
+					createButtonRef.current?.focus();
 				}
 				break;
 			case "ArrowUp":
 				keyboardEvent.preventDefault();
-				if (isOnFilter) {
+				if (isOnCreateButton) {
+					if (resultElements.length > 0) {
+						resultElements[resultElements.length - 1]?.focus();
+					} else {
+						focusActiveFilter(filterElements);
+					}
+				} else if (isOnFilter) {
 					inputRef.current?.focus();
 				} else if (isOnResult && resultIndex === 0) {
 					focusActiveFilter(filterElements);
@@ -141,31 +159,52 @@ export function SearchPopup(props: SearchPopupProps) {
 	}
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent
-				className="sm:max-w-xl p-0 gap-0"
-				onKeyDown={handleKeyDown}
-			>
-				<DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
-					<DialogTitle className="sr-only">{t("search.title")}</DialogTitle>
+		<>
+			<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+				<DialogContent
+					className="sm:max-w-xl p-0 gap-0"
+					onKeyDown={handleKeyDown}
+				>
+					<DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
+						<DialogTitle className="sr-only">{t("search.title")}</DialogTitle>
 
-					<SearchEntryField
-						fieldRef={inputRef}
-						query={query}
-						setQuery={setQuery}
-					/>
+						<SearchEntryField
+							fieldRef={inputRef}
+							query={query}
+							setQuery={setQuery}
+						/>
 
-					<SearchFilters type={filterType} setType={setFilterType} />
-				</DialogHeader>
+						<SearchFilters type={filterType} setType={setFilterType} />
+					</DialogHeader>
 
-				<div className="overflow-y-auto max-h-[60vh] px-2 py-2">
-					<SearchResults
-						isSearching={isSearching}
-						query={query}
-						results={results}
-					/>
-				</div>
-			</DialogContent>
-		</Dialog>
+					<div className="overflow-y-auto max-h-[60vh] px-2 py-2">
+						<SearchResults
+							isSearching={isSearching}
+							query={query}
+							results={results}
+						/>
+					</div>
+
+					<div className="px-4 py-2 border-t border-border">
+						<Button
+							ref={createButtonRef}
+							variant="ghost"
+							size="sm"
+							className="text-muted-foreground"
+							onClick={() => setIsCreateDialogOpen(true)}
+						>
+							{t("search.createCustom")}
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<CreateCustomItemDialog
+				isOpen={isCreateDialogOpen}
+				onClose={() => setIsCreateDialogOpen(false)}
+				initialTitle={query}
+				initialType={filterType !== "all" ? filterType : null}
+			/>
+		</>
 	);
 }
