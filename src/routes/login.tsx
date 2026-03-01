@@ -1,10 +1,10 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
@@ -19,6 +19,9 @@ function LoginPage() {
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const nameInputId = useId();
+	const emailInputId = useId();
+	const passwordInputId = useId();
 
 	async function handleSubmit(event: React.FormEvent) {
 		event.preventDefault();
@@ -64,9 +67,9 @@ function LoginPage() {
 				<form onSubmit={handleSubmit} className="space-y-4">
 					{isSignUp && (
 						<div className="space-y-1.5">
-							<Label htmlFor="name">{t("auth.name")}</Label>
+							<Label htmlFor={nameInputId}>{t("auth.name")}</Label>
 							<Input
-								id="name"
+								id={nameInputId}
 								type="text"
 								value={name}
 								onChange={(event) => setName(event.target.value)}
@@ -77,9 +80,9 @@ function LoginPage() {
 					)}
 
 					<div className="space-y-1.5">
-						<Label htmlFor="email">{t("auth.email")}</Label>
+						<Label htmlFor={emailInputId}>{t("auth.email")}</Label>
 						<Input
-							id="email"
+							id={emailInputId}
 							type="email"
 							value={email}
 							onChange={(event) => setEmail(event.target.value)}
@@ -89,9 +92,9 @@ function LoginPage() {
 					</div>
 
 					<div className="space-y-1.5">
-						<Label htmlFor="password">{t("auth.password")}</Label>
+						<Label htmlFor={passwordInputId}>{t("auth.password")}</Label>
 						<Input
-							id="password"
+							id={passwordInputId}
 							type="password"
 							value={password}
 							onChange={(event) => setPassword(event.target.value)}
@@ -100,9 +103,7 @@ function LoginPage() {
 						/>
 					</div>
 
-					{error && (
-						<p className="text-sm text-destructive">{error}</p>
-					)}
+					{error && <p className="text-sm text-destructive">{error}</p>}
 
 					<Button type="submit" className="w-full" disabled={isSubmitting}>
 						{isSubmitting
@@ -125,6 +126,17 @@ function LoginPage() {
 						{isSignUp ? t("auth.haveAccount") : t("auth.noAccount")}
 					</button>
 				</p>
+
+				{!isSignUp && (
+					<p className="text-sm text-center text-muted-foreground">
+						<Link
+							to="/forgot-password"
+							className="underline hover:text-foreground transition-colors"
+						>
+							{t("auth.forgotPassword")}
+						</Link>
+					</p>
+				)}
 			</div>
 		</div>
 	);
