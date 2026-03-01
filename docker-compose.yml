@@ -20,11 +20,11 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8484:3000"
+    env_file: .env
     environment:
+      # Override DATABASE_URL to use the Docker service name instead of localhost
       DATABASE_URL: postgresql://media_tracker:media_tracker@postgres:5432/media_tracker
-      BETTER_AUTH_URL: http://localhost:3000
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

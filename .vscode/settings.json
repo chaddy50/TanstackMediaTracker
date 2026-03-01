@@ -1,22 +1,4 @@
 {
-	"files.exclude": {
-		".cta.json": true,
-		".cursorrules": true,
-		"biome.json": true,
-		"components.json": true,
-		"CONTEXT.md": true,
-		"docker-compose.yml": true,
-		"Dockerfile": true,
-		"drizzle": true,
-		"drizzle.config.ts": true,
-		"instrument.server.mjs": true,
-		"media-tracker-plan.md": true,
-		"package.json": true,
-		"package-lock.json": true,
-		"README.md": true,
-		"tsconfig.json": true,
-		"vite.config.ts": true
-	},
 	"files.watcherExclude": {
 		"**/routeTree.gen.ts": true
 	},
