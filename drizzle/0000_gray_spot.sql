@@ -1,3 +1,5 @@
+CREATE TYPE "public"."media_type" AS ENUM('book', 'movie', 'tv_show', 'video_game');--> statement-breakpoint
+CREATE TYPE "public"."entry_status" AS ENUM('backlog', 'in_progress', 'completed', 'dropped', 'on_hold');--> statement-breakpoint
 CREATE TYPE "public"."media_item_status" AS ENUM('backlog', 'in_progress', 'completed', 'dropped', 'on_hold');--> statement-breakpoint
 CREATE TABLE "media_item_instances" (
 	"id" serial PRIMARY KEY NOT NULL,
