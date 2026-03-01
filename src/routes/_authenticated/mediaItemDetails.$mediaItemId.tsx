@@ -8,7 +8,7 @@ import { History } from "@/components/mediaItemDetails/history/History";
 import { Metadata } from "@/components/mediaItemDetails/metadata/Metadata";
 import { getMediaItemDetails, removeFromLibrary } from "@/server/mediaItem";
 
-export const Route = createFileRoute("/mediaItemDetails/$mediaItemId")({
+export const Route = createFileRoute("/_authenticated/mediaItemDetails/$mediaItemId")({
 	loader: ({ params }) =>
 		getMediaItemDetails({ data: { id: parseInt(params.mediaItemId, 10) } }),
 	component: EntryDetailPage,
@@ -25,7 +25,7 @@ function EntryDetailPage() {
 		try {
 			await removeFromLibrary({
 				data: { metadataId: mediaItemDetails.metadataId },
-			});
+			})
 			await navigate({ to: "/" });
 		} finally {
 			setDeleting(false);
@@ -48,5 +48,5 @@ function EntryDetailPage() {
 				<History mediaItemDetails={mediaItemDetails} />
 			</div>
 		</div>
-	);
+	)
 }

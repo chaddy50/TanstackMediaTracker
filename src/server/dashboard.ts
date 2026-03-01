@@ -1,14 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-	and,
-	asc,
-	desc,
-	eq,
-	gte,
-	inArray,
-	isNotNull,
-	sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import {
@@ -18,8 +9,9 @@ import {
 	series,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
+import { getLoggedInUser } from "#/lib/session";
 
-async function fetchInProgressItems() {
+async function fetchInProgressItems(userId: string) {
 	return db
 		.select({
 			id: mediaItems.id,
@@ -37,11 +29,16 @@ async function fetchInProgressItems() {
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
-		.where(eq(mediaItems.status, MediaItemStatus.IN_PROGRESS))
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				eq(mediaItems.status, MediaItemStatus.IN_PROGRESS),
+			),
+		)
 		.orderBy(asc(mediaItemMetadata.title));
 }
 
-async function fetchRecentlyFinishedItems() {
+async function fetchRecentlyFinishedItems(userId: string) {
 	const thirtyDaysAgo = new Date();
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 	const cutoffDate = thirtyDaysAgo.toISOString().slice(0, 10);
@@ -67,6 +64,7 @@ async function fetchRecentlyFinishedItems() {
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.where(
 			and(
+				eq(mediaItems.userId, userId),
 				isNotNull(mediaItemInstances.completedAt),
 				gte(mediaItemInstances.completedAt, cutoffDate),
 			),
@@ -85,7 +83,7 @@ async function fetchRecentlyFinishedItems() {
 	});
 }
 
-async function fetchExplicitNextUpItems() {
+async function fetchExplicitNextUpItems(userId: string) {
 	return db
 		.select({
 			id: mediaItems.id,
@@ -103,11 +101,17 @@ async function fetchExplicitNextUpItems() {
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
-		.where(eq(mediaItems.status, MediaItemStatus.NEXT_UP))
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				eq(mediaItems.status, MediaItemStatus.NEXT_UP),
+			),
+		)
 		.orderBy(asc(mediaItemMetadata.title));
 }
 
 async function fetchNextInSeriesItems(
+	userId: string,
 	inProgressItems: Awaited<ReturnType<typeof fetchInProgressItems>>,
 	recentlyFinishedItems: Awaited<ReturnType<typeof fetchRecentlyFinishedItems>>,
 ) {
@@ -144,7 +148,12 @@ async function fetchNextInSeriesItems(
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.innerJoin(series, eq(mediaItems.seriesId, series.id))
-		.where(inArray(mediaItems.seriesId, uniqueSeriesIds))
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				inArray(mediaItems.seriesId, uniqueSeriesIds),
+			),
+		)
 		.orderBy(
 			mediaItems.seriesId,
 			sql`NULLIF(media_metadata.metadata->>'seriesBookNumber', '')::numeric NULLS LAST`,
@@ -230,21 +239,34 @@ async function attachRatings<T extends { id: number }>(
 
 export const getDashboardData = createServerFn({ method: "GET" }).handler(
 	async () => {
+		const user = await getLoggedInUser();
+		const userId = user.id;
+
 		const [inProgressItemsRaw, recentlyFinishedItemsRaw] = await Promise.all([
-			fetchInProgressItems(),
-			fetchRecentlyFinishedItems(),
+			fetchInProgressItems(userId),
+			fetchRecentlyFinishedItems(userId),
 		]);
 
-		const [explicitNextUpItemsRaw, autoNextInSeriesItemsRaw] = await Promise.all([
-			fetchExplicitNextUpItems(),
-			fetchNextInSeriesItems(inProgressItemsRaw, recentlyFinishedItemsRaw),
-		]);
+		const [explicitNextUpItemsRaw, autoNextInSeriesItemsRaw] =
+			await Promise.all([
+				fetchExplicitNextUpItems(userId),
+				fetchNextInSeriesItems(
+					userId,
+					inProgressItemsRaw,
+					recentlyFinishedItemsRaw,
+				),
+			]);
 
-		const explicitNextUpIds = new Set(explicitNextUpItemsRaw.map((item) => item.id));
+		const explicitNextUpIds = new Set(
+			explicitNextUpItemsRaw.map((item) => item.id),
+		);
 		const dedupedAutoItems = autoNextInSeriesItemsRaw.filter(
 			(item) => !explicitNextUpIds.has(item.id),
 		);
-		const nextInSeriesItemsRaw = [...explicitNextUpItemsRaw, ...dedupedAutoItems];
+		const nextInSeriesItemsRaw = [
+			...explicitNextUpItemsRaw,
+			...dedupedAutoItems,
+		];
 
 		const recentlyFinishedWithoutCompletedAt = recentlyFinishedItemsRaw.map(
 			({ completedAt: _completedAt, ...rest }) => rest,

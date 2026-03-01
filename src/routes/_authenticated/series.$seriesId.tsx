@@ -5,7 +5,7 @@ import { SeriesInfo } from "#/components/seriesDetails/SeriesInfo";
 import { SeriesItems } from "#/components/seriesDetails/SeriesItems";
 import { getSeriesDetails } from "#/server/series";
 
-export const Route = createFileRoute("/series/$seriesId")({
+export const Route = createFileRoute("/_authenticated/series/$seriesId")({
 	loader: ({ params }) =>
 		getSeriesDetails({ data: { id: parseInt(params.seriesId, 10) } }),
 	component: SeriesPage,
@@ -22,5 +22,5 @@ function SeriesPage() {
 				<SeriesItems items={seriesDetails.items} />
 			</div>
 		</div>
-	);
+	)
 }

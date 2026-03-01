@@ -1,16 +1,19 @@
+import { Button } from "#/components/ui/button";
+import { CreateViewDialog } from "#/components/views/CreateViewDialog";
+import { authClient } from "#/lib/auth-client";
+import { getViews } from "#/server/views";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import {
 	LayoutDashboard,
 	Library,
+	LogOut,
 	PanelLeftClose,
 	PanelLeftOpen,
 	Plus,
 } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "#/components/ui/button";
-import { CreateViewDialog } from "#/components/views/CreateViewDialog";
-import { getViews } from "#/server/views";
 import { SidebarItem } from "./components/SidebarItem";
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -56,11 +59,17 @@ export function Sidebar() {
 	const { t } = useTranslation();
 	const { isOpen, toggle } = useSidebar();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	const router = useRouter();
 
 	const { data: viewsList = [] } = useQuery({
 		queryKey: ["views"],
 		queryFn: () => getViews(),
 	});
+
+	async function handleLogout() {
+		await authClient.signOut();
+		router.navigate({ to: "/login" });
+	}
 
 	return (
 		<>
@@ -126,7 +135,7 @@ export function Sidebar() {
 						</>
 					)}
 
-					<div className="mt-auto px-2 pb-4">
+					<div className="mt-auto px-2 pb-2">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -135,6 +144,15 @@ export function Sidebar() {
 						>
 							<Plus className="size-4 shrink-0" />
 							{t("views.newView")}
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="w-full justify-start gap-2"
+							onClick={handleLogout}
+						>
+							<LogOut className="size-4 shrink-0" />
+							{t("auth.logout")}
 						</Button>
 					</div>
 				</div>

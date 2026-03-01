@@ -11,20 +11,27 @@ import {
 	mediaTypeEnum,
 	series,
 } from "#/db/schema";
+import { getLoggedInUser } from "#/lib/session";
+
 export const getSeriesListByType = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ type: z.enum(mediaTypeEnum.enumValues) }))
 	.handler(async ({ data: { type } }) => {
+		const user = await getLoggedInUser();
 		return db
 			.select({ id: series.id, name: series.name })
 			.from(series)
-			.where(eq(series.type, type))
+			.where(and(eq(series.type, type), eq(series.userId, user.id)))
 			.orderBy(asc(series.name));
 	});
 
 export const getSeriesDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))
 	.handler(async ({ data: { id } }) => {
-		const [row] = await db.select().from(series).where(eq(series.id, id));
+		const user = await getLoggedInUser();
+		const [row] = await db
+			.select()
+			.from(series)
+			.where(and(eq(series.id, id), eq(series.userId, user.id)));
 
 		if (!row) throw new Error(`Series ${id} not found`);
 
@@ -44,7 +51,7 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 				mediaItemMetadata,
 				eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 			)
-			.where(eq(mediaItems.seriesId, id))
+			.where(and(eq(mediaItems.seriesId, id), eq(mediaItems.userId, user.id)))
 			.orderBy(
 				sql`
 					NULLIF(media_metadata.metadata->>'seriesBookNumber', '')::numeric
@@ -101,7 +108,11 @@ export const updateSeriesStatus = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { seriesId, status } }) => {
-		await db.update(series).set({ status }).where(eq(series.id, seriesId));
+		const user = await getLoggedInUser();
+		await db
+			.update(series)
+			.set({ status })
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 	});
 
 export const updateSeriesMetadata = createServerFn({ method: "POST" })
@@ -114,15 +125,16 @@ export const updateSeriesMetadata = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { seriesId, name, description, isComplete } }) => {
+		const user = await getLoggedInUser();
 		const [currentSeries] = await db
 			.select({ name: series.name })
 			.from(series)
-			.where(eq(series.id, seriesId));
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 
 		await db
 			.update(series)
 			.set({ name, description: description || null, isComplete })
-			.where(eq(series.id, seriesId));
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 
 		// If the name changed, sync it into each item's metadata JSONB so the
 		// series name shown on media item detail pages stays consistent.
@@ -138,7 +150,12 @@ export const updateSeriesMetadata = createServerFn({ method: "POST" })
 						db
 							.select({ id: mediaItems.mediaItemMetadataId })
 							.from(mediaItems)
-							.where(eq(mediaItems.seriesId, seriesId)),
+							.where(
+								and(
+									eq(mediaItems.seriesId, seriesId),
+									eq(mediaItems.userId, user.id),
+								),
+							),
 					),
 				);
 		}
@@ -152,8 +169,9 @@ export const updateSeriesRating = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { seriesId, rating } }) => {
+		const user = await getLoggedInUser();
 		await db
 			.update(series)
 			.set({ rating: rating ?? null })
-			.where(eq(series.id, seriesId));
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 	});

@@ -23,6 +23,7 @@ import {
 	type ViewFilters,
 	type ViewSubject,
 } from "#/db/schema";
+import { getLoggedInUser } from "#/lib/session";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -66,12 +67,14 @@ function buildCompletedYearCondition(filters: ViewFilters) {
 		return undefined;
 	}
 
-	const startCondition = yearStart !== null
-		? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) >= ${yearStart}`
-		: undefined;
-	const endCondition = yearEnd !== null
-		? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) <= ${yearEnd}`
-		: undefined;
+	const startCondition =
+		yearStart !== null
+			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) >= ${yearStart}`
+			: undefined;
+	const endCondition =
+		yearEnd !== null
+			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) <= ${yearEnd}`
+			: undefined;
 
 	const yearConditions = [startCondition, endCondition].filter(
 		(c) => c !== undefined,
@@ -90,7 +93,12 @@ function buildCompletedYearCondition(filters: ViewFilters) {
 // ---------------------------------------------------------------------------
 
 export const getViews = createServerFn({ method: "GET" }).handler(async () => {
-	return db.select().from(views).orderBy(asc(views.displayOrder));
+	const user = await getLoggedInUser();
+	return db
+		.select()
+		.from(views)
+		.where(eq(views.userId, user.id))
+		.orderBy(asc(views.displayOrder));
 });
 
 export type View = Awaited<ReturnType<typeof getViews>>[number];
@@ -98,24 +106,35 @@ export type View = Awaited<ReturnType<typeof getViews>>[number];
 export const getViewResults = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ viewId: z.number() }))
 	.handler(async ({ data: { viewId } }) => {
-		const [view] = await db.select().from(views).where(eq(views.id, viewId));
+		const user = await getLoggedInUser();
+		const [view] = await db
+			.select()
+			.from(views)
+			.where(and(eq(views.id, viewId), eq(views.userId, user.id)));
 		if (!view) throw new Error(`View ${viewId} not found`);
 
 		const filters = (view.filters ?? {}) as ViewFilters;
 
 		if (view.subject === "items") {
-			return { view, results: await queryItemResults(filters) };
+			return { view, results: await queryItemResults(filters, user.id) };
 		}
 
-		return { view, results: await querySeriesResults(filters) };
+		return { view, results: await querySeriesResults(filters, user.id) };
 	});
 
 export type ViewResults = Awaited<ReturnType<typeof getViewResults>>;
-export type ItemViewResult = Extract<ViewResults, { view: { subject: "items" } }>["results"][number];
-export type SeriesViewResult = Extract<ViewResults, { view: { subject: "series" } }>["results"][number];
+export type ItemViewResult = Extract<
+	ViewResults,
+	{ view: { subject: "items" } }
+>["results"][number];
+export type SeriesViewResult = Extract<
+	ViewResults,
+	{ view: { subject: "series" } }
+>["results"][number];
 
-async function queryItemResults(filters: ViewFilters) {
+async function queryItemResults(filters: ViewFilters, userId: string) {
 	const conditions = [
+		eq(mediaItems.userId, userId),
 		filters.mediaTypes?.length
 			? inArray(mediaItemMetadata.type, filters.mediaTypes)
 			: undefined,
@@ -146,7 +165,7 @@ async function queryItemResults(filters: ViewFilters) {
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
-		.where(conditions.length > 0 ? and(...conditions) : undefined)
+		.where(and(...conditions))
 		.orderBy(desc(mediaItems.updatedAt));
 
 	if (items.length === 0) return [];
@@ -176,8 +195,9 @@ async function queryItemResults(filters: ViewFilters) {
 	}));
 }
 
-async function querySeriesResults(filters: ViewFilters) {
+async function querySeriesResults(filters: ViewFilters, userId: string) {
 	const conditions = [
+		eq(series.userId, userId),
 		filters.mediaTypes?.length
 			? inArray(series.type, filters.mediaTypes)
 			: undefined,
@@ -199,7 +219,7 @@ async function querySeriesResults(filters: ViewFilters) {
 			isComplete: series.isComplete,
 		})
 		.from(series)
-		.where(conditions.length > 0 ? and(...conditions) : undefined)
+		.where(and(...conditions))
 		.orderBy(asc(series.name));
 
 	if (seriesRows.length === 0) return [];
@@ -211,12 +231,15 @@ async function querySeriesResults(filters: ViewFilters) {
 			itemCount: count(),
 		})
 		.from(mediaItems)
-		.where(inArray(mediaItems.seriesId, seriesIds))
+		.where(
+			and(
+				inArray(mediaItems.seriesId, seriesIds),
+				eq(mediaItems.userId, userId),
+			),
+		)
 		.groupBy(mediaItems.seriesId);
 
-	const countMap = new Map(
-		itemCounts.map((r) => [r.seriesId, r.itemCount]),
-	);
+	const countMap = new Map(itemCounts.map((r) => [r.seriesId, r.itemCount]));
 
 	return seriesRows.map((s) => ({
 		...s,
@@ -232,9 +255,11 @@ async function querySeriesResults(filters: ViewFilters) {
 export const createView = createServerFn({ method: "POST" })
 	.inputValidator(createViewSchema)
 	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
 		const [created] = await db
 			.insert(views)
 			.values({
+				userId: user.id,
 				name: data.name,
 				subject: data.subject as ViewSubject,
 				filters: data.filters as ViewFilters,
@@ -254,6 +279,7 @@ export const updateView = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
 		await db
 			.update(views)
 			.set({
@@ -263,11 +289,14 @@ export const updateView = createServerFn({ method: "POST" })
 					? { displayOrder: data.displayOrder }
 					: {}),
 			})
-			.where(eq(views.id, data.id));
+			.where(and(eq(views.id, data.id), eq(views.userId, user.id)));
 	});
 
 export const deleteView = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ id: z.number() }))
 	.handler(async ({ data: { id } }) => {
-		await db.delete(views).where(eq(views.id, id));
+		const user = await getLoggedInUser();
+		await db
+			.delete(views)
+			.where(and(eq(views.id, id), eq(views.userId, user.id)));
 	});

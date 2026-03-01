@@ -9,74 +9,92 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LibraryRouteImport } from './routes/library'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ViewsViewIdRouteImport } from './routes/views.$viewId'
-import { Route as SeriesSeriesIdRouteImport } from './routes/series.$seriesId'
-import { Route as MediaItemDetailsMediaItemIdRouteImport } from './routes/mediaItemDetails.$mediaItemId'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedViewsViewIdRouteImport } from './routes/_authenticated/views.$viewId'
+import { Route as AuthenticatedSeriesSeriesIdRouteImport } from './routes/_authenticated/series.$seriesId'
+import { Route as AuthenticatedMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/mediaItemDetails.$mediaItemId'
 
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ViewsViewIdRoute = ViewsViewIdRouteImport.update({
-  id: '/views/$viewId',
-  path: '/views/$viewId',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const SeriesSeriesIdRoute = SeriesSeriesIdRouteImport.update({
-  id: '/series/$seriesId',
-  path: '/series/$seriesId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MediaItemDetailsMediaItemIdRoute =
-  MediaItemDetailsMediaItemIdRouteImport.update({
-    id: '/mediaItemDetails/$mediaItemId',
-    path: '/mediaItemDetails/$mediaItemId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedViewsViewIdRoute =
+  AuthenticatedViewsViewIdRouteImport.update({
+    id: '/views/$viewId',
+    path: '/views/$viewId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSeriesSeriesIdRoute =
+  AuthenticatedSeriesSeriesIdRouteImport.update({
+    id: '/series/$seriesId',
+    path: '/series/$seriesId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMediaItemDetailsMediaItemIdRoute =
+  AuthenticatedMediaItemDetailsMediaItemIdRouteImport.update({
+    id: '/mediaItemDetails/$mediaItemId',
+    path: '/mediaItemDetails/$mediaItemId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/library': typeof LibraryRoute
-  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
-  '/series/$seriesId': typeof SeriesSeriesIdRoute
-  '/views/$viewId': typeof ViewsViewIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/login': typeof LoginRoute
+  '/library': typeof AuthenticatedLibraryRoute
+  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
+  '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
+  '/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/library': typeof LibraryRoute
-  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
-  '/series/$seriesId': typeof SeriesSeriesIdRoute
-  '/views/$viewId': typeof ViewsViewIdRoute
+  '/login': typeof LoginRoute
+  '/library': typeof AuthenticatedLibraryRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
+  '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
+  '/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/library': typeof LibraryRoute
-  '/mediaItemDetails/$mediaItemId': typeof MediaItemDetailsMediaItemIdRoute
-  '/series/$seriesId': typeof SeriesSeriesIdRoute
-  '/views/$viewId': typeof ViewsViewIdRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
+  '/_authenticated/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
+  '/_authenticated/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/library'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
@@ -84,67 +102,60 @@ export interface FileRouteTypes {
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/login'
     | '/library'
+    | '/'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/views/$viewId'
     | '/api/auth/$'
   id:
     | '__root__'
-    | '/'
-    | '/library'
-    | '/mediaItemDetails/$mediaItemId'
-    | '/series/$seriesId'
-    | '/views/$viewId'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/library'
+    | '/_authenticated/'
+    | '/_authenticated/mediaItemDetails/$mediaItemId'
+    | '/_authenticated/series/$seriesId'
+    | '/_authenticated/views/$viewId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LibraryRoute: typeof LibraryRoute
-  MediaItemDetailsMediaItemIdRoute: typeof MediaItemDetailsMediaItemIdRoute
-  SeriesSeriesIdRoute: typeof SeriesSeriesIdRoute
-  ViewsViewIdRoute: typeof ViewsViewIdRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/views/$viewId': {
-      id: '/views/$viewId'
-      path: '/views/$viewId'
-      fullPath: '/views/$viewId'
-      preLoaderRoute: typeof ViewsViewIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/series/$seriesId': {
-      id: '/series/$seriesId'
-      path: '/series/$seriesId'
-      fullPath: '/series/$seriesId'
-      preLoaderRoute: typeof SeriesSeriesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mediaItemDetails/$mediaItemId': {
-      id: '/mediaItemDetails/$mediaItemId'
-      path: '/mediaItemDetails/$mediaItemId'
-      fullPath: '/mediaItemDetails/$mediaItemId'
-      preLoaderRoute: typeof MediaItemDetailsMediaItemIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/library': {
+      id: '/_authenticated/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof AuthenticatedLibraryRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -153,15 +164,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/views/$viewId': {
+      id: '/_authenticated/views/$viewId'
+      path: '/views/$viewId'
+      fullPath: '/views/$viewId'
+      preLoaderRoute: typeof AuthenticatedViewsViewIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/series/$seriesId': {
+      id: '/_authenticated/series/$seriesId'
+      path: '/series/$seriesId'
+      fullPath: '/series/$seriesId'
+      preLoaderRoute: typeof AuthenticatedSeriesSeriesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mediaItemDetails/$mediaItemId': {
+      id: '/_authenticated/mediaItemDetails/$mediaItemId'
+      path: '/mediaItemDetails/$mediaItemId'
+      fullPath: '/mediaItemDetails/$mediaItemId'
+      preLoaderRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
+  AuthenticatedSeriesSeriesIdRoute: typeof AuthenticatedSeriesSeriesIdRoute
+  AuthenticatedViewsViewIdRoute: typeof AuthenticatedViewsViewIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedMediaItemDetailsMediaItemIdRoute:
+    AuthenticatedMediaItemDetailsMediaItemIdRoute,
+  AuthenticatedSeriesSeriesIdRoute: AuthenticatedSeriesSeriesIdRoute,
+  AuthenticatedViewsViewIdRoute: AuthenticatedViewsViewIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LibraryRoute: LibraryRoute,
-  MediaItemDetailsMediaItemIdRoute: MediaItemDetailsMediaItemIdRoute,
-  SeriesSeriesIdRoute: SeriesSeriesIdRoute,
-  ViewsViewIdRoute: ViewsViewIdRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

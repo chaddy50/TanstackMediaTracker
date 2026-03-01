@@ -3,13 +3,18 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
-import { mediaItemMetadata, mediaItems, mediaTypeEnum, series } from "#/db/schema";
+import {
+	mediaItemMetadata,
+	mediaItems,
+	mediaTypeEnum,
+	series,
+} from "#/db/schema";
 import * as hardcover from "#/lib/api/hardcover";
 import * as igdb from "#/lib/api/igdb";
 import * as tmdb from "#/lib/api/tmdb";
-
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { getLoggedInUser } from "#/lib/session";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
@@ -26,6 +31,8 @@ export const searchMedia = createServerFn({ method: "GET" })
 		}),
 	)
 	.handler(async ({ data: { query, type } }) => {
+		const user = await getLoggedInUser();
+
 		// Call relevant external APIs in parallel
 		const apiCalls: Promise<ExternalSearchResult[]>[] = [];
 
@@ -33,7 +40,9 @@ export const searchMedia = createServerFn({ method: "GET" })
 			apiCalls.push(hardcover.search(query));
 		}
 		if (type === MediaItemType.MOVIE || type === "all") {
-			apiCalls.push(tmdb.search(query, type === "all" ? "all" : MediaItemType.MOVIE));
+			apiCalls.push(
+				tmdb.search(query, type === "all" ? "all" : MediaItemType.MOVIE),
+			);
 		} else if (type === MediaItemType.TV_SHOW) {
 			apiCalls.push(tmdb.search(query, MediaItemType.TV_SHOW));
 		}
@@ -48,7 +57,7 @@ export const searchMedia = createServerFn({ method: "GET" })
 
 		if (externalResults.length === 0) return [];
 
-		// Check which results are already in the library
+		// Check which results are already in this user's library
 		const externalIds = externalResults.map((r) => r.externalId);
 		const existingMetadata = await db
 			.select({
@@ -69,7 +78,12 @@ export const searchMedia = createServerFn({ method: "GET" })
 							status: mediaItems.status,
 						})
 						.from(mediaItems)
-						.where(inArray(mediaItems.mediaItemMetadataId, metadataIds))
+						.where(
+							and(
+								inArray(mediaItems.mediaItemMetadataId, metadataIds),
+								eq(mediaItems.userId, user.id),
+							),
+						)
 				: [];
 
 		// Build lookup maps
@@ -105,6 +119,7 @@ export const createCustomItem = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
 		const externalId = crypto.randomUUID();
 		const externalSource = "custom";
 
@@ -127,6 +142,7 @@ export const createCustomItem = createServerFn({ method: "POST" })
 		const [newItem] = await db
 			.insert(mediaItems)
 			.values({
+				userId: user.id,
 				mediaItemMetadataId: inserted.id,
 				status: MediaItemStatus.BACKLOG,
 				seriesId: null,
@@ -151,6 +167,8 @@ export const addToLibrary = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+
 		// For TMDB movies, enrich metadata with collection/franchise info before saving.
 		// belongs_to_collection is only on the movie details endpoint, not search.
 		let metadata = data.metadata;
@@ -190,7 +208,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			metadataId = existing.id;
 		}
 
-		// Find or create a series entity if this item belongs to one
+		// Find or create a series entity for this user if this item belongs to one
 		const seriesName = (metadata as Record<string, unknown>)?.series;
 		let seriesId: number | null = null;
 		if (typeof seriesName === "string" && seriesName) {
@@ -198,7 +216,11 @@ export const addToLibrary = createServerFn({ method: "POST" })
 				.select({ id: series.id })
 				.from(series)
 				.where(
-					and(eq(series.name, seriesName), eq(series.type, data.type)),
+					and(
+						eq(series.name, seriesName),
+						eq(series.type, data.type),
+						eq(series.userId, user.id),
+					),
 				);
 			if (existingSeries) {
 				seriesId = existingSeries.id;
@@ -211,6 +233,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 				const [newSeries] = await db
 					.insert(series)
 					.values({
+						userId: user.id,
 						name: seriesName,
 						type: data.type,
 						description: seriesInfo?.description ?? null,
@@ -221,11 +244,16 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			}
 		}
 
-		// Check if a mediaItems row already exists
+		// Check if this user already has a mediaItems row for this metadata
 		const [existingItem] = await db
 			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
 			.from(mediaItems)
-			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
+			.where(
+				and(
+					eq(mediaItems.mediaItemMetadataId, metadataId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
 		if (existingItem) {
 			// Backfill seriesId if the item was added before series support
@@ -242,6 +270,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 		const [newItem] = await db
 			.insert(mediaItems)
 			.values({
+				userId: user.id,
 				mediaItemMetadataId: metadataId,
 				status: MediaItemStatus.BACKLOG,
 				seriesId,

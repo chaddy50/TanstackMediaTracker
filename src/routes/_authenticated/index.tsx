@@ -6,7 +6,7 @@ import { PageHeader } from "#/components/common/PageHeader";
 import { DashboardSection } from "#/components/dashboard/DashboardSection";
 import { getDashboardData } from "#/server/dashboard";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
 	loader: () => getDashboardData(),
 	component: DashboardPage,
 });
@@ -39,5 +39,5 @@ function DashboardPage() {
 				/>
 			</main>
 		</div>
-	);
+	)
 }

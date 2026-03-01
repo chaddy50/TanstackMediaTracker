@@ -139,6 +139,18 @@ export const en = {
 			saving: "Saving...",
 		},
 	},
+	auth: {
+		signIn: "Sign In",
+		signUp: "Sign Up",
+		logout: "Log Out",
+		email: "Email",
+		password: "Password",
+		name: "Name",
+		noAccount: "Don't have an account? Sign up",
+		haveAccount: "Already have an account? Sign in",
+		invalidCredentials: "Invalid email or password.",
+		error: "Something went wrong. Please try again.",
+	},
 	metadata: {
 		title: "Title",
 		description: "Description",
