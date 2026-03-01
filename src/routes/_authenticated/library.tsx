@@ -32,7 +32,7 @@ const STATUS_FILTERS = [
 	{ value: MediaItemStatus.ON_HOLD, labelKey: "status.on_hold" },
 ] as const;
 
-export const Route = createFileRoute("/library")({
+export const Route = createFileRoute("/_authenticated/library")({
 	validateSearch: searchSchema,
 	loaderDeps: ({ search }) => search,
 	loader: ({ deps }) => getLibrary({ data: deps }),
@@ -101,5 +101,5 @@ function LibraryPage() {
 				)}
 			</main>
 		</div>
-	);
+	)
 }

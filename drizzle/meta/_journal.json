@@ -85,6 +85,13 @@
       "when": 1772307604352,
       "tag": "0011_worthless_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772325741483,
+      "tag": "0012_purple_chronomancer",
+      "breakpoints": true
     }
   ]
 }

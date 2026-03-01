@@ -13,7 +13,7 @@ import type { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import type { View } from "#/server/views";
 import { deleteView, getViewResults } from "#/server/views";
 
-export const Route = createFileRoute("/views/$viewId")({
+export const Route = createFileRoute("/_authenticated/views/$viewId")({
 	loader: ({ params }) =>
 		getViewResults({ data: { viewId: parseInt(params.viewId, 10) } }),
 	component: ViewPage,
@@ -73,7 +73,7 @@ function ViewPage() {
 				isDeleting={isDeleting}
 			/>
 		</div>
-	);
+	)
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ function ItemResults({ items }: { items: ItemResult[] }) {
 			<p className="text-muted-foreground text-center py-12">
 				{t("views.empty")}
 			</p>
-		);
+		)
 	}
 
 	return (
@@ -119,5 +119,5 @@ function ItemResults({ items }: { items: ItemResult[] }) {
 				<MediaCard key={item.id} mediaItem={item} />
 			))}
 		</div>
-	);
+	)
 }

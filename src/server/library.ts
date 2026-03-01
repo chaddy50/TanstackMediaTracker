@@ -11,6 +11,7 @@ import {
 	mediaTypeEnum,
 	series,
 } from "#/db/schema";
+import { getLoggedInUser } from "#/lib/session";
 
 const libraryFiltersSchema = z.object({
 	type: z.enum(mediaTypeEnum.enumValues).optional(),
@@ -20,6 +21,7 @@ const libraryFiltersSchema = z.object({
 export const getLibrary = createServerFn({ method: "GET" })
 	.inputValidator(libraryFiltersSchema)
 	.handler(async ({ data: { type, status } }) => {
+		const user = await getLoggedInUser();
 		const items = await db
 			.select({
 				id: mediaItems.id,
@@ -40,6 +42,7 @@ export const getLibrary = createServerFn({ method: "GET" })
 			.leftJoin(series, eq(mediaItems.seriesId, series.id))
 			.where(
 				and(
+					eq(mediaItems.userId, user.id),
 					type ? eq(mediaItemMetadata.type, type) : undefined,
 					status ? eq(mediaItems.status, status) : undefined,
 				),

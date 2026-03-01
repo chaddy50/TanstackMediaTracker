@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -12,6 +12,7 @@ import {
 	series,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
+import { getLoggedInUser } from "#/lib/session";
 
 function inferStatusAfterInstanceEdit(
 	startedAt?: string | null,
@@ -25,18 +26,26 @@ function inferStatusAfterInstanceEdit(
 type InstanceDateRow = { startedAt: string | null; completedAt: string | null };
 
 function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
-	if (remainingInstances.some((i) => i.startedAt && !i.completedAt))
+	if (remainingInstances.some((i) => i.startedAt && !i.completedAt)) {
 		return MediaItemStatus.IN_PROGRESS;
-	if (remainingInstances.some((i) => i.completedAt))
+	}
+	if (remainingInstances.some((i) => i.completedAt)) {
 		return MediaItemStatus.COMPLETED;
+	}
 	return MediaItemStatus.BACKLOG;
 }
 
-async function syncSeriesStatus(seriesId: number, justCompleted = false) {
+async function syncSeriesStatus(
+	seriesId: number,
+	userId: string,
+	justCompleted = false,
+) {
 	const items = await db
 		.select({ status: mediaItems.status })
 		.from(mediaItems)
-		.where(eq(mediaItems.seriesId, seriesId));
+		.where(
+			and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)),
+		);
 
 	if (items.length === 0) return;
 
@@ -57,13 +66,17 @@ async function syncSeriesStatus(seriesId: number, justCompleted = false) {
 	}
 
 	if (newStatus !== null) {
-		await db.update(series).set({ status: newStatus }).where(eq(series.id, seriesId));
+		await db
+			.update(series)
+			.set({ status: newStatus })
+			.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
 	}
 }
 
 export const getMediaItemDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))
 	.handler(async ({ data: { id } }) => {
+		const user = await getLoggedInUser();
 		const [row] = await db
 			.select({
 				id: mediaItems.id,
@@ -85,7 +98,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				eq(mediaItemMetadata.id, mediaItems.mediaItemMetadataId),
 			)
 			.leftJoin(series, eq(mediaItems.seriesId, series.id))
-			.where(eq(mediaItems.id, id));
+			.where(and(eq(mediaItems.id, id), eq(mediaItems.userId, user.id)));
 
 		if (!row) throw new Error(`Entry ${id} not found`);
 
@@ -121,18 +134,23 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { mediaItemId, status } }) => {
+		const user = await getLoggedInUser();
 		const [item] = await db
 			.select({ seriesId: mediaItems.seriesId })
 			.from(mediaItems)
-			.where(eq(mediaItems.id, mediaItemId));
+			.where(
+				and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+			);
 
 		await db
 			.update(mediaItems)
 			.set({ status })
-			.where(eq(mediaItems.id, mediaItemId));
+			.where(
+				and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+			);
 
 		if (item?.seriesId) {
-			await syncSeriesStatus(item.seriesId);
+			await syncSeriesStatus(item.seriesId, user.id);
 		}
 	});
 
@@ -144,11 +162,26 @@ export const saveInstance = createServerFn({ method: "POST" })
 			rating: z.string().optional(),
 			fictionRating: z
 				.object({
-					setting: z.object({ rating: z.number(), comment: z.string().optional() }),
-					character: z.object({ rating: z.number(), comment: z.string().optional() }),
-					plot: z.object({ rating: z.number(), comment: z.string().optional() }),
-					enjoyment: z.object({ rating: z.number(), comment: z.string().optional() }),
-					emotionalImpact: z.object({ rating: z.number(), comment: z.string().optional() }),
+					setting: z.object({
+						rating: z.number(),
+						comment: z.string().optional(),
+					}),
+					character: z.object({
+						rating: z.number(),
+						comment: z.string().optional(),
+					}),
+					plot: z.object({
+						rating: z.number(),
+						comment: z.string().optional(),
+					}),
+					enjoyment: z.object({
+						rating: z.number(),
+						comment: z.string().optional(),
+					}),
+					emotionalImpact: z.object({
+						rating: z.number(),
+						comment: z.string().optional(),
+					}),
 				})
 				.optional(),
 			reviewText: z.string().optional(),
@@ -168,6 +201,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 				completedAt,
 			},
 		}) => {
+			const user = await getLoggedInUser();
 			const values = {
 				rating: rating ?? null,
 				fictionRating: fictionRating ?? null,
@@ -191,15 +225,23 @@ export const saveInstance = createServerFn({ method: "POST" })
 				await db
 					.update(mediaItems)
 					.set({ status: newStatus })
-					.where(eq(mediaItems.id, mediaItemId));
+					.where(
+						and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+					);
 
 				const [item] = await db
 					.select({ seriesId: mediaItems.seriesId })
 					.from(mediaItems)
-					.where(eq(mediaItems.id, mediaItemId));
+					.where(
+						and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+					);
 
 				if (item?.seriesId) {
-					await syncSeriesStatus(item.seriesId, newStatus === MediaItemStatus.COMPLETED);
+					await syncSeriesStatus(
+						item.seriesId,
+						user.id,
+						newStatus === MediaItemStatus.COMPLETED,
+					);
 				}
 			}
 		},
@@ -208,6 +250,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 export const deleteInstance = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ instanceId: z.number() }))
 	.handler(async ({ data: { instanceId } }) => {
+		const user = await getLoggedInUser();
 		const [instanceBeingDeleted] = await db
 			.select({
 				mediaItemId: mediaItemInstances.mediaItemId,
@@ -234,15 +277,25 @@ export const deleteInstance = createServerFn({ method: "POST" })
 		await db
 			.update(mediaItems)
 			.set({ status: inferStatusAfterInstanceDelete(remainingInstances) })
-			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
+			.where(
+				and(
+					eq(mediaItems.id, instanceBeingDeleted.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
 		const [item] = await db
 			.select({ seriesId: mediaItems.seriesId })
 			.from(mediaItems)
-			.where(eq(mediaItems.id, instanceBeingDeleted.mediaItemId));
+			.where(
+				and(
+					eq(mediaItems.id, instanceBeingDeleted.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
 		if (item?.seriesId) {
-			await syncSeriesStatus(item.seriesId);
+			await syncSeriesStatus(item.seriesId, user.id);
 		}
 	});
 
@@ -281,10 +334,16 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
 		const [currentItem] = await db
 			.select({ seriesId: mediaItems.seriesId })
 			.from(mediaItems)
-			.where(eq(mediaItems.id, data.mediaItemId));
+			.where(
+				and(
+					eq(mediaItems.id, data.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
 		let resolvedSeriesId = data.seriesId;
 		let resolvedSeriesName: string | null = null;
@@ -292,7 +351,7 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 		if (data.newSeriesName) {
 			const [newSeries] = await db
 				.insert(series)
-				.values({ name: data.newSeriesName, type: data.type })
+				.values({ name: data.newSeriesName, type: data.type, userId: user.id })
 				.returning({ id: series.id });
 			if (!newSeries) throw new Error("Failed to create series");
 			resolvedSeriesId = newSeries.id;
@@ -301,14 +360,19 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 			const [existing] = await db
 				.select({ name: series.name })
 				.from(series)
-				.where(eq(series.id, data.seriesId));
+				.where(and(eq(series.id, data.seriesId), eq(series.userId, user.id)));
 			resolvedSeriesName = existing?.name ?? null;
 		}
 
 		await db
 			.update(mediaItems)
 			.set({ seriesId: resolvedSeriesId })
-			.where(eq(mediaItems.id, data.mediaItemId));
+			.where(
+				and(
+					eq(mediaItems.id, data.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
 		if (resolvedSeriesName) {
 			await db
@@ -328,10 +392,10 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 
 		// Sync the old series (item left) and new series (item joined)
 		if (currentItem?.seriesId) {
-			await syncSeriesStatus(currentItem.seriesId);
+			await syncSeriesStatus(currentItem.seriesId, user.id);
 		}
 		if (resolvedSeriesId && resolvedSeriesId !== currentItem?.seriesId) {
-			await syncSeriesStatus(resolvedSeriesId);
+			await syncSeriesStatus(resolvedSeriesId, user.id);
 		}
 	});
 
@@ -343,37 +407,67 @@ export const togglePurchased = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data: { mediaItemId, isPurchased } }) => {
+		const user = await getLoggedInUser();
 		await db
 			.update(mediaItems)
 			.set({ isPurchased })
-			.where(eq(mediaItems.id, mediaItemId));
+			.where(
+				and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+			);
 	});
 
 export const removeFromLibrary = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ metadataId: z.number() }))
 	.handler(async ({ data: { metadataId } }) => {
-		// Capture the seriesId before the cascade delete removes the media_items row
+		const user = await getLoggedInUser();
+
+		// Find this user's media item for that metadata
 		const [item] = await db
-			.select({ seriesId: mediaItems.seriesId })
+			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
 			.from(mediaItems)
-			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
+			.where(
+				and(
+					eq(mediaItems.mediaItemMetadataId, metadataId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
 
-		await db
-			.delete(mediaItemMetadata)
-			.where(eq(mediaItemMetadata.id, metadataId));
+		if (!item) return;
 
-		// If the item belonged to a series, delete the series if it's now empty,
-		// otherwise sync the series status to reflect the removed item.
-		if (item?.seriesId) {
+		// Delete the user's media item row (cascades to instances)
+		await db.delete(mediaItems).where(eq(mediaItems.id, item.id));
+
+		// If the item belonged to a series, delete the series if now empty,
+		// otherwise sync the series status.
+		if (item.seriesId) {
 			const [remaining] = await db
 				.select({ itemCount: count() })
 				.from(mediaItems)
-				.where(eq(mediaItems.seriesId, item.seriesId));
+				.where(
+					and(
+						eq(mediaItems.seriesId, item.seriesId),
+						eq(mediaItems.userId, user.id),
+					),
+				);
 
 			if (remaining?.itemCount === 0) {
-				await db.delete(series).where(eq(series.id, item.seriesId));
+				await db
+					.delete(series)
+					.where(and(eq(series.id, item.seriesId), eq(series.userId, user.id)));
 			} else {
-				await syncSeriesStatus(item.seriesId);
+				await syncSeriesStatus(item.seriesId, user.id);
 			}
+		}
+
+		// Clean up orphaned metadata if no other users have this item
+		const [otherItems] = await db
+			.select({ itemCount: count() })
+			.from(mediaItems)
+			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
+
+		if (otherItems?.itemCount === 0) {
+			await db
+				.delete(mediaItemMetadata)
+				.where(eq(mediaItemMetadata.id, metadataId));
 		}
 	});
