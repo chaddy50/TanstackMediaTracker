@@ -14,6 +14,7 @@ const transporter = nodemailer.createTransport({
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, { provider: "pg" }),
+	trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : [],
 	emailAndPassword: {
 		enabled: true,
 		sendResetPassword: async ({ user, url }) => {
