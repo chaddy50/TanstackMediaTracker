@@ -14,13 +14,14 @@ export function RatingStars({
 	if (!shouldShowIfNoRating && rating === 0) {
 		return null;
 	}
+	const roundedRating = Math.round(rating);
 	return (
 		<p className="flex flex-row">
-			<RatingStar starNumber={1} rating={rating} updateRating={updateRating} />
-			<RatingStar starNumber={2} rating={rating} updateRating={updateRating} />
-			<RatingStar starNumber={3} rating={rating} updateRating={updateRating} />
-			<RatingStar starNumber={4} rating={rating} updateRating={updateRating} />
-			<RatingStar starNumber={5} rating={rating} updateRating={updateRating} />
+			<RatingStar starNumber={1} rating={roundedRating} updateRating={updateRating} />
+			<RatingStar starNumber={2} rating={roundedRating} updateRating={updateRating} />
+			<RatingStar starNumber={3} rating={roundedRating} updateRating={updateRating} />
+			<RatingStar starNumber={4} rating={roundedRating} updateRating={updateRating} />
+			<RatingStar starNumber={5} rating={roundedRating} updateRating={updateRating} />
 		</p>
 	);
 }
