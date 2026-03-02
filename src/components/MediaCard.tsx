@@ -15,6 +15,7 @@ type MediaCardItem = {
 	type: MediaItemType;
 	coverImageUrl: string | null;
 	rating: number;
+	completedAt?: string | null;
 	seriesId?: number | null | undefined;
 	seriesName?: string | null | undefined;
 };
@@ -71,7 +72,7 @@ export function MediaCard({
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					{shouldShowStatus && <StatusBadge status={mediaItem.status} />}
+					{shouldShowStatus && <StatusBadge status={mediaItem.status} completedAt={mediaItem.completedAt} />}
 					{mediaItem.status !== MediaItemStatus.IN_PROGRESS &&
 						mediaItem.status !== MediaItemStatus.ON_HOLD &&
 						mediaItem.status !== MediaItemStatus.COMPLETED &&

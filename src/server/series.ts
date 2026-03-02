@@ -73,6 +73,7 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 			.selectDistinctOn([mediaItemInstances.mediaItemId], {
 				mediaItemId: mediaItemInstances.mediaItemId,
 				rating: mediaItemInstances.rating,
+				completedAt: mediaItemInstances.completedAt,
 			})
 			.from(mediaItemInstances)
 			.where(
@@ -86,6 +87,9 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 		const ratingMap = new Map(
 			latestRatings.map((r) => [r.mediaItemId, r.rating]),
 		);
+		const completedAtMap = new Map(
+			latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
+		);
 
 		return {
 			...row,
@@ -93,6 +97,7 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 			items: items.map((item) => ({
 				...item,
 				rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
+				completedAt: completedAtMap.get(item.id) ?? null,
 			})),
 		};
 	});

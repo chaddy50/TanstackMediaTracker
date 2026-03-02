@@ -175,6 +175,7 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 		.selectDistinctOn([mediaItemInstances.mediaItemId], {
 			mediaItemId: mediaItemInstances.mediaItemId,
 			rating: mediaItemInstances.rating,
+			completedAt: mediaItemInstances.completedAt,
 		})
 		.from(mediaItemInstances)
 		.where(
@@ -188,10 +189,14 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 	const ratingMap = new Map(
 		latestRatings.map((r) => [r.mediaItemId, r.rating]),
 	);
+	const completedAtMap = new Map(
+		latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
+	);
 
 	return items.map((item) => ({
 		...item,
 		rating: parseFloat(ratingMap.get(item.mediaItemId) ?? "") || 0,
+		completedAt: completedAtMap.get(item.mediaItemId) ?? null,
 	}));
 }
 
