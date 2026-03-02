@@ -166,6 +166,15 @@ export const updateSeriesMetadata = createServerFn({ method: "POST" })
 		}
 	});
 
+export const deleteSeries = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ seriesId: z.number() }))
+	.handler(async ({ data: { seriesId } }) => {
+		const user = await getLoggedInUser();
+		await db
+			.delete(series)
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
+	});
+
 export const updateSeriesRating = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
