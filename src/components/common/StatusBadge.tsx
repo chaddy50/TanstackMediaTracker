@@ -1,4 +1,5 @@
 import { type MediaItemStatus } from "@/lib/enums";
+import { formatDate } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {
@@ -14,29 +15,43 @@ const STATUS_CLASSES: Record<string, string> = {
 
 interface StatusBadgeProps {
 	status: MediaItemStatus | undefined;
+	completedAt?: string | null;
 	onClick?: () => void;
 	disabled?: boolean;
 }
 
 export function StatusBadge(props: StatusBadgeProps) {
-	const { status, onClick, disabled } = props;
+	const { status, completedAt, onClick, disabled } = props;
 	const { t } = useTranslation();
 	if (!status) return null;
 
 	const commonClasses = `text-xs px-2 py-0.5 rounded-full ${STATUS_CLASSES[status]}`;
+	const formattedCompletedAt = completedAt ? formatDate(completedAt) : null;
 
 	if (onClick) {
 		return (
-			<button
-				type="button"
-				onClick={onClick}
-				className={`${commonClasses}`}
-				disabled={disabled}
-			>
-				{t(`status.${status}`)}
-			</button>
+			<>
+				<button
+					type="button"
+					onClick={onClick}
+					className={`${commonClasses}`}
+					disabled={disabled}
+				>
+					{t(`status.${status}`)}
+				</button>
+				{formattedCompletedAt && (
+					<span className="text-xs text-muted-foreground">{formattedCompletedAt}</span>
+				)}
+			</>
 		);
 	}
 
-	return <span className={commonClasses}>{t(`status.${status}`)}</span>;
+	return (
+		<>
+			<span className={commonClasses}>{t(`status.${status}`)}</span>
+			{formattedCompletedAt && (
+				<span className="text-xs text-muted-foreground">{formattedCompletedAt}</span>
+			)}
+		</>
+	);
 }
