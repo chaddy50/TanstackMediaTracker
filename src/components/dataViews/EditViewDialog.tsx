@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,17 +9,28 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import type { ViewFilters, ViewSubject } from "#/db/schema";
-import { createView } from "#/server/views";
-import { EditViewForm } from "./EditViewForm";
+import type { View } from "#/server/views";
+import { updateView } from "#/server/views";
+import { EditViewForm } from "./components/editViewForm/EditViewForm";
 
-interface CreateViewDialogProps {
+interface EditViewDialogProps {
+	view: View;
 	isOpen: boolean;
 	onClose: () => void;
+	onUpdated: () => void;
+	onDelete: () => void;
+	isDeleting?: boolean;
 }
 
-export function CreateViewDialog({ isOpen, onClose }: CreateViewDialogProps) {
+export function EditViewDialog({
+	view,
+	isOpen,
+	onClose,
+	onUpdated,
+	onDelete,
+	isDeleting = false,
+}: EditViewDialogProps) {
 	const { t } = useTranslation();
-	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,13 +41,16 @@ export function CreateViewDialog({ isOpen, onClose }: CreateViewDialogProps) {
 	}) {
 		setIsSubmitting(true);
 		try {
-			const created = await createView({ data });
+			await updateView({
+				data: {
+					id: view.id,
+					name: data.name,
+					filters: data.filters,
+				},
+			});
 			await queryClient.invalidateQueries({ queryKey: ["views"] });
 			onClose();
-			await navigate({
-				to: "/views/$viewId",
-				params: { viewId: String(created.id) },
-			});
+			onUpdated();
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -46,18 +59,23 @@ export function CreateViewDialog({ isOpen, onClose }: CreateViewDialogProps) {
 	return (
 		<Dialog
 			open={isOpen}
-			onOpenChange={(isOpen) => {
-				if (!isOpen) onClose();
+			onOpenChange={(open) => {
+				if (!open) onClose();
 			}}
 		>
 			<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{t("views.newView")}</DialogTitle>
+					<DialogTitle>{t("views.editView")}</DialogTitle>
 				</DialogHeader>
 				<EditViewForm
+					initialName={view.name}
+					initialSubject={view.subject as ViewSubject}
+					initialFilters={(view.filters ?? {}) as ViewFilters}
 					onSubmit={handleSubmit}
 					onCancel={onClose}
 					isSubmitting={isSubmitting}
+					onDelete={onDelete}
+					isDeleting={isDeleting}
 				/>
 			</DialogContent>
 		</Dialog>

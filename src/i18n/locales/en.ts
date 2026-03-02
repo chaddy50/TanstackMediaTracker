@@ -136,7 +136,23 @@ export const en = {
 				complete: "Complete",
 				incomplete: "Incomplete",
 			},
+			filtersSection: "Filters",
+			sortingSection: "Sorting",
 			saving: "Saving...",
+			sortBy: "Sort by",
+			sortByOption: {
+				updatedAt: "Recently updated",
+				title: "Title",
+				rating: "Rating",
+				completedAt: "Completed date",
+				name: "Name",
+				itemCount: "Item count",
+			},
+			sortDirection: "Order",
+			sortDirectionOption: {
+				asc: "Ascending",
+				desc: "Descending",
+			},
 		},
 	},
 	auth: {
