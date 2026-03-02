@@ -78,6 +78,7 @@ export const en = {
 		complete: "Complete",
 		ongoing: "Ongoing",
 		edit: "Edit Series",
+		delete: "Delete Series",
 	},
 	dashboard: {
 		title: "Dashboard",
