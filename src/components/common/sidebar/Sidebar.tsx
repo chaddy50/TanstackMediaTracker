@@ -1,15 +1,13 @@
 import { Button } from "#/components/ui/button";
-import { authClient } from "#/lib/auth-client";
 import { getViews } from "#/server/views";
 import { CreateViewDialog } from "@/components/dataViews/CreateViewDialog";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import {
 	LayoutDashboard,
 	Library,
-	LogOut,
 	PanelLeftClose,
 	Plus,
+	Settings,
 } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -58,17 +56,11 @@ export function Sidebar() {
 	const { t } = useTranslation();
 	const { isOpen, toggle } = useSidebar();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-	const router = useRouter();
 
 	const { data: viewsList = [] } = useQuery({
 		queryKey: ["views"],
 		queryFn: () => getViews(),
 	});
-
-	async function handleLogout() {
-		await authClient.signOut();
-		router.navigate({ to: "/login" });
-	}
 
 	return (
 		<>
@@ -103,26 +95,19 @@ export function Sidebar() {
 						</SidebarItem>
 					</nav>
 
-					{viewsList.length > 0 && (
-						<>
-							<p className="px-4 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-								{t("nav.views")}
-							</p>
-							<nav className="flex flex-col gap-0.5 px-2">
-								{viewsList.map((view) => (
-									<SidebarItem
-										key={view.id}
-										to="/views/$viewId"
-										params={{ viewId: String(view.id) }}
-									>
-										{view.name}
-									</SidebarItem>
-								))}
-							</nav>
-						</>
-					)}
-
-					<div className="mt-auto px-2 pb-2">
+					<p className="px-4 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+						{t("nav.views")}
+					</p>
+					<nav className="flex flex-col gap-0.5 px-2">
+						{viewsList.map((view) => (
+							<SidebarItem
+								key={view.id}
+								to="/views/$viewId"
+								params={{ viewId: String(view.id) }}
+							>
+								{view.name}
+							</SidebarItem>
+						))}
 						<Button
 							variant="ghost"
 							size="sm"
@@ -132,15 +117,15 @@ export function Sidebar() {
 							<Plus className="size-4 shrink-0" />
 							{t("views.newView")}
 						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="w-full justify-start gap-2"
-							onClick={handleLogout}
+					</nav>
+
+					<div className="mt-auto px-2 pb-2">
+						<SidebarItem
+							to="/settings"
+							icon={<Settings className="size-4 shrink-0" />}
 						>
-							<LogOut className="size-4 shrink-0" />
-							{t("auth.logout")}
-						</Button>
+							{t("nav.settings")}
+						</SidebarItem>
 					</div>
 				</div>
 			</aside>

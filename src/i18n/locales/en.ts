@@ -94,8 +94,31 @@ export const en = {
 		dashboard: "Dashboard",
 		library: "Library",
 		views: "Views",
+		settings: "Settings",
 		expandSidebar: "Expand Sidebar",
 		collapseSidebar: "Collapse Sidebar",
+	},
+	settings: {
+		title: "Settings",
+		account: {
+			title: "Account",
+		},
+		backup: {
+			title: "Backup & Restore",
+			description:
+				"Export all your data as a JSON file, or restore from a previous backup.",
+			export: "Export Backup",
+			exporting: "Exporting...",
+			import: "Import Backup",
+			confirmTitle: "Replace all data?",
+			confirmDescription:
+				"This will permanently delete all your current data and replace it with the backup. This cannot be undone.",
+			confirm: "Yes, Restore Backup",
+			cancel: "Cancel",
+			importing: "Restoring...",
+			success: "Backup restored successfully.",
+			parseError: "Invalid backup file. Please select a valid backup.",
+		},
 	},
 	views: {
 		newView: "New View",
