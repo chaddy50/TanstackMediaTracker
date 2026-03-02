@@ -9,7 +9,6 @@ import {
 	Library,
 	LogOut,
 	PanelLeftClose,
-	PanelLeftOpen,
 	Plus,
 } from "lucide-react";
 import { createContext, useContext, useState } from "react";
@@ -74,32 +73,20 @@ export function Sidebar() {
 	return (
 		<>
 			<aside
-				className={`transition-[width] duration-200 ease-in-out shrink-0 border-r border-border bg-card flex flex-col ${
-					isOpen ? "w-56" : "w-12"
+				className={`transition-[width] duration-200 ease-in-out shrink-0 bg-card flex flex-col overflow-hidden ${
+					isOpen ? "w-56 border-r border-border" : "w-0"
 				}`}
 			>
-				{/* Toggle button */}
-				<div
-					className={`flex items-center p-2 ${isOpen ? "justify-end" : "justify-center"}`}
-				>
+				{/* Toggle button — only visible when open */}
+				<div className="flex items-center justify-end p-2">
 					<Button variant="ghost" size="icon" onClick={toggle}>
-						{isOpen ? (
-							<PanelLeftClose className="size-4" />
-						) : (
-							<PanelLeftOpen className="size-4" />
-						)}
-						<span className="sr-only">
-							{isOpen ? t("nav.collapseSidebar") : t("nav.expandSidebar")}
-						</span>
+						<PanelLeftClose className="size-4" />
+						<span className="sr-only">{t("nav.collapseSidebar")}</span>
 					</Button>
 				</div>
 
-				{/* Nav content — hidden when collapsed */}
-				<div
-					className={`flex-1 flex flex-col overflow-hidden transition-opacity duration-150 ${
-						isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-					}`}
-				>
+				{/* Nav content */}
+				<div className="flex-1 flex flex-col overflow-hidden">
 					<nav className="flex flex-col gap-0.5 px-2">
 						<SidebarItem
 							to="/"
