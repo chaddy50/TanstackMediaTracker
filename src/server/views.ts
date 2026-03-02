@@ -20,6 +20,8 @@ import {
 	mediaTypeEnum,
 	series,
 	views,
+	type ItemSortField,
+	type SeriesSortField,
 	type ViewFilters,
 	type ViewSubject,
 } from "#/db/schema";
@@ -29,6 +31,9 @@ import { getLoggedInUser } from "#/lib/session";
 // Zod schemas
 // ---------------------------------------------------------------------------
 
+export const ITEM_SORT_FIELDS = ["updatedAt", "title", "rating", "completedAt"] as const satisfies readonly ItemSortField[];
+export const SERIES_SORT_FIELDS = ["name", "updatedAt", "rating", "itemCount"] as const satisfies readonly SeriesSortField[];
+
 const viewFiltersSchema = z.object({
 	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
 	statuses: z.array(z.enum(mediaItemStatusEnum.enumValues)).optional(),
@@ -37,6 +42,8 @@ const viewFiltersSchema = z.object({
 	completedYearStart: z.number().int().optional(),
 	completedYearEnd: z.number().int().optional(),
 	isSeriesComplete: z.boolean().optional(),
+	sortBy: z.enum([...ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
+	sortDirection: z.enum(["asc", "desc"]).optional(),
 });
 
 const createViewSchema = z.object({
@@ -147,6 +154,15 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 		buildCompletedYearCondition(filters),
 	].filter((c) => c !== undefined);
 
+	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "updatedAt";
+	const sortDirection = filters.sortDirection ?? "desc";
+	const dir = sortDirection === "asc" ? asc : desc;
+
+	const dbOrderClause =
+		sortBy === "title"
+			? dir(mediaItemMetadata.title)
+			: dir(mediaItems.updatedAt);
+
 	const items = await db
 		.select({
 			id: mediaItems.id,
@@ -166,7 +182,7 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.where(and(...conditions))
-		.orderBy(desc(mediaItems.updatedAt));
+		.orderBy(dbOrderClause);
 
 	if (items.length === 0) return [];
 
@@ -193,11 +209,28 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 		latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
 	);
 
-	return items.map((item) => ({
+	const enrichedItems = items.map((item) => ({
 		...item,
 		rating: parseFloat(ratingMap.get(item.mediaItemId) ?? "") || 0,
 		completedAt: completedAtMap.get(item.mediaItemId) ?? null,
 	}));
+
+	if (sortBy === "rating") {
+		enrichedItems.sort((a, b) =>
+			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
+		);
+	} else if (sortBy === "completedAt") {
+		enrichedItems.sort((a, b) => {
+			if (!a.completedAt && !b.completedAt) return 0;
+			if (!a.completedAt) return 1;
+			if (!b.completedAt) return -1;
+			return sortDirection === "desc"
+				? b.completedAt.localeCompare(a.completedAt)
+				: a.completedAt.localeCompare(b.completedAt);
+		});
+	}
+
+	return enrichedItems;
 }
 
 async function querySeriesResults(filters: ViewFilters, userId: string) {
@@ -214,6 +247,13 @@ async function querySeriesResults(filters: ViewFilters, userId: string) {
 			: undefined,
 	].filter((c) => c !== undefined);
 
+	const sortBy = (filters.sortBy as SeriesSortField | undefined) ?? "name";
+	const sortDirection = filters.sortDirection ?? "asc";
+	const dir = sortDirection === "asc" ? asc : desc;
+
+	const dbOrderClause =
+		sortBy === "updatedAt" ? dir(series.updatedAt) : dir(series.name);
+
 	const seriesRows = await db
 		.select({
 			id: series.id,
@@ -225,7 +265,7 @@ async function querySeriesResults(filters: ViewFilters, userId: string) {
 		})
 		.from(series)
 		.where(and(...conditions))
-		.orderBy(asc(series.name));
+		.orderBy(dbOrderClause);
 
 	if (seriesRows.length === 0) return [];
 
@@ -246,11 +286,25 @@ async function querySeriesResults(filters: ViewFilters, userId: string) {
 
 	const countMap = new Map(itemCounts.map((r) => [r.seriesId, r.itemCount]));
 
-	return seriesRows.map((s) => ({
+	const enrichedSeries = seriesRows.map((s) => ({
 		...s,
 		rating: parseFloat(s.rating ?? "") || 0,
 		itemCount: countMap.get(s.id) ?? 0,
 	}));
+
+	if (sortBy === "rating") {
+		enrichedSeries.sort((a, b) =>
+			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
+		);
+	} else if (sortBy === "itemCount") {
+		enrichedSeries.sort((a, b) =>
+			sortDirection === "desc"
+				? b.itemCount - a.itemCount
+				: a.itemCount - b.itemCount,
+		);
+	}
+
+	return enrichedSeries;
 }
 
 // ---------------------------------------------------------------------------

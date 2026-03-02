@@ -69,6 +69,10 @@ type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
 
 export type ViewSubject = "items" | "series";
 
+export type ItemSortField = "updatedAt" | "title" | "rating" | "completedAt";
+export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount";
+export type SortDirection = "asc" | "desc";
+
 export type ViewFilters = {
 	mediaTypes?: MediaItemType[];
 	statuses?: MediaItemStatus[];
@@ -77,6 +81,8 @@ export type ViewFilters = {
 	completedYearStart?: number;
 	completedYearEnd?: number;
 	isSeriesComplete?: boolean;
+	sortBy?: ItemSortField | SeriesSortField;
+	sortDirection?: SortDirection;
 };
 
 export type FictionRatingField = { rating: number; comment?: string };

@@ -7,11 +7,11 @@ import { AddMediaButton } from "#/components/common/AddMediaButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
-import { EditViewDialog } from "#/components/views/EditViewDialog";
-import { SeriesList } from "#/components/views/SeriesList";
 import type { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import type { View } from "#/server/views";
 import { deleteView, getViewResults } from "#/server/views";
+import { SeriesList } from "@/components/dataViews/components/SeriesList";
+import { EditViewDialog } from "@/components/dataViews/EditViewDialog";
 
 export const Route = createFileRoute("/_authenticated/views/$viewId")({
 	loader: ({ params }) =>
@@ -73,7 +73,7 @@ function ViewPage() {
 				isDeleting={isDeleting}
 			/>
 		</div>
-	)
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ function ItemResults({ items }: { items: ItemResult[] }) {
 			<p className="text-muted-foreground text-center py-12">
 				{t("views.empty")}
 			</p>
-		)
+		);
 	}
 
 	return (
@@ -119,5 +119,5 @@ function ItemResults({ items }: { items: ItemResult[] }) {
 				<MediaCard key={item.id} mediaItem={item} />
 			))}
 		</div>
-	)
+	);
 }

@@ -1,7 +1,7 @@
 import { Button } from "#/components/ui/button";
-import { CreateViewDialog } from "#/components/views/CreateViewDialog";
 import { authClient } from "#/lib/auth-client";
 import { getViews } from "#/server/views";
+import { CreateViewDialog } from "@/components/dataViews/CreateViewDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import {
