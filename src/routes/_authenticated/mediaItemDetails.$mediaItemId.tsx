@@ -43,7 +43,7 @@ function EntryDetailPage() {
 				}
 			/>
 
-			<div className="px-6 py-8 max-w-5xl mx-auto">
+			<div key={mediaItemDetails.id} className="px-6 py-8 max-w-5xl mx-auto">
 				<Metadata mediaItemDetails={mediaItemDetails} />
 				<History mediaItemDetails={mediaItemDetails} />
 			</div>
