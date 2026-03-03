@@ -21,7 +21,7 @@ export const getSeriesListByType = createServerFn({ method: "GET" })
 			.select({ id: series.id, name: series.name })
 			.from(series)
 			.where(and(eq(series.type, type), eq(series.userId, user.id)))
-			.orderBy(asc(series.name));
+			.orderBy(asc(series.sortName));
 	});
 
 export const getSeriesDetails = createServerFn({ method: "GET" })

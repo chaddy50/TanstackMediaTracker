@@ -35,7 +35,7 @@ async function fetchInProgressItems(userId: string) {
 				eq(mediaItems.status, MediaItemStatus.IN_PROGRESS),
 			),
 		)
-		.orderBy(asc(mediaItemMetadata.title));
+		.orderBy(asc(mediaItemMetadata.sortTitle));
 }
 
 async function fetchRecentlyFinishedItems(userId: string) {
@@ -107,7 +107,7 @@ async function fetchExplicitNextUpItems(userId: string) {
 				eq(mediaItems.status, MediaItemStatus.NEXT_UP),
 			),
 		)
-		.orderBy(asc(mediaItemMetadata.title));
+		.orderBy(asc(mediaItemMetadata.sortTitle));
 }
 
 async function fetchInProgressSeriesIds(userId: string): Promise<Set<number>> {
