@@ -221,8 +221,8 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 
 	const enrichedItems = items.map((item) => ({
 		...item,
-		rating: parseFloat(ratingMap.get(item.mediaItemId) ?? "") || 0,
-		completedAt: completedAtMap.get(item.mediaItemId) ?? null,
+		rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
+		completedAt: completedAtMap.get(item.id) ?? null,
 	}));
 
 	if (sortBy === "rating") {
