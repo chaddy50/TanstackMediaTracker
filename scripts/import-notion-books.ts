@@ -33,8 +33,9 @@ import * as hardcoverApi from "#/lib/api/hardcover";
 import { RateLimitError } from "#/lib/api/hardcover";
 import type { ExternalSearchResult } from "#/lib/api/types";
 
-// Load .env.local directly (belt-and-suspenders alongside dotenv-cli)
+// Load env vars: .env.local takes precedence (local dev), .env is the fallback (server)
 loadDotenv({ path: ".env.local" });
+loadDotenv({ path: ".env" }); // no-op if vars already set; ignored if file missing
 
 // ---------------------------------------------------------------------------
 // Types
