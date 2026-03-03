@@ -1,60 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
+import { LayoutDashboard, Library, Plus, Settings } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+
 import { Button } from "#/components/ui/button";
 import { getViews } from "#/server/views";
 import { CreateViewDialog } from "@/components/dataViews/CreateViewDialog";
-import { useQuery } from "@tanstack/react-query";
-import {
-	LayoutDashboard,
-	Library,
-	PanelLeftClose,
-	Plus,
-	Settings,
-} from "lucide-react";
-import { createContext, useContext, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { SidebarItem } from "./components/SidebarItem";
-
-// ── Context ───────────────────────────────────────────────────────────────────
-
-interface SidebarContextValue {
-	isOpen: boolean;
-	toggle: () => void;
-}
-
-const SidebarContext = createContext<SidebarContextValue>({
-	isOpen: true,
-	toggle: () => {},
-});
-
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
-	const [isOpen, setIsOpen] = useState(() => {
-		if (typeof window === "undefined") return true;
-		return localStorage.getItem("sidebar-open") !== "false";
-	});
-
-	function toggle() {
-		setIsOpen((previous) => {
-			const next = !previous;
-			localStorage.setItem("sidebar-open", String(next));
-			return next;
-		});
-	}
-
-	return (
-		<SidebarContext.Provider value={{ isOpen, toggle }}>
-			{children}
-		</SidebarContext.Provider>
-	);
-}
-
-export function useSidebar() {
-	return useContext(SidebarContext);
-}
-
-// ── Panel ─────────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
 	const { t } = useTranslation();
-	const { isOpen, toggle } = useSidebar();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
 	const { data: viewsList = [] } = useQuery({
@@ -64,21 +19,8 @@ export function Sidebar() {
 
 	return (
 		<>
-			<aside
-				className={`transition-[width] duration-200 ease-in-out shrink-0 bg-card flex flex-col overflow-hidden ${
-					isOpen ? "w-56 border-r border-border" : "w-0"
-				}`}
-			>
-				{/* Toggle button — only visible when open */}
-				<div className="flex items-center justify-end p-2">
-					<Button variant="ghost" size="icon" onClick={toggle}>
-						<PanelLeftClose className="size-4" />
-						<span className="sr-only">{t("nav.collapseSidebar")}</span>
-					</Button>
-				</div>
-
-				{/* Nav content */}
-				<div className="flex-1 flex flex-col overflow-hidden">
+			<aside className="w-56 border-r border-border shrink-0 bg-card flex flex-col">
+				<div className="flex-1 flex flex-col overflow-hidden pt-4">
 					<nav className="flex flex-col gap-0.5 px-2">
 						<SidebarItem
 							to="/"

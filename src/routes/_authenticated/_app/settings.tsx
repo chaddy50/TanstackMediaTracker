@@ -7,7 +7,7 @@ import { BackupSection } from "#/components/settings/BackupSection";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 
-export const Route = createFileRoute("/_authenticated/settings")({
+export const Route = createFileRoute("/_authenticated/_app/settings")({
 	component: SettingsPage,
 });
 

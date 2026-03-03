@@ -3,7 +3,6 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AddMediaButton } from "#/components/common/AddMediaButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
@@ -13,9 +12,10 @@ import { deleteView, getViewResults } from "#/server/views";
 import { SeriesList } from "@/components/dataViews/components/SeriesList";
 import { EditViewDialog } from "@/components/dataViews/EditViewDialog";
 
-export const Route = createFileRoute("/_authenticated/views/$viewId")({
+export const Route = createFileRoute("/_authenticated/_app/views/$viewId")({
 	loader: ({ params }) =>
 		getViewResults({ data: { viewId: parseInt(params.viewId, 10) } }),
+	staleTime: 30_000,
 	component: ViewPage,
 });
 
@@ -47,12 +47,9 @@ function ViewPage() {
 			<PageHeader
 				title={view.name}
 				right={
-					<div className="flex items-center gap-2">
-						<Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
-							{t("views.editView")}
-						</Button>
-						<AddMediaButton />
-					</div>
+					<Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+						{t("views.editView")}
+					</Button>
 				}
 			/>
 
