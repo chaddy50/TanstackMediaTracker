@@ -110,10 +110,24 @@ async function fetchExplicitNextUpItems(userId: string) {
 		.orderBy(asc(mediaItemMetadata.title));
 }
 
+async function fetchInProgressSeriesIds(userId: string): Promise<Set<number>> {
+	const rows = await db
+		.select({ id: series.id })
+		.from(series)
+		.where(
+			and(
+				eq(series.userId, userId),
+				eq(series.status, MediaItemStatus.IN_PROGRESS),
+			),
+		);
+	return new Set(rows.map((row) => row.id));
+}
+
 async function fetchNextInSeriesItems(
 	userId: string,
 	inProgressItems: Awaited<ReturnType<typeof fetchInProgressItems>>,
 	recentlyFinishedItems: Awaited<ReturnType<typeof fetchRecentlyFinishedItems>>,
+	seriesLevelInProgressIds: Set<number>,
 ) {
 	const inProgressSeriesIds = inProgressItems
 		.map((item) => item.seriesId)
@@ -124,7 +138,11 @@ async function fetchNextInSeriesItems(
 		.filter((id): id is number => id !== null);
 
 	const uniqueSeriesIds = [
-		...new Set([...inProgressSeriesIds, ...recentlyFinishedSeriesIds]),
+		...new Set([
+			...inProgressSeriesIds,
+			...recentlyFinishedSeriesIds,
+			...seriesLevelInProgressIds,
+		]),
 	];
 
 	if (uniqueSeriesIds.length === 0) {
@@ -183,14 +201,23 @@ async function fetchNextInSeriesItems(
 
 	// For each series, find the last active item by index, then the first backlog item after it
 	const nextInSeriesItems: typeof allSeriesItems = [];
-	for (const [, items] of allItemsBySeriesId.entries()) {
+	for (const [seriesId, items] of allItemsBySeriesId.entries()) {
 		let lastActiveIndex = -1;
 		for (let index = 0; index < items.length; index++) {
 			if (activeItemIds.has(items[index].id)) {
 				lastActiveIndex = index;
 			}
 		}
-		if (lastActiveIndex === -1) {
+
+		if (lastActiveIndex === -1 && seriesLevelInProgressIds.has(seriesId)) {
+			// No recently-active individual items — use the last non-backlog item
+			// as the progress point so the next unread item is surfaced correctly.
+			for (let index = 0; index < items.length; index++) {
+				if (items[index].status !== MediaItemStatus.BACKLOG) {
+					lastActiveIndex = index;
+				}
+			}
+		} else if (lastActiveIndex === -1) {
 			continue;
 		}
 
@@ -242,10 +269,12 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 		const user = await getLoggedInUser();
 		const userId = user.id;
 
-		const [inProgressItemsRaw, recentlyFinishedItemsRaw] = await Promise.all([
-			fetchInProgressItems(userId),
-			fetchRecentlyFinishedItems(userId),
-		]);
+		const [inProgressItemsRaw, recentlyFinishedItemsRaw, seriesLevelInProgressIds] =
+			await Promise.all([
+				fetchInProgressItems(userId),
+				fetchRecentlyFinishedItems(userId),
+				fetchInProgressSeriesIds(userId),
+			]);
 
 		const [explicitNextUpItemsRaw, autoNextInSeriesItemsRaw] =
 			await Promise.all([
@@ -254,6 +283,7 @@ export const getDashboardData = createServerFn({ method: "GET" }).handler(
 					userId,
 					inProgressItemsRaw,
 					recentlyFinishedItemsRaw,
+					seriesLevelInProgressIds,
 				),
 			]);
 
