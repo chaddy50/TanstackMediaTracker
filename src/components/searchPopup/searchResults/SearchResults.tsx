@@ -7,10 +7,11 @@ interface SearchResultsProps {
 	isSearching: boolean;
 	query: string;
 	results: SearchResultWithStatus[];
+	onClose: () => void;
 }
 
 export function SearchResults(props: SearchResultsProps) {
-	const { isSearching, query, results } = props;
+	const { isSearching, query, results, onClose } = props;
 	const { t } = useTranslation();
 
 	const isQueryEmpty = !query.trim();
@@ -39,6 +40,7 @@ export function SearchResults(props: SearchResultsProps) {
 				<SearchResult
 					key={`${result.externalSource}:${result.externalId}`}
 					result={result}
+					onClose={onClose}
 				/>
 			))}
 		</div>
