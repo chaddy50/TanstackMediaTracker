@@ -5,10 +5,11 @@ import { Thumbnail } from "./components/Thumbnail";
 
 interface SearchResultProps {
 	result: SearchResultWithStatus;
+	onClose: () => void;
 }
 
 export function SearchResult(props: SearchResultProps) {
-	const { result } = props;
+	const { result, onClose } = props;
 
 	return (
 		<div tabIndex={-1} data-result="" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 focus:bg-muted/50 focus:outline-none transition-colors">
@@ -20,7 +21,7 @@ export function SearchResult(props: SearchResultProps) {
 				type={result.type}
 			/>
 
-			<ActionButton result={result} />
+			<ActionButton result={result} onClose={onClose} />
 		</div>
 	);
 }

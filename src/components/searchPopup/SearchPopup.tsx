@@ -182,6 +182,7 @@ export function SearchPopup(props: SearchPopupProps) {
 							isSearching={isSearching}
 							query={query}
 							results={results}
+							onClose={onClose}
 						/>
 					</div>
 

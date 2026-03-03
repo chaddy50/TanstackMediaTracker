@@ -21,7 +21,7 @@ export function Metadata(props: MetadataProps) {
 			<div className="flex flex-col gap-5 flex-1 min-w-0">
 				<div className="flex items-start justify-between gap-2">
 					<Title mediaItemDetails={mediaItemDetails} />
-					<EditMetadataDialog mediaItemDetails={mediaItemDetails} />
+					<EditMetadataDialog key={mediaItemDetails.id} mediaItemDetails={mediaItemDetails} />
 				</div>
 
 				<div className="flex items-center gap-3">

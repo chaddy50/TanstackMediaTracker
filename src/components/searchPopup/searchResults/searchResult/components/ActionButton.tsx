@@ -7,10 +7,11 @@ import { useTranslation } from "react-i18next";
 
 interface ActionButtionProps {
 	result: SearchResultWithStatus;
+	onClose: () => void;
 }
 
 export function ActionButton(props: ActionButtionProps) {
-	const { result } = props;
+	const { result, onClose } = props;
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [isAdding, setIsAdding] = useState(false);
@@ -30,6 +31,7 @@ export function ActionButton(props: ActionButtionProps) {
 					metadata: result.metadata,
 				},
 			});
+			onClose();
 			await navigate({
 				to: "/mediaItemDetails/$mediaItemId",
 				params: { mediaItemId: String(mediaItemId) },
@@ -41,6 +43,7 @@ export function ActionButton(props: ActionButtionProps) {
 
 	function openExistingItem() {
 		if (!result.mediaItemId) return;
+		onClose();
 		navigate({
 			to: "/mediaItemDetails/$mediaItemId",
 			params: { mediaItemId: String(result.mediaItemId) },
