@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { AddMediaButton } from "#/components/common/AddMediaButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
 import { Toggle } from "#/components/ui/toggle";
@@ -32,7 +31,7 @@ const STATUS_FILTERS = [
 	{ value: MediaItemStatus.ON_HOLD, labelKey: "status.on_hold" },
 ] as const;
 
-export const Route = createFileRoute("/_authenticated/library")({
+export const Route = createFileRoute("/_authenticated/_app/library")({
 	validateSearch: searchSchema,
 	loaderDeps: ({ search }) => search,
 	loader: ({ deps }) => getLibrary({ data: deps }),
@@ -47,7 +46,7 @@ function LibraryPage() {
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader title={t("library.title")} right={<AddMediaButton />} />
+			<PageHeader title={t("library.title")} />
 
 			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
 				<div className="flex gap-2 flex-wrap">

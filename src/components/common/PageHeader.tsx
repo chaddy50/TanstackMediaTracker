@@ -1,9 +1,9 @@
-import { useRouter } from "@tanstack/react-router";
-import { PanelLeftOpen } from "lucide-react";
+import { useNavigate, useRouter } from "@tanstack/react-router";
+import { ArrowLeft, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "../ui/button";
-import { useSidebar } from "./sidebar/Sidebar";
+import { AddMediaButton } from "./AddMediaButton";
 
 interface PageHeaderProps {
 	shouldShowBackButton?: boolean;
@@ -18,21 +18,30 @@ export function PageHeader({
 }: PageHeaderProps) {
 	const { t } = useTranslation();
 	const router = useRouter();
-	const { isOpen: isSidebarOpen, toggle: toggleSidebar } = useSidebar();
+	const navigate = useNavigate();
 
 	return (
 		<header className="px-6 py-4 border-b border-border relative flex items-center justify-between">
-			<span className="flex items-center gap-2">
-				{!isSidebarOpen && (
-					<Button variant="ghost" size="icon" onClick={toggleSidebar}>
-						<PanelLeftOpen className="size-4" />
-						<span className="sr-only">{t("nav.expandSidebar")}</span>
-					</Button>
-				)}
+			<span className="flex items-center gap-1">
 				{shouldShowBackButton && (
-					<Button variant="outline" onClick={() => router.history.back()}>
-						← {t("mediaItemDetails.back")}
-					</Button>
+					<>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => router.history.back()}
+						>
+							<ArrowLeft className="size-4" />
+							<span className="sr-only">{t("nav.back")}</span>
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => navigate({ to: "/" })}
+						>
+							<Home className="size-4" />
+							<span className="sr-only">{t("nav.home")}</span>
+						</Button>
+					</>
 				)}
 			</span>
 			{title && (
@@ -40,7 +49,10 @@ export function PageHeader({
 					<h1 className="text-2xl font-bold">{title}</h1>
 				</span>
 			)}
-			<span>{right}</span>
+			<span className="flex items-center gap-2">
+				{right}
+				<AddMediaButton />
+			</span>
 		</header>
 	);
 }

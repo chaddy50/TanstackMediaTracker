@@ -50,7 +50,7 @@ export const en = {
 		removeDetailedRating: "Remove Detailed Rating",
 	},
 	search: {
-		addButton: "+ Add",
+		addButton: "+ Add Item",
 		placeholder: "Search for books, movies, TV shows, games...",
 		title: "Search & Add",
 		prompt: "Start typing to search.",
@@ -98,6 +98,8 @@ export const en = {
 		settings: "Settings",
 		expandSidebar: "Expand Sidebar",
 		collapseSidebar: "Collapse Sidebar",
+		back: "Back",
+		home: "Home",
 	},
 	settings: {
 		title: "Settings",

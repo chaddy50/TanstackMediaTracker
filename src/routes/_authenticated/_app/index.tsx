@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { AddMediaButton } from "#/components/common/AddMediaButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { DashboardSection } from "#/components/dashboard/DashboardSection";
 import { getDashboardData } from "#/server/dashboard";
 
-export const Route = createFileRoute("/_authenticated/")({
+export const Route = createFileRoute("/_authenticated/_app/")({
 	loader: () => getDashboardData(),
 	component: DashboardPage,
 });
@@ -18,7 +17,7 @@ function DashboardPage() {
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader title={t("dashboard.title")} right={<AddMediaButton />} />
+			<PageHeader title={t("dashboard.title")} />
 			<main className="px-6 py-4 flex flex-wrap gap-x-24 gap-y-6 items-start">
 				<div className="w-full">
 					<DashboardSection

@@ -13,13 +13,14 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
+import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/_app'
+import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/_app/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AuthenticatedViewsViewIdRouteImport } from './routes/_authenticated/views.$viewId'
 import { Route as AuthenticatedSeriesSeriesIdRouteImport } from './routes/_authenticated/series.$seriesId'
 import { Route as AuthenticatedMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/mediaItemDetails.$mediaItemId'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/_app/settings'
+import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/_app/library'
+import { Route as AuthenticatedAppViewsViewIdRouteImport } from './routes/_authenticated/_app/views.$viewId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -40,32 +41,20 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => AuthenticatedRoute,
+  getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedViewsViewIdRoute =
-  AuthenticatedViewsViewIdRouteImport.update({
-    id: '/views/$viewId',
-    path: '/views/$viewId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedSeriesSeriesIdRoute =
   AuthenticatedSeriesSeriesIdRouteImport.update({
     id: '/series/$seriesId',
@@ -78,30 +67,47 @@ const AuthenticatedMediaItemDetailsMediaItemIdRoute =
     path: '/mediaItemDetails/$mediaItemId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppLibraryRoute = AuthenticatedAppLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppViewsViewIdRoute =
+  AuthenticatedAppViewsViewIdRouteImport.update({
+    id: '/views/$viewId',
+    path: '/views/$viewId',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof AuthenticatedAppIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/library': typeof AuthenticatedLibraryRoute
-  '/settings': typeof AuthenticatedSettingsRoute
+  '/library': typeof AuthenticatedAppLibraryRoute
+  '/settings': typeof AuthenticatedAppSettingsRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
-  '/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedAppIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/library': typeof AuthenticatedLibraryRoute
-  '/settings': typeof AuthenticatedSettingsRoute
-  '/': typeof AuthenticatedIndexRoute
+  '/library': typeof AuthenticatedAppLibraryRoute
+  '/settings': typeof AuthenticatedAppSettingsRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
-  '/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,13 +115,14 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/_authenticated/library': typeof AuthenticatedLibraryRoute
-  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/_app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/_app/library': typeof AuthenticatedAppLibraryRoute
+  '/_authenticated/_app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/_authenticated/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
-  '/_authenticated/views/$viewId': typeof AuthenticatedViewsViewIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authenticated/_app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/_app/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,33 +135,34 @@ export interface FileRouteTypes {
     | '/settings'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
-    | '/views/$viewId'
     | '/api/auth/$'
+    | '/views/$viewId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/library'
     | '/settings'
-    | '/'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
-    | '/views/$viewId'
     | '/api/auth/$'
+    | '/views/$viewId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/_authenticated/library'
-    | '/_authenticated/settings'
-    | '/_authenticated/'
+    | '/_authenticated/_app'
+    | '/_authenticated/_app/library'
+    | '/_authenticated/_app/settings'
     | '/_authenticated/mediaItemDetails/$mediaItemId'
     | '/_authenticated/series/$seriesId'
-    | '/_authenticated/views/$viewId'
     | '/api/auth/$'
+    | '/_authenticated/_app/'
+    | '/_authenticated/_app/views/$viewId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,26 +203,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
+    '/_authenticated/_app': {
+      id: '/_authenticated/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAppRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_app/': {
+      id: '/_authenticated/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/library': {
-      id: '/_authenticated/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof AuthenticatedLibraryRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -222,13 +223,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/views/$viewId': {
-      id: '/_authenticated/views/$viewId'
-      path: '/views/$viewId'
-      fullPath: '/views/$viewId'
-      preLoaderRoute: typeof AuthenticatedViewsViewIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/series/$seriesId': {
       id: '/_authenticated/series/$seriesId'
@@ -244,26 +238,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/_app/settings': {
+      id: '/_authenticated/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/_app/library': {
+      id: '/_authenticated/_app/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof AuthenticatedAppLibraryRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/_app/views/$viewId': {
+      id: '/_authenticated/_app/views/$viewId'
+      path: '/views/$viewId'
+      fullPath: '/views/$viewId'
+      preLoaderRoute: typeof AuthenticatedAppViewsViewIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
   }
 }
 
+interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppLibraryRoute: typeof AuthenticatedAppLibraryRoute
+  AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppViewsViewIdRoute: typeof AuthenticatedAppViewsViewIdRoute
+}
+
+const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppLibraryRoute: AuthenticatedAppLibraryRoute,
+  AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppViewsViewIdRoute: AuthenticatedAppViewsViewIdRoute,
+}
+
+const AuthenticatedAppRouteWithChildren =
+  AuthenticatedAppRoute._addFileChildren(AuthenticatedAppRouteChildren)
+
 interface AuthenticatedRouteChildren {
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
   AuthenticatedMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   AuthenticatedSeriesSeriesIdRoute: typeof AuthenticatedSeriesSeriesIdRoute
-  AuthenticatedViewsViewIdRoute: typeof AuthenticatedViewsViewIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
-  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
   AuthenticatedMediaItemDetailsMediaItemIdRoute:
     AuthenticatedMediaItemDetailsMediaItemIdRoute,
   AuthenticatedSeriesSeriesIdRoute: AuthenticatedSeriesSeriesIdRoute,
-  AuthenticatedViewsViewIdRoute: AuthenticatedViewsViewIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
