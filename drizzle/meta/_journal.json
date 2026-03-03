@@ -106,6 +106,13 @@
       "when": 1772503684846,
       "tag": "0014_workable_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1772563893065,
+      "tag": "0015_heavy_blazing_skull",
+      "breakpoints": true
     }
   ]
 }

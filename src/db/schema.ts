@@ -241,23 +241,35 @@ export const mediaItemMetadata = pgTable(
  * Re-reads/re-watches keep status as "in_progress"; the UI derives the
  * "re-doing" label by checking for prior completed instances.
  */
-export const mediaItems = pgTable("media_items", {
-	id: serial("id").primaryKey(),
-	userId: text("user_id").notNull(),
-	mediaItemMetadataId: integer("media_item_metadata_id")
-		.notNull()
-		.references(() => mediaItemMetadata.id, { onDelete: "cascade" }),
-	seriesId: integer("series_id").references(() => series.id, {
-		onDelete: "set null",
-	}),
-	status: mediaItemStatusEnum("status").notNull().default("backlog"),
-	isPurchased: boolean("is_purchased").notNull().default(false),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.notNull()
-		.$onUpdateFn(() => new Date()),
-});
+export const mediaItems = pgTable(
+	"media_items",
+	{
+		id: serial("id").primaryKey(),
+		userId: text("user_id").notNull(),
+		mediaItemMetadataId: integer("media_item_metadata_id")
+			.notNull()
+			.references(() => mediaItemMetadata.id, { onDelete: "cascade" }),
+		seriesId: integer("series_id").references(() => series.id, {
+			onDelete: "set null",
+		}),
+		status: mediaItemStatusEnum("status").notNull().default("backlog"),
+		isPurchased: boolean("is_purchased").notNull().default(false),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.notNull()
+			.$onUpdateFn(() => new Date()),
+	},
+	(table) => [
+		// Primary query pattern: filter by user, sort by most recently updated
+		index("media_items_userId_updatedAt_idx").on(
+			table.userId,
+			table.updatedAt,
+		),
+		// Filter by user + status (used by library filters and view queries)
+		index("media_items_userId_status_idx").on(table.userId, table.status),
+	],
+);
 
 /**
  * One row per individual read/watch/playthrough of a media item.
@@ -265,22 +277,29 @@ export const mediaItems = pgTable("media_items", {
  * Rating and review live here, scoped to a specific instance.
  * Instance order (1st, 2nd, etc.) is derived from `id` / `createdAt` when querying.
  */
-export const mediaItemInstances = pgTable("media_item_instances", {
-	id: serial("id").primaryKey(),
-	mediaItemId: integer("media_item_id")
-		.notNull()
-		.references(() => mediaItems.id, { onDelete: "cascade" }),
-	rating: decimal("rating", { precision: 3, scale: 1 }),
-	fictionRating: jsonb("fiction_rating").$type<FictionRating>(),
-	reviewText: text("review_text"),
-	startedAt: date("started_at"),
-	completedAt: date("completed_at"), // null = still in progress
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.notNull()
-		.$onUpdateFn(() => new Date()),
-});
+export const mediaItemInstances = pgTable(
+	"media_item_instances",
+	{
+		id: serial("id").primaryKey(),
+		mediaItemId: integer("media_item_id")
+			.notNull()
+			.references(() => mediaItems.id, { onDelete: "cascade" }),
+		rating: decimal("rating", { precision: 3, scale: 1 }),
+		fictionRating: jsonb("fiction_rating").$type<FictionRating>(),
+		reviewText: text("review_text"),
+		startedAt: date("started_at"),
+		completedAt: date("completed_at"), // null = still in progress
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.notNull()
+			.$onUpdateFn(() => new Date()),
+	},
+	(table) => [
+		// Used by the DISTINCT ON ratings lookup and per-item instance queries
+		index("media_item_instances_mediaItemId_idx").on(table.mediaItemId),
+	],
+);
 
 /**
  * User-defined views — named, saved filter configurations that can show
