@@ -13,17 +13,17 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import {
+	type ItemSortField,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
 	mediaTypeEnum,
-	series,
-	views,
-	type ItemSortField,
 	type SeriesSortField,
+	series,
 	type ViewFilters,
 	type ViewSubject,
+	views,
 } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
 
@@ -31,8 +31,18 @@ import { getLoggedInUser } from "#/lib/session";
 // Zod schemas
 // ---------------------------------------------------------------------------
 
-export const ITEM_SORT_FIELDS = ["updatedAt", "title", "rating", "completedAt"] as const satisfies readonly ItemSortField[];
-export const SERIES_SORT_FIELDS = ["name", "updatedAt", "rating", "itemCount"] as const satisfies readonly SeriesSortField[];
+export const ITEM_SORT_FIELDS = [
+	"updatedAt",
+	"title",
+	"rating",
+	"completedAt",
+] as const satisfies readonly ItemSortField[];
+export const SERIES_SORT_FIELDS = [
+	"name",
+	"updatedAt",
+	"rating",
+	"itemCount",
+] as const satisfies readonly SeriesSortField[];
 
 const viewFiltersSchema = z.object({
 	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
@@ -160,7 +170,7 @@ async function queryItemResults(filters: ViewFilters, userId: string) {
 
 	const dbOrderClause =
 		sortBy === "title"
-			? dir(mediaItemMetadata.title)
+			? dir(mediaItemMetadata.sortTitle)
 			: dir(mediaItems.updatedAt);
 
 	const items = await db
@@ -252,7 +262,7 @@ async function querySeriesResults(filters: ViewFilters, userId: string) {
 	const dir = sortDirection === "asc" ? asc : desc;
 
 	const dbOrderClause =
-		sortBy === "updatedAt" ? dir(series.updatedAt) : dir(series.name);
+		sortBy === "updatedAt" ? dir(series.updatedAt) : dir(series.sortName);
 
 	const seriesRows = await db
 		.select({

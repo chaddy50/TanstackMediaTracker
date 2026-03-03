@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	date,
@@ -184,6 +185,14 @@ export const series = pgTable("series", {
 	rating: decimal("rating", { precision: 3, scale: 1 }),
 	description: text("description"),
 	isComplete: boolean("is_complete").notNull().default(false),
+	sortName: text("sort_name").generatedAlwaysAs(
+		sql`CASE
+			WHEN LOWER(name) LIKE 'the %' THEN SUBSTRING(name FROM 5)
+			WHEN LOWER(name) LIKE 'an %' THEN SUBSTRING(name FROM 4)
+			WHEN LOWER(name) LIKE 'a %' THEN SUBSTRING(name FROM 3)
+			ELSE name
+		END`,
+	),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -207,6 +216,14 @@ export const mediaItemMetadata = pgTable(
 		externalId: text("external_id").notNull(),
 		externalSource: text("external_source").notNull(), // e.g. "tmdb", "igdb", "openlibrary"
 		metadata: jsonb("metadata").$type<MediaMetadata>(),
+		sortTitle: text("sort_title").generatedAlwaysAs(
+			sql`CASE
+				WHEN LOWER(title) LIKE 'the %' THEN SUBSTRING(title FROM 5)
+				WHEN LOWER(title) LIKE 'an %' THEN SUBSTRING(title FROM 4)
+				WHEN LOWER(title) LIKE 'a %' THEN SUBSTRING(title FROM 3)
+				ELSE title
+			END`,
+		),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(t) => [

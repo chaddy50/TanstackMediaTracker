@@ -1,0 +1,6 @@
+ALTER TABLE "series" ADD COLUMN "sort_name" text GENERATED ALWAYS AS (CASE
+			WHEN LOWER(name) LIKE 'the %' THEN SUBSTRING(name FROM 5)
+			WHEN LOWER(name) LIKE 'an %' THEN SUBSTRING(name FROM 4)
+			WHEN LOWER(name) LIKE 'a %' THEN SUBSTRING(name FROM 3)
+			ELSE name
+		END) STORED;
