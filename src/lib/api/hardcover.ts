@@ -1,5 +1,12 @@
 import type { ExternalSearchResult } from "./types";
 
+export class RateLimitError extends Error {
+	constructor() {
+		super("Hardcover API rate limit exceeded");
+		this.name = "RateLimitError";
+	}
+}
+
 // Token from https://hardcover.app/account/api — already includes "Bearer " prefix
 const API_KEY = process.env.HARDCOVER_API_KEY;
 const ENDPOINT = "https://api.hardcover.app/v1/graphql";
@@ -73,6 +80,7 @@ async function gql<T>(
 		body: JSON.stringify({ query, variables }),
 	});
 
+	if (res.status === 429) throw new RateLimitError();
 	if (!res.ok) return null;
 
 	const { data, errors } = await res.json();
