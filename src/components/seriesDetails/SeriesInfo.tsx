@@ -12,7 +12,6 @@ import { mediaItemStatusEnum } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
 import {
 	type SeriesDetails,
-	updateSeriesRating,
 	updateSeriesStatus,
 } from "#/server/series";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
@@ -38,16 +37,6 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 			data: {
 				seriesId: seriesDetails.id,
 				status: status as (typeof mediaItemStatusEnum.enumValues)[number],
-			},
-		});
-		router.invalidate();
-	}
-
-	async function handleRatingSave(value: number | null) {
-		await updateSeriesRating({
-			data: {
-				seriesId: seriesDetails.id,
-				rating: value !== null ? value.toFixed(1) : null,
 			},
 		});
 		router.invalidate();
@@ -87,7 +76,6 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 
 			<RatingStars
 				rating={seriesDetails.rating}
-				updateRating={handleRatingSave}
 				shouldShowIfNoRating={true}
 			/>
 		</div>
