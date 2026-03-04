@@ -7,6 +7,10 @@ export const en = {
 		filterAndSort: "Filter & Sort",
 		applyFilters: "Apply",
 	},
+	series: {
+		title: "Series",
+		empty: "No series found.",
+	},
 	mediaType: {
 		book: "Book",
 		movie: "Movie",
@@ -96,6 +100,7 @@ export const en = {
 		menu: "Menu",
 		dashboard: "Dashboard",
 		library: "Library",
+		series: "Series",
 		views: "Views",
 		settings: "Settings",
 		expandSidebar: "Expand Sidebar",

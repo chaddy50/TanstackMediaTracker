@@ -19,6 +19,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedSeriesSeriesIdRouteImport } from './routes/_authenticated/series.$seriesId'
 import { Route as AuthenticatedMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/mediaItemDetails.$mediaItemId'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/_app/settings'
+import { Route as AuthenticatedAppSeriesRouteImport } from './routes/_authenticated/_app/series'
 import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/_app/library'
 import { Route as AuthenticatedAppViewsViewIdRouteImport } from './routes/_authenticated/_app/views.$viewId'
 
@@ -73,6 +74,11 @@ const AuthenticatedAppSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppSeriesRoute = AuthenticatedAppSeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppLibraryRoute = AuthenticatedAppLibraryRouteImport.update({
   id: '/library',
   path: '/library',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/library': typeof AuthenticatedAppLibraryRoute
+  '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/library': typeof AuthenticatedAppLibraryRoute
+  '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/_app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/_app/library': typeof AuthenticatedAppLibraryRoute
+  '/_authenticated/_app/series': typeof AuthenticatedAppSeriesRoute
   '/_authenticated/_app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/_authenticated/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/library'
+    | '/series'
     | '/settings'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/library'
+    | '/series'
     | '/settings'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/_app'
     | '/_authenticated/_app/library'
+    | '/_authenticated/_app/series'
     | '/_authenticated/_app/settings'
     | '/_authenticated/mediaItemDetails/$mediaItemId'
     | '/_authenticated/series/$seriesId'
@@ -245,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/_app/series': {
+      id: '/_authenticated/_app/series'
+      path: '/series'
+      fullPath: '/series'
+      preLoaderRoute: typeof AuthenticatedAppSeriesRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/_app/library': {
       id: '/_authenticated/_app/library'
       path: '/library'
@@ -264,6 +283,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppLibraryRoute: typeof AuthenticatedAppLibraryRoute
+  AuthenticatedAppSeriesRoute: typeof AuthenticatedAppSeriesRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppViewsViewIdRoute: typeof AuthenticatedAppViewsViewIdRoute
@@ -271,6 +291,7 @@ interface AuthenticatedAppRouteChildren {
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppLibraryRoute: AuthenticatedAppLibraryRoute,
+  AuthenticatedAppSeriesRoute: AuthenticatedAppSeriesRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppViewsViewIdRoute: AuthenticatedAppViewsViewIdRoute,
