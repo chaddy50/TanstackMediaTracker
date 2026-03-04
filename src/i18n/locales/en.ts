@@ -4,6 +4,8 @@ export const en = {
 		empty: "No items found.",
 		allTypes: "All",
 		allStatuses: "All",
+		filterAndSort: "Filter & Sort",
+		applyFilters: "Apply",
 	},
 	mediaType: {
 		book: "Book",

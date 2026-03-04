@@ -1,7 +1,7 @@
 import { Label } from "#/components/ui/label";
 import { Toggle } from "#/components/ui/toggle";
 import type { ItemSortField, SeriesSortField, SortDirection, ViewSubject } from "#/db/schema";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/server/views";
+import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 import { useTranslation } from "react-i18next";
 
 interface ViewSortingSectionProps {

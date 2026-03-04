@@ -1,0 +1,237 @@
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	sql,
+} from "drizzle-orm";
+
+import { db } from "#/db/index";
+import {
+	type ItemSortField,
+	type SeriesSortField,
+	type ViewFilters,
+	mediaItemInstances,
+	mediaItemMetadata,
+	mediaItems,
+	series,
+} from "#/db/schema";
+
+function buildCompletedYearCondition(filters: ViewFilters) {
+	let yearStart: number | null = null;
+	let yearEnd: number | null = null;
+
+	if (filters.completedThisYear) {
+		const currentYear = new Date().getFullYear();
+		yearStart = currentYear;
+		yearEnd = currentYear;
+	} else {
+		yearStart = filters.completedYearStart ?? null;
+		yearEnd = filters.completedYearEnd ?? null;
+	}
+
+	if (yearStart === null && yearEnd === null) {
+		return undefined;
+	}
+
+	const startCondition =
+		yearStart !== null
+			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) >= ${yearStart}`
+			: undefined;
+	const endCondition =
+		yearEnd !== null
+			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) <= ${yearEnd}`
+			: undefined;
+
+	const yearConditions = [startCondition, endCondition].filter(
+		(c) => c !== undefined,
+	);
+
+	return sql`EXISTS (
+		SELECT 1 FROM ${mediaItemInstances}
+		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
+			AND ${mediaItemInstances.completedAt} IS NOT NULL
+			AND ${and(...yearConditions)}
+	)`;
+}
+
+export async function queryItemResults(filters: ViewFilters, userId: string) {
+	const conditions = [
+		eq(mediaItems.userId, userId),
+		filters.mediaTypes?.length
+			? inArray(mediaItemMetadata.type, filters.mediaTypes)
+			: undefined,
+		filters.statuses?.length
+			? inArray(mediaItems.status, filters.statuses)
+			: undefined,
+		filters.isPurchased !== undefined
+			? eq(mediaItems.isPurchased, filters.isPurchased)
+			: undefined,
+		buildCompletedYearCondition(filters),
+	].filter((c) => c !== undefined);
+
+	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "updatedAt";
+	const sortDirection = filters.sortDirection ?? "desc";
+	const dir = sortDirection === "asc" ? asc : desc;
+
+	const dbOrderClause =
+		sortBy === "title"
+			? dir(mediaItemMetadata.sortTitle)
+			: dir(mediaItems.updatedAt);
+
+	const items = await db
+		.select({
+			id: mediaItems.id,
+			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
+			mediaItemId: mediaItemMetadata.id,
+			title: mediaItemMetadata.title,
+			type: mediaItemMetadata.type,
+			coverImageUrl: mediaItemMetadata.coverImageUrl,
+			seriesId: mediaItems.seriesId,
+			seriesName: series.name,
+		})
+		.from(mediaItems)
+		.innerJoin(
+			mediaItemMetadata,
+			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
+		)
+		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.where(and(...conditions))
+		.orderBy(dbOrderClause);
+
+	if (items.length === 0) {
+		return [];
+	}
+
+	const itemIds = items.map((item) => item.id);
+	const latestRatings = await db
+		.selectDistinctOn([mediaItemInstances.mediaItemId], {
+			mediaItemId: mediaItemInstances.mediaItemId,
+			rating: mediaItemInstances.rating,
+			completedAt: mediaItemInstances.completedAt,
+		})
+		.from(mediaItemInstances)
+		.where(
+			and(
+				inArray(mediaItemInstances.mediaItemId, itemIds),
+				isNotNull(mediaItemInstances.completedAt),
+			),
+		)
+		.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
+
+	const ratingMap = new Map(
+		latestRatings.map((r) => [r.mediaItemId, r.rating]),
+	);
+	const completedAtMap = new Map(
+		latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
+	);
+
+	const enrichedItems = items.map((item) => ({
+		...item,
+		rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
+		completedAt: completedAtMap.get(item.id) ?? null,
+	}));
+
+	if (sortBy === "rating") {
+		enrichedItems.sort((a, b) =>
+			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
+		);
+	} else if (sortBy === "completedAt") {
+		enrichedItems.sort((a, b) => {
+			if (!a.completedAt && !b.completedAt) {
+				return 0;
+			}
+			if (!a.completedAt) {
+				return 1;
+			}
+			if (!b.completedAt) {
+				return -1;
+			}
+			return sortDirection === "desc"
+				? b.completedAt.localeCompare(a.completedAt)
+				: a.completedAt.localeCompare(b.completedAt);
+		});
+	}
+
+	return enrichedItems;
+}
+
+export async function querySeriesResults(filters: ViewFilters, userId: string) {
+	const conditions = [
+		eq(series.userId, userId),
+		filters.mediaTypes?.length
+			? inArray(series.type, filters.mediaTypes)
+			: undefined,
+		filters.statuses?.length
+			? inArray(series.status, filters.statuses)
+			: undefined,
+		filters.isSeriesComplete !== undefined
+			? eq(series.isComplete, filters.isSeriesComplete)
+			: undefined,
+	].filter((c) => c !== undefined);
+
+	const sortBy = (filters.sortBy as SeriesSortField | undefined) ?? "name";
+	const sortDirection = filters.sortDirection ?? "asc";
+	const dir = sortDirection === "asc" ? asc : desc;
+
+	const dbOrderClause =
+		sortBy === "updatedAt" ? dir(series.updatedAt) : dir(series.sortName);
+
+	const seriesRows = await db
+		.select({
+			id: series.id,
+			name: series.name,
+			type: series.type,
+			status: series.status,
+			rating: series.rating,
+			isComplete: series.isComplete,
+		})
+		.from(series)
+		.where(and(...conditions))
+		.orderBy(dbOrderClause);
+
+	if (seriesRows.length === 0) {
+		return [];
+	}
+
+	const seriesIds = seriesRows.map((s) => s.id);
+	const itemCounts = await db
+		.select({
+			seriesId: mediaItems.seriesId,
+			itemCount: count(),
+		})
+		.from(mediaItems)
+		.where(
+			and(
+				inArray(mediaItems.seriesId, seriesIds),
+				eq(mediaItems.userId, userId),
+			),
+		)
+		.groupBy(mediaItems.seriesId);
+
+	const countMap = new Map(itemCounts.map((r) => [r.seriesId, r.itemCount]));
+
+	const enrichedSeries = seriesRows.map((s) => ({
+		...s,
+		rating: parseFloat(s.rating ?? "") || 0,
+		itemCount: countMap.get(s.id) ?? 0,
+	}));
+
+	if (sortBy === "rating") {
+		enrichedSeries.sort((a, b) =>
+			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
+		);
+	} else if (sortBy === "itemCount") {
+		enrichedSeries.sort((a, b) =>
+			sortDirection === "desc"
+				? b.itemCount - a.itemCount
+				: a.itemCount - b.itemCount,
+		);
+	}
+
+	return enrichedSeries;
+}

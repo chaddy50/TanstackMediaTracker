@@ -1,35 +1,30 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/MediaCard";
-import { Toggle } from "#/components/ui/toggle";
+import { LibraryFilterDialog } from "#/components/dataViews/LibraryFilterDialog";
+import { Button } from "#/components/ui/button";
 import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import type { ViewFilters } from "#/db/schema";
+import { ITEM_SORT_FIELDS } from "#/lib/sortFields";
 import { getLibrary, type LibraryItem } from "#/server/library";
 
 const searchSchema = z.object({
-	type: z.enum(mediaTypeEnum.enumValues).optional(),
-	status: z.enum(mediaItemStatusEnum.enumValues).optional(),
+	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
+	statuses: z.array(z.enum(mediaItemStatusEnum.enumValues)).optional(),
+	isPurchased: z.boolean().optional(),
+	completedThisYear: z.boolean().optional(),
+	completedYearStart: z.number().int().optional(),
+	completedYearEnd: z.number().int().optional(),
+	sortBy: z.enum(ITEM_SORT_FIELDS).optional(),
+	sortDirection: z.enum(["asc", "desc"] as const).optional(),
 });
 
-const TYPE_FILTERS = [
-	{ value: undefined, labelKey: "library.allTypes" },
-	{ value: MediaItemType.BOOK, labelKey: "mediaType.book" },
-	{ value: MediaItemType.MOVIE, labelKey: "mediaType.movie" },
-	{ value: MediaItemType.TV_SHOW, labelKey: "mediaType.tv_show" },
-	{ value: MediaItemType.VIDEO_GAME, labelKey: "mediaType.video_game" },
-] as const;
-
-const STATUS_FILTERS = [
-	{ value: undefined, labelKey: "library.allStatuses" },
-	{ value: MediaItemStatus.BACKLOG, labelKey: "status.backlog" },
-	{ value: MediaItemStatus.IN_PROGRESS, labelKey: "status.in_progress" },
-	{ value: MediaItemStatus.COMPLETED, labelKey: "status.completed" },
-	{ value: MediaItemStatus.DROPPED, labelKey: "status.dropped" },
-	{ value: MediaItemStatus.ON_HOLD, labelKey: "status.on_hold" },
-] as const;
+type LibrarySearch = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/_authenticated/_app/library")({
 	validateSearch: searchSchema,
@@ -38,53 +33,75 @@ export const Route = createFileRoute("/_authenticated/_app/library")({
 	component: LibraryPage,
 });
 
+function countActiveFilters(search: LibrarySearch): number {
+	let count = 0;
+	if (search.mediaTypes?.length) count += 1;
+	if (search.statuses?.length) count += 1;
+	if (search.isPurchased !== undefined) count += 1;
+	if (
+		search.completedThisYear ||
+		search.completedYearStart !== undefined ||
+		search.completedYearEnd !== undefined
+	) {
+		count += 1;
+	}
+	if (search.sortBy !== undefined && search.sortBy !== "updatedAt") count += 1;
+	if (search.sortDirection !== undefined && search.sortDirection !== "desc") count += 1;
+	return count;
+}
+
 function LibraryPage() {
 	const mediaItems: LibraryItem[] = Route.useLoaderData();
-	const { type, status } = Route.useSearch();
+	const search = Route.useSearch();
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+	const activeFilterCount = countActiveFilters(search);
+
+	function handleApply(filters: ViewFilters) {
+		navigate({
+			to: "/library",
+			search: () => ({
+				mediaTypes: filters.mediaTypes,
+				statuses: filters.statuses,
+				isPurchased: filters.isPurchased,
+				completedThisYear: filters.completedThisYear,
+				completedYearStart: filters.completedYearStart,
+				completedYearEnd: filters.completedYearEnd,
+				sortBy: filters.sortBy as LibrarySearch["sortBy"],
+				sortDirection: filters.sortDirection,
+			}),
+		});
+	}
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader title={t("library.title")} />
 
-			<div className="px-6 py-4 border-b border-border flex flex-col gap-3">
-				<div className="flex gap-2 flex-wrap">
-					{TYPE_FILTERS.map((filter) => (
-						<Toggle
-							key={filter.labelKey}
-							variant="outline"
-							pressed={type === filter.value}
-							onPressedChange={() =>
-								navigate({
-									to: "/library",
-									search: (prev) => ({ ...prev, type: filter.value }),
-								})
-							}
-						>
-							{t(filter.labelKey)}
-						</Toggle>
-					))}
-				</div>
-
-				<div className="flex gap-2 flex-wrap">
-					{STATUS_FILTERS.map((filter) => (
-						<Toggle
-							key={filter.labelKey}
-							variant="outline"
-							pressed={status === filter.value}
-							onPressedChange={() =>
-								navigate({
-									to: "/library",
-									search: (prev) => ({ ...prev, status: filter.value }),
-								})
-							}
-						>
-							{t(filter.labelKey)}
-						</Toggle>
-					))}
-				</div>
+			<div className="px-6 py-3 border-b border-border flex items-center justify-end">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setIsFilterOpen(true)}
+					className="gap-2"
+				>
+					<SlidersHorizontal />
+					{t("library.filterAndSort")}
+					{activeFilterCount > 0 && (
+						<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center">
+							{activeFilterCount}
+						</span>
+					)}
+				</Button>
 			</div>
+
+			<LibraryFilterDialog
+				isOpen={isFilterOpen}
+				onClose={() => setIsFilterOpen(false)}
+				initialFilters={search}
+				onApply={handleApply}
+			/>
 
 			<main className="px-6 py-6">
 				{mediaItems.length === 0 ? (
@@ -100,5 +117,5 @@ function LibraryPage() {
 				)}
 			</main>
 		</div>
-	)
+	);
 }
