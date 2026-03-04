@@ -28,5 +28,12 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 			return runTimeToCompleteBackfill(user.id);
 		}
 
+		if (data.jobName === "renameEmotionalImpact") {
+			const { runRenameEmotionalImpactBackfill } = await import(
+				"#/server/backfillJobs/renameEmotionalImpact"
+			);
+			return runRenameEmotionalImpactBackfill(user.id);
+		}
+
 		throw new Error(`Unknown backfill job: ${data.jobName}`);
 	});

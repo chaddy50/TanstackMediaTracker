@@ -14,4 +14,5 @@ export type BackfillJobInfo = {
 
 export const BACKFILL_JOBS: BackfillJobInfo[] = [
 	{ name: "timeToComplete" },
+	{ name: "renameEmotionalImpact" },
 ];

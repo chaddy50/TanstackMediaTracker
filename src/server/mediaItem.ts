@@ -218,7 +218,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 						rating: z.number(),
 						comment: z.string().optional(),
 					}),
-					emotionalImpact: z.object({
+					depth: z.object({
 						rating: z.number(),
 						comment: z.string().optional(),
 					}),

@@ -99,7 +99,7 @@ export type FictionRating = {
 	character: FictionRatingField;
 	plot: FictionRatingField;
 	enjoyment: FictionRatingField;
-	emotionalImpact: FictionRatingField;
+	depth: FictionRatingField;
 };
 
 // --- Better-auth tables ---

@@ -75,7 +75,7 @@ export const en = {
 		character: "Characters",
 		plot: "Plot",
 		enjoyment: "Enjoyment",
-		emotionalImpact: "Emotional Impact",
+		depth: "Depth",
 		addComment: "+ Comment",
 	},
 	seriesDetails: {
@@ -127,6 +127,11 @@ export const en = {
 			label: "Time to Complete",
 			description:
 				"Fetch runtime and completion time estimates for all movies, TV shows, and games in your library.",
+		},
+		renameEmotionalImpact: {
+			label: "Migrate: Emotional Impact → Depth",
+			description:
+				"One-time migration to rename the 'Emotional Impact' fiction rating category to 'Depth' for all existing ratings.",
 		},
 	},
 	settings: {
