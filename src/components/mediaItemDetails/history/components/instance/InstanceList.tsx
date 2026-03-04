@@ -31,6 +31,14 @@ export function InstanceList(props: InstanceListProps) {
 
 	return (
 		<div className="flex flex-col gap-3">
+			{idBeingEdited === "new" && (
+				<InstanceEditForm
+					mediaItemId={mediaItemDetails.id}
+					onSave={onInstanceSaved}
+					onCancel={() => setIdBeingEdited(null)}
+				/>
+			)}
+
 			{mediaItemDetails.instances.map((instance, idx) =>
 				idBeingEdited === instance.id ? (
 					<InstanceEditForm
@@ -48,14 +56,6 @@ export function InstanceList(props: InstanceListProps) {
 						onEdit={() => setIdBeingEdited(instance.id)}
 					/>
 				),
-			)}
-
-			{idBeingEdited === "new" && (
-				<InstanceEditForm
-					mediaItemId={mediaItemDetails.id}
-					onSave={onInstanceSaved}
-					onCancel={() => setIdBeingEdited(null)}
-				/>
 			)}
 		</div>
 	);
