@@ -24,7 +24,7 @@ export function formatDate(dateStr: string | null | undefined): string | null {
 }
 
 export function formatHours(hours: number, t: TFunction): string {
-	return t("timeToBeat.hours", { count: hours });
+	return `${hours} ${hours === 1 ? t("timeToBeat.hour") : t("timeToBeat.hours")}`;
 }
 
 export function formatDateRange(

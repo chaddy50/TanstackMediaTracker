@@ -105,8 +105,8 @@ export const en = {
 		hastily: "Rushed",
 		normally: "Normal",
 		completely: "Completionist",
-		hours_one: "{{count}} hr",
-		hours_plural: "{{count}} hrs",
+		hour: "hr",
+		hours: "hrs",
 	},
 	backfill: {
 		runButton: "Run",
