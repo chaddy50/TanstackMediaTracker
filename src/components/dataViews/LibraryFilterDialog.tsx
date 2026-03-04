@@ -6,7 +6,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { ViewFilters } from "#/db/schema";
+import type { ViewFilters, ViewSubject } from "#/db/schema";
 import { EditViewForm } from "./components/editViewForm/EditViewForm";
 
 interface LibraryFilterDialogProps {
@@ -14,6 +14,8 @@ interface LibraryFilterDialogProps {
 	onClose: () => void;
 	initialFilters: ViewFilters;
 	onApply: (filters: ViewFilters) => void;
+	subject?: ViewSubject;
+	title?: string;
 }
 
 export function LibraryFilterDialog({
@@ -21,6 +23,8 @@ export function LibraryFilterDialog({
 	onClose,
 	initialFilters,
 	onApply,
+	subject = "items",
+	title,
 }: LibraryFilterDialogProps) {
 	const { t } = useTranslation();
 
@@ -38,10 +42,10 @@ export function LibraryFilterDialog({
 		>
 			<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{t("library.filterAndSort")}</DialogTitle>
+					<DialogTitle>{title ?? t("library.filterAndSort")}</DialogTitle>
 				</DialogHeader>
 				<EditViewForm
-					initialSubject="items"
+					initialSubject={subject}
 					initialFilters={initialFilters}
 					shouldShowName={false}
 					shouldShowSubject={false}

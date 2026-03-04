@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Library, Plus, Settings } from "lucide-react";
+import { LayoutDashboard, Layers, Library, Plus, Settings } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +34,12 @@ export function Sidebar() {
 							icon={<Library className="size-4 shrink-0" />}
 						>
 							{t("nav.library")}
+						</SidebarItem>
+						<SidebarItem
+							to="/series"
+							icon={<Layers className="size-4 shrink-0" />}
+						>
+							{t("nav.series")}
 						</SidebarItem>
 					</nav>
 
