@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -126,6 +126,22 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 
 export type MediaItemDetails = Awaited<ReturnType<typeof getMediaItemDetails>>;
 
+async function findUnfinishedInstance(mediaItemId: number) {
+	const [instance] = await db
+		.select({ id: mediaItemInstances.id })
+		.from(mediaItemInstances)
+		.where(
+			and(
+				eq(mediaItemInstances.mediaItemId, mediaItemId),
+				isNotNull(mediaItemInstances.startedAt),
+				isNull(mediaItemInstances.completedAt),
+			),
+		)
+		.orderBy(desc(mediaItemInstances.id))
+		.limit(1);
+	return instance ?? null;
+}
+
 export const updateMediaItemStatus = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
@@ -142,6 +158,26 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 				and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
 			);
 
+		const today = new Date().toISOString().slice(0, 10);
+
+		if (status === MediaItemStatus.IN_PROGRESS) {
+			const existingUnfinishedInstance = await findUnfinishedInstance(mediaItemId);
+			if (!existingUnfinishedInstance) {
+				await db.insert(mediaItemInstances).values({
+					mediaItemId,
+					startedAt: today,
+				});
+			}
+		} else if (status === MediaItemStatus.COMPLETED) {
+			const unfinishedInstance = await findUnfinishedInstance(mediaItemId);
+			if (unfinishedInstance) {
+				await db
+					.update(mediaItemInstances)
+					.set({ completedAt: today })
+					.where(eq(mediaItemInstances.id, unfinishedInstance.id));
+			}
+		}
+
 		await db
 			.update(mediaItems)
 			.set({ status })
@@ -150,7 +186,11 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 			);
 
 		if (item?.seriesId) {
-			await syncSeriesStatus(item.seriesId, user.id);
+			await syncSeriesStatus(
+				item.seriesId,
+				user.id,
+				status === MediaItemStatus.COMPLETED,
+			);
 		}
 	});
 
