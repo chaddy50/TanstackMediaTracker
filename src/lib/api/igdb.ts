@@ -15,9 +15,23 @@ type IgdbGame = {
 	collections?: { name: string }[];
 };
 
+type IgdbTimeToBeat = {
+	game_id: number;
+	hastily?: number; // seconds
+	normally?: number; // seconds
+	completely?: number; // seconds
+};
+
+export type IgdbTimeToBeatMetadata = {
+	timeToBeatFetchedAt: string; // ISO timestamp — always set when fetch was attempted
+	timeToBeatHastily?: number; // hours (rounded)
+	timeToBeatNormally?: number; // hours (rounded)
+	timeToBeatCompletely?: number; // hours (rounded)
+};
+
 let cachedToken: { accessToken: string; expiresAt: number } | null = null;
 
-async function getAccessToken(): Promise<string> {
+export async function getAccessToken(): Promise<string> {
 	if (cachedToken && cachedToken.expiresAt > Date.now()) {
 		return cachedToken.accessToken;
 	}
@@ -51,6 +65,67 @@ async function getAccessToken(): Promise<string> {
 	return cachedToken.accessToken;
 }
 
+/**
+ * Fetch time-to-beat data for a batch of IGDB game IDs.
+ *
+ * Returns a Map with an entry for EVERY queried game ID. Games with no IGDB
+ * time data get only `timeToBeatFetchedAt` (the sentinel). This ensures the
+ * backfill won't retry games that IGDB simply has no data for.
+ *
+ * Returns an empty Map on API failure so the caller can skip setting the
+ * sentinel and retry on the next backfill run.
+ */
+export async function fetchTimesToBeat(
+	gameIds: number[],
+	clientId: string,
+	accessToken: string,
+): Promise<Map<number, IgdbTimeToBeatMetadata>> {
+	if (gameIds.length === 0) {
+		return new Map();
+	}
+
+	const body = `fields game_id,hastily,normally,completely; where game_id = (${gameIds.join(",")}); limit ${gameIds.length};`;
+
+	const result = await fetch("https://api.igdb.com/v4/game_time_to_beats", {
+		method: "POST",
+		headers: {
+			"Client-ID": clientId,
+			Authorization: `Bearer ${accessToken}`,
+			"Content-Type": "text/plain",
+		},
+		body,
+	});
+
+	// On failure return empty map — callers should not set the sentinel so the
+	// fetch can be retried on the next backfill run.
+	if (!result.ok) {
+		return new Map();
+	}
+
+	const timesToBeat: IgdbTimeToBeat[] = await result.json();
+	const fetchedAt = new Date().toISOString();
+
+	const dataByGameId = new Map(timesToBeat.map((entry) => [entry.game_id, entry]));
+
+	const timesToBeatByGameId = new Map<number, IgdbTimeToBeatMetadata>();
+	for (const gameId of gameIds) {
+		const entry = dataByGameId.get(gameId);
+		timesToBeatByGameId.set(gameId, {
+			timeToBeatFetchedAt: fetchedAt,
+			...(entry?.hastily
+				? { timeToBeatHastily: Math.round(entry.hastily / 3600) }
+				: {}),
+			...(entry?.normally
+				? { timeToBeatNormally: Math.round(entry.normally / 3600) }
+				: {}),
+			...(entry?.completely
+				? { timeToBeatCompletely: Math.round(entry.completely / 3600) }
+				: {}),
+		});
+	}
+	return timesToBeatByGameId;
+}
+
 export async function search(query: string): Promise<ExternalSearchResult[]> {
 	const clientId = process.env.IGDB_CLIENT_ID;
 	if (!clientId) throw new Error("IGDB_CLIENT_ID is not set");
@@ -72,6 +147,12 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 
 	const games: IgdbGame[] = await result.json();
 
+	const timesToBeatByGameId = await fetchTimesToBeat(
+		games.map((game) => game.id),
+		clientId,
+		accessToken,
+	);
+
 	return games.map((game) => ({
 		externalId: String(game.id),
 		externalSource: "igdb",
@@ -87,6 +168,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		metadata: {
 			genres: game.genres?.map((g) => g.name),
 			...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
+			...(timesToBeatByGameId.get(game.id) ?? {}),
 		},
 	}));
 }

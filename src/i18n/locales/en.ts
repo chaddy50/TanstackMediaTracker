@@ -101,10 +101,32 @@ export const en = {
 		back: "Back",
 		home: "Home",
 	},
+	timeToBeat: {
+		hastily: "Rushed",
+		normally: "Normal",
+		completely: "Completionist",
+		hours_one: "{{count}} hr",
+		hours_plural: "{{count}} hrs",
+	},
+	backfill: {
+		runButton: "Run",
+		running: "Running...",
+		result_one: "Updated {{count}} item",
+		result_other: "Updated {{count}} items",
+		igdbTimeToBeat: {
+			label: "Game Completion Times",
+			description:
+				"Fetch completion time estimates from IGDB for all video games in your library that are missing this data.",
+		},
+	},
 	settings: {
 		title: "Settings",
 		account: {
 			title: "Account",
+		},
+		backfill: {
+			title: "Data Sync",
+			description: "Run one-time data enrichment jobs for your library.",
 		},
 		backup: {
 			title: "Backup & Restore",
@@ -194,9 +216,11 @@ export const en = {
 		error: "Something went wrong. Please try again.",
 		forgotPassword: "Forgot your password?",
 		forgotPasswordTitle: "Reset Password",
-		forgotPasswordDescription: "Enter your email and we'll send you a reset link.",
+		forgotPasswordDescription:
+			"Enter your email and we'll send you a reset link.",
 		forgotPasswordSubmit: "Send Reset Link",
-		forgotPasswordSent: "If that email is registered, you'll receive a reset link shortly.",
+		forgotPasswordSent:
+			"If that email is registered, you'll receive a reset link shortly.",
 		resetPasswordTitle: "Set New Password",
 		newPassword: "New Password",
 		confirmPassword: "Confirm Password",
