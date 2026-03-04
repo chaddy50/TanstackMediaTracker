@@ -8,7 +8,7 @@ const DEFAULT_FICTION_RATING: FictionRating = {
 	character: { rating: 0 },
 	plot: { rating: 0 },
 	enjoyment: { rating: 0 },
-	emotionalImpact: { rating: 0 },
+	depth: { rating: 0 },
 };
 
 const FICTION_RATING_FIELDS = Object.keys(
