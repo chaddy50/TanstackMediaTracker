@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { PageHeader } from "#/components/common/PageHeader";
+import { BackfillSection } from "#/components/settings/BackfillSection";
 import { BackupSection } from "#/components/settings/BackupSection";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
@@ -41,6 +42,7 @@ function SettingsPage() {
 				</section>
 
 				<BackupSection />
+				<BackfillSection />
 			</main>
 		</div>
 	);

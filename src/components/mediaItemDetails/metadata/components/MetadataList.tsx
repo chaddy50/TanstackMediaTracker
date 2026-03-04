@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaItemType } from "#/lib/enums";
+import { formatHours } from "#/lib/utils";
 import { SeriesLink } from "@/components/common/SeriesLink";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
@@ -115,6 +116,21 @@ export function MetadataList({
 					fields.push({
 						label: t("metadata.genres"),
 						value: m.genres.join(", "),
+					});
+				if (typeof m.timeToBeatHastily === "number")
+					fields.push({
+						label: t("timeToBeat.hastily"),
+						value: formatHours(m.timeToBeatHastily, t),
+					});
+				if (typeof m.timeToBeatNormally === "number")
+					fields.push({
+						label: t("timeToBeat.normally"),
+						value: formatHours(m.timeToBeatNormally, t),
+					});
+				if (typeof m.timeToBeatCompletely === "number")
+					fields.push({
+						label: t("timeToBeat.completely"),
+						value: formatHours(m.timeToBeatCompletely, t),
 					});
 				break;
 		}

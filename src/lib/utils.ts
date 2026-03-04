@@ -1,5 +1,6 @@
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
+import type { TFunction } from "i18next";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -20,6 +21,10 @@ export function formatDate(dateStr: string | null | undefined): string | null {
 		month: "short",
 		day: "2-digit",
 	});
+}
+
+export function formatHours(hours: number, t: TFunction): string {
+	return t("timeToBeat.hours", { count: hours });
 }
 
 export function formatDateRange(

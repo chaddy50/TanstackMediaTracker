@@ -64,6 +64,10 @@ type GameMetadata = {
 	platforms?: string[];
 	genres?: string[];
 	series?: string;
+	timeToBeatFetchedAt?: string; // ISO timestamp — presence means fetch was attempted
+	timeToBeatHastily?: number; // hours (rounded)
+	timeToBeatNormally?: number; // hours (rounded)
+	timeToBeatCompletely?: number; // hours (rounded)
 };
 
 type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
