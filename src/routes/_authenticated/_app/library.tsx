@@ -74,26 +74,25 @@ function LibraryPage() {
 		});
 	}
 
+	const filterButton = (
+		<Button
+			variant="outline"
+			onClick={() => setIsFilterOpen(true)}
+			className="gap-2"
+		>
+			<SlidersHorizontal />
+			{t("library.filterAndSort")}
+			{activeFilterCount > 0 && (
+				<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center">
+					{activeFilterCount}
+				</span>
+			)}
+		</Button>
+	);
+
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader title={t("library.title")} />
-
-			<div className="px-6 py-3 border-b border-border flex items-center justify-end">
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => setIsFilterOpen(true)}
-					className="gap-2"
-				>
-					<SlidersHorizontal />
-					{t("library.filterAndSort")}
-					{activeFilterCount > 0 && (
-						<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center">
-							{activeFilterCount}
-						</span>
-					)}
-				</Button>
-			</div>
+			<PageHeader title={t("library.title")} right={filterButton} />
 
 			<LibraryFilterDialog
 				isOpen={isFilterOpen}
