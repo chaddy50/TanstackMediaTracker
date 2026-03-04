@@ -22,7 +22,7 @@ import {
 } from "./ViewFiltersSection";
 import { ViewSortingSection } from "./ViewSortingSection";
 
-interface ViewFormProps {
+interface EditViewFormProps {
 	initialName?: string;
 	initialSubject?: ViewSubject;
 	initialFilters?: ViewFilters;
@@ -35,6 +35,9 @@ interface ViewFormProps {
 	isSubmitting?: boolean;
 	onDelete?: () => void;
 	isDeleting?: boolean;
+	shouldShowName?: boolean;
+	shouldShowSubject?: boolean;
+	submitLabel?: string;
 }
 
 export function EditViewForm({
@@ -46,7 +49,10 @@ export function EditViewForm({
 	isSubmitting = false,
 	onDelete,
 	isDeleting = false,
-}: ViewFormProps) {
+	shouldShowName = true,
+	shouldShowSubject = true,
+	submitLabel,
+}: EditViewFormProps) {
 	const { t } = useTranslation();
 	const nameInputId = useId();
 
@@ -176,36 +182,40 @@ export function EditViewForm({
 	return (
 		<div className="flex flex-col gap-5">
 			{/* Name */}
-			<div className="flex flex-col gap-1.5">
-				<Label htmlFor={nameInputId}>{t("views.form.name")}</Label>
-				<Input
-					id={nameInputId}
-					value={name}
-					onChange={(e) => setName(e.target.value)}
-					placeholder={t("views.form.namePlaceholder")}
-				/>
-			</div>
+			{shouldShowName && (
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor={nameInputId}>{t("views.form.name")}</Label>
+					<Input
+						id={nameInputId}
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						placeholder={t("views.form.namePlaceholder")}
+					/>
+				</div>
+			)}
 
 			{/* Subject */}
-			<div className="flex flex-col gap-1.5">
-				<Label>{t("views.form.subject")}</Label>
-				<div className="flex gap-2">
-					<Toggle
-						variant="outline"
-						pressed={subject === "items"}
-						onPressedChange={() => handleSubjectChange("items")}
-					>
-						{t("views.subject.items")}
-					</Toggle>
-					<Toggle
-						variant="outline"
-						pressed={subject === "series"}
-						onPressedChange={() => handleSubjectChange("series")}
-					>
-						{t("views.subject.series")}
-					</Toggle>
+			{shouldShowSubject && (
+				<div className="flex flex-col gap-1.5">
+					<Label>{t("views.form.subject")}</Label>
+					<div className="flex gap-2">
+						<Toggle
+							variant="outline"
+							pressed={subject === "items"}
+							onPressedChange={() => handleSubjectChange("items")}
+						>
+							{t("views.subject.items")}
+						</Toggle>
+						<Toggle
+							variant="outline"
+							pressed={subject === "series"}
+							onPressedChange={() => handleSubjectChange("series")}
+						>
+							{t("views.subject.series")}
+						</Toggle>
+					</div>
 				</div>
-			</div>
+			)}
 
 			<ViewFiltersSection
 				subject={subject}
@@ -248,9 +258,13 @@ export function EditViewForm({
 					</Button>
 					<Button
 						onClick={handleSubmit}
-						disabled={isSubmitting || name.trim().length === 0}
+						disabled={
+							isSubmitting || (shouldShowName && name.trim().length === 0)
+						}
 					>
-						{isSubmitting ? t("views.form.saving") : t("mediaItemDetails.save")}
+						{isSubmitting
+							? t("views.form.saving")
+							: (submitLabel ?? t("mediaItemDetails.save"))}
 					</Button>
 				</div>
 			</div>
