@@ -101,9 +101,8 @@ export function EditViewForm({
 
 	// Sort
 	const defaultSortBy: ItemSortField | SeriesSortField =
-		initialSubject === "series" ? "name" : "updatedAt";
-	const defaultSortDirection: SortDirection =
-		initialSubject === "series" ? "asc" : "desc";
+		initialSubject === "series" ? "name" : "title";
+	const defaultSortDirection: SortDirection = "asc";
 	const [sortBy, setSortBy] = useState<ItemSortField | SeriesSortField>(
 		initialFilters.sortBy ?? defaultSortBy,
 	);
@@ -130,8 +129,8 @@ export function EditViewForm({
 	function handleSubjectChange(newSubject: ViewSubject) {
 		setSubject(newSubject);
 		setSelectedStatuses([]);
-		setSortBy(newSubject === "series" ? "name" : "updatedAt");
-		setSortDirection(newSubject === "series" ? "asc" : "desc");
+		setSortBy(newSubject === "series" ? "name" : "title");
+		setSortDirection("asc");
 	}
 
 	function handleSubmit() {

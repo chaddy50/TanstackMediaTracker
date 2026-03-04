@@ -1,8 +1,8 @@
 import type { ItemSortField, SeriesSortField } from "#/db/schema";
 
 export const ITEM_SORT_FIELDS = [
-	"updatedAt",
 	"title",
+	"updatedAt",
 	"rating",
 	"completedAt",
 ] as const satisfies readonly ItemSortField[];

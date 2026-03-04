@@ -73,8 +73,8 @@ export async function queryItemResults(filters: ViewFilters, userId: string) {
 		buildCompletedYearCondition(filters),
 	].filter((c) => c !== undefined);
 
-	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "updatedAt";
-	const sortDirection = filters.sortDirection ?? "desc";
+	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "title";
+	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
 
 	const dbOrderClause =
