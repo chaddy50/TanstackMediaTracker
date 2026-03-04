@@ -166,7 +166,7 @@ export function MetadataList({
 			{fields.map(({ label, value, shouldSeriesNameBeLink }) => (
 				<Fragment key={label}>
 					<div className="flex gap-3">
-						<span className="text-muted-foreground min-w-20 shrink-0">
+						<span className="text-muted-foreground w-28 shrink-0">
 							{label}
 						</span>
 						{shouldSeriesNameBeLink ? (
