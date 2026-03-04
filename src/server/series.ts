@@ -175,17 +175,3 @@ export const deleteSeries = createServerFn({ method: "POST" })
 			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 	});
 
-export const updateSeriesRating = createServerFn({ method: "POST" })
-	.inputValidator(
-		z.object({
-			seriesId: z.number(),
-			rating: z.string().nullable(),
-		}),
-	)
-	.handler(async ({ data: { seriesId, rating } }) => {
-		const user = await getLoggedInUser();
-		await db
-			.update(series)
-			.set({ rating: rating ?? null })
-			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
-	});

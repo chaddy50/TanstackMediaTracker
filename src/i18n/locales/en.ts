@@ -133,6 +133,11 @@ export const en = {
 			description:
 				"One-time migration to rename the 'Emotional Impact' fiction rating category to 'Depth' for all existing ratings.",
 		},
+		seriesRatings: {
+			label: "Backfill Series Ratings",
+			description:
+				"Compute and store the average rating for all completed series based on their items' ratings.",
+		},
 	},
 	settings: {
 		title: "Settings",

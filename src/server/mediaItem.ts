@@ -65,12 +65,42 @@ async function syncSeriesStatus(
 		newStatus = MediaItemStatus.IN_PROGRESS;
 	}
 
-	if (newStatus !== null) {
-		await db
-			.update(series)
-			.set({ status: newStatus })
-			.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
+	if (newStatus === null) return;
+
+	let newRating: string | null = null;
+	if (newStatus === MediaItemStatus.COMPLETED) {
+		const latestRatings = await db
+			.selectDistinctOn([mediaItemInstances.mediaItemId], {
+				rating: mediaItemInstances.rating,
+			})
+			.from(mediaItemInstances)
+			.innerJoin(
+				mediaItems,
+				eq(mediaItemInstances.mediaItemId, mediaItems.id),
+			)
+			.where(
+				and(
+					eq(mediaItems.seriesId, seriesId),
+					eq(mediaItems.userId, userId),
+					isNotNull(mediaItemInstances.completedAt),
+					isNotNull(mediaItemInstances.rating),
+				),
+			)
+			.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
+
+		const ratings = latestRatings
+			.map((r) => parseFloat(r.rating ?? ""))
+			.filter((r) => !Number.isNaN(r));
+		if (ratings.length > 0) {
+			const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+			newRating = average.toFixed(1);
+		}
 	}
+
+	await db
+		.update(series)
+		.set({ status: newStatus, rating: newRating })
+		.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
 }
 
 export const getMediaItemDetails = createServerFn({ method: "GET" })
@@ -260,6 +290,13 @@ export const saveInstance = createServerFn({ method: "POST" })
 					.values({ mediaItemId: mediaItemId, ...values });
 			}
 
+			const [item] = await db
+				.select({ seriesId: mediaItems.seriesId })
+				.from(mediaItems)
+				.where(
+					and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
+				);
+
 			const newStatus = inferStatusAfterInstanceEdit(startedAt, completedAt);
 			if (newStatus) {
 				await db
@@ -268,21 +305,14 @@ export const saveInstance = createServerFn({ method: "POST" })
 					.where(
 						and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
 					);
+			}
 
-				const [item] = await db
-					.select({ seriesId: mediaItems.seriesId })
-					.from(mediaItems)
-					.where(
-						and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
-					);
-
-				if (item?.seriesId) {
-					await syncSeriesStatus(
-						item.seriesId,
-						user.id,
-						newStatus === MediaItemStatus.COMPLETED,
-					);
-				}
+			if (item?.seriesId) {
+				await syncSeriesStatus(
+					item.seriesId,
+					user.id,
+					newStatus === MediaItemStatus.COMPLETED,
+				);
 			}
 		},
 	);
