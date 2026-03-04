@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, count, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -143,7 +143,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			})
 			.from(mediaItemInstances)
 			.where(eq(mediaItemInstances.mediaItemId, id))
-			.orderBy(asc(mediaItemInstances.id));
+			.orderBy(desc(mediaItemInstances.id));
 
 		return {
 			...row,
