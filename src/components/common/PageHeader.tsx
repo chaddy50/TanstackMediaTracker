@@ -21,7 +21,7 @@ export function PageHeader({
 	const navigate = useNavigate();
 
 	return (
-		<header className="px-6 py-4 border-b border-border relative flex items-center justify-between">
+		<header className="px-6 py-4 border-b border-border sticky top-0 z-10 bg-background flex items-center justify-between">
 			<span className="flex items-center gap-1">
 				{shouldShowBackButton && (
 					<>
