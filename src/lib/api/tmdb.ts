@@ -88,11 +88,12 @@ async function searchTvShows(query: string): Promise<ExternalSearchResult[]> {
 
 type TmdbMovieDetails = {
 	belongs_to_collection?: { name: string } | null;
+	runtime?: number | null;
 };
 
-export async function fetchMovieCollection(
+export async function fetchMovieDetails(
 	movieId: string,
-): Promise<{ series?: string }> {
+): Promise<{ series?: string; runtime?: number }> {
 	try {
 		const params = new URLSearchParams({ api_key: getApiKey() });
 		const res = await fetch(
@@ -101,10 +102,61 @@ export async function fetchMovieCollection(
 		if (!res.ok) return {};
 
 		const data: TmdbMovieDetails = await res.json();
+		const result: { series?: string; runtime?: number } = {};
 		if (data.belongs_to_collection?.name) {
-			return { series: data.belongs_to_collection.name };
+			result.series = data.belongs_to_collection.name;
 		}
+		if (typeof data.runtime === "number" && data.runtime > 0) {
+			result.runtime = data.runtime;
+		}
+		return result;
+	} catch {
 		return {};
+	}
+}
+
+type TmdbTvShowDetails = {
+	created_by?: Array<{ name: string }>;
+	number_of_seasons?: number;
+	number_of_episodes?: number;
+	episode_run_time?: number[];
+};
+
+export async function fetchTvShowDetails(
+	showId: string,
+): Promise<{
+	creator?: string;
+	seasons?: number;
+	episodeRuntime?: number;
+	numberOfEpisodes?: number;
+}> {
+	try {
+		const params = new URLSearchParams({ api_key: getApiKey() });
+		const res = await fetch(
+			`https://api.themoviedb.org/3/tv/${showId}?${params.toString()}`,
+		);
+		if (!res.ok) return {};
+
+		const data: TmdbTvShowDetails = await res.json();
+		const result: {
+			creator?: string;
+			seasons?: number;
+			episodeRuntime?: number;
+			numberOfEpisodes?: number;
+		} = {};
+		if (data.created_by?.[0]?.name) {
+			result.creator = data.created_by[0].name;
+		}
+		if (typeof data.number_of_seasons === "number" && data.number_of_seasons > 0) {
+			result.seasons = data.number_of_seasons;
+		}
+		if (typeof data.number_of_episodes === "number" && data.number_of_episodes > 0) {
+			result.numberOfEpisodes = data.number_of_episodes;
+		}
+		if (data.episode_run_time?.[0] && data.episode_run_time[0] > 0) {
+			result.episodeRuntime = data.episode_run_time[0];
+		}
+		return result;
 	} catch {
 		return {};
 	}

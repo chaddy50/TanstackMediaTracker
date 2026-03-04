@@ -21,11 +21,11 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 
-		if (data.jobName === "igdbTimeToBeat") {
-			const { runIgdbTimeToBeatBackfill } = await import(
-				"#/server/backfillJobs/igdbTimeToBeat"
+		if (data.jobName === "timeToComplete") {
+			const { runTimeToCompleteBackfill } = await import(
+				"#/server/backfillJobs/timeToComplete"
 			);
-			return runIgdbTimeToBeatBackfill(user.id);
+			return runTimeToCompleteBackfill(user.id);
 		}
 
 		throw new Error(`Unknown backfill job: ${data.jobName}`);

@@ -13,5 +13,5 @@ export type BackfillJobInfo = {
 };
 
 export const BACKFILL_JOBS: BackfillJobInfo[] = [
-	{ name: "igdbTimeToBeat" },
+	{ name: "timeToComplete" },
 ];

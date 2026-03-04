@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaItemType } from "#/lib/enums";
-import { formatHours } from "#/lib/utils";
+import { formatHours, formatMinutes } from "#/lib/utils";
 import { SeriesLink } from "@/components/common/SeriesLink";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
@@ -50,11 +50,20 @@ export function MetadataList({
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				}
-				if (typeof m.pageCount === "number")
+				if (typeof m.pageCount === "number") {
 					fields.push({
 						label: t("metadata.pageCount"),
 						value: `${m.pageCount}`,
 					});
+					// ~300 WPM x 275 words/page / 60 min/hr = 65 pages/hour (HowLongToRead.com methodology)
+					const readingHours = Math.round((m.pageCount as number) / 65);
+					if (readingHours >= 1) {
+						fields.push({
+							label: t("metadata.readingTime"),
+							value: formatHours(readingHours, t),
+						});
+					}
+				}
 				if (Array.isArray(m.genres) && m.genres.length)
 					fields.push({
 						label: t("metadata.genres"),
@@ -73,7 +82,7 @@ export function MetadataList({
 				if (typeof m.runtime === "number")
 					fields.push({
 						label: t("metadata.runtime"),
-						value: `${m.runtime} min`,
+						value: formatMinutes(m.runtime as number, t),
 					});
 				if (Array.isArray(m.genres) && m.genres.length)
 					fields.push({
@@ -92,6 +101,20 @@ export function MetadataList({
 					fields.push({ label: t("metadata.creator"), value: m.creator });
 				if (typeof m.seasons === "number")
 					fields.push({ label: t("metadata.seasons"), value: `${m.seasons}` });
+				if (
+					typeof m.episodeRuntime === "number" &&
+					typeof m.numberOfEpisodes === "number"
+				) {
+					const totalHours = Math.round(
+						((m.episodeRuntime as number) * (m.numberOfEpisodes as number)) / 60,
+					);
+					if (totalHours >= 1) {
+						fields.push({
+							label: t("metadata.totalRuntime"),
+							value: formatHours(totalHours, t),
+						});
+					}
+				}
 				if (Array.isArray(m.genres) && m.genres.length)
 					fields.push({
 						label: t("metadata.genres"),

@@ -101,22 +101,25 @@ export const en = {
 		back: "Back",
 		home: "Home",
 	},
+	time: {
+		hour: "hr",
+		hours: "hrs",
+		min: "min",
+	},
 	timeToBeat: {
 		hastily: "Rushed",
 		normally: "Normal",
 		completely: "Completionist",
-		hour: "hr",
-		hours: "hrs",
 	},
 	backfill: {
 		runButton: "Run",
 		running: "Running...",
 		result_one: "Updated {{count}} item",
 		result_other: "Updated {{count}} items",
-		igdbTimeToBeat: {
-			label: "Game Completion Times",
+		timeToComplete: {
+			label: "Time to Complete",
 			description:
-				"Fetch completion time estimates from IGDB for all video games in your library that are missing this data.",
+				"Fetch runtime and completion time estimates for all movies, TV shows, and games in your library.",
 		},
 	},
 	settings: {
@@ -238,13 +241,15 @@ export const en = {
 		pageCount: "Pages",
 		seriesBookNumber: "Book #",
 		director: "Director",
-		runtime: "Runtime (min)",
+		runtime: "Runtime",
 		creator: "Creator",
 		seasons: "Seasons",
 		developer: "Developer",
 		platforms: "Platforms",
 		genres: "Genres",
 		series: "Series",
+		readingTime: "Reading Time",
+		totalRuntime: "Total Runtime",
 		noSeries: "No series",
 		createNewSeries: "Create new series...",
 		newSeriesName: "New series name",

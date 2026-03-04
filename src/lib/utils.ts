@@ -24,7 +24,19 @@ export function formatDate(dateStr: string | null | undefined): string | null {
 }
 
 export function formatHours(hours: number, t: TFunction): string {
-	return `${hours} ${hours === 1 ? t("timeToBeat.hour") : t("timeToBeat.hours")}`;
+	return `${hours} ${hours === 1 ? t("time.hour") : t("time.hours")}`;
+}
+
+export function formatMinutes(totalMinutes: number, t: TFunction): string {
+	const hours = Math.floor(totalMinutes / 60);
+	const minutes = totalMinutes % 60;
+	if (hours === 0) {
+		return `${minutes} ${t("time.min")}`;
+	}
+	if (minutes === 0) {
+		return formatHours(hours, t);
+	}
+	return `${formatHours(hours, t)} ${minutes} ${t("time.min")}`;
 }
 
 export function formatDateRange(
