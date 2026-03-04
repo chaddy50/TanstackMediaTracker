@@ -57,6 +57,8 @@ type TvMetadata = {
 	creator?: string;
 	seasons?: number;
 	genres?: string[];
+	episodeRuntime?: number; // minutes per episode
+	numberOfEpisodes?: number;
 };
 
 type GameMetadata = {

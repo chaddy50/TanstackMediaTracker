@@ -169,14 +169,15 @@ export const addToLibrary = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 
-		// For TMDB movies, enrich metadata with collection/franchise info before saving.
-		// belongs_to_collection is only on the movie details endpoint, not search.
+		// For TMDB movies and TV shows, enrich metadata with details not available in search results.
 		let metadata = data.metadata;
 		if (data.externalSource === "tmdb" && data.type === "movie") {
-			const collectionInfo = await tmdb.fetchMovieCollection(data.externalId);
-			if (collectionInfo.series) {
-				metadata = { ...metadata, ...collectionInfo };
-			}
+			const details = await tmdb.fetchMovieDetails(data.externalId);
+			metadata = { ...metadata, ...details };
+		}
+		if (data.externalSource === "tmdb" && data.type === "tv_show") {
+			const details = await tmdb.fetchTvShowDetails(data.externalId);
+			metadata = { ...metadata, ...details };
 		}
 
 		// Upsert metadata (no-op on conflict, then fetch existing if needed)
