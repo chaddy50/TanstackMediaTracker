@@ -5,11 +5,10 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { PageHeader } from "#/components/common/PageHeader";
-import { MediaCard } from "#/components/MediaCard";
 import { LibraryFilterDialog } from "#/components/dataViews/LibraryFilterDialog";
+import { MediaCard } from "#/components/MediaCard";
 import { Button } from "#/components/ui/button";
-import { mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
-import type { ViewFilters } from "#/db/schema";
+import { type ViewFilters, mediaItemStatusEnum, mediaTypeEnum } from "#/db/schema";
 import { ITEM_SORT_FIELDS } from "#/lib/sortFields";
 import { getLibrary, type LibraryItem } from "#/server/library";
 
@@ -45,8 +44,8 @@ function countActiveFilters(search: LibrarySearch): number {
 	) {
 		count += 1;
 	}
-	if (search.sortBy !== undefined && search.sortBy !== "updatedAt") count += 1;
-	if (search.sortDirection !== undefined && search.sortDirection !== "desc") count += 1;
+	if (search.sortBy !== undefined && search.sortBy !== "title") count += 1;
+	if (search.sortDirection !== undefined && search.sortDirection !== "asc") count += 1;
 	return count;
 }
 
