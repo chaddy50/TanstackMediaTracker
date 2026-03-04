@@ -15,7 +15,7 @@ import {
 	updateSeriesRating,
 	updateSeriesStatus,
 } from "#/server/series";
-import { ExpandableDescription } from "../common/ExpandableDescription";
+import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
 import { RatingStars } from "../common/rating/RatingStars";
 import { TypeBadge } from "../common/TypeBadge";
 import { EditSeriesDialog } from "./EditSeriesDialog";
@@ -69,7 +69,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 			</div>
 
 			{seriesDetails.description && (
-				<ExpandableDescription text={seriesDetails.description} />
+				<ExpandableTextBlock text={seriesDetails.description} />
 			)}
 
 			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>

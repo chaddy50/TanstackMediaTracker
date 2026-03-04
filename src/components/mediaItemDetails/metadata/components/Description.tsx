@@ -1,4 +1,4 @@
-import { ExpandableDescription } from "@/components/common/ExpandableDescription";
+import { ExpandableTextBlock } from "@/components/common/ExpandableTextBlock";
 import type { MediaItemDetails } from "@/server/mediaItem";
 
 interface DescriptionProps {
@@ -10,5 +10,5 @@ export function Description(props: DescriptionProps) {
 	if (!mediaItemDetails.description) {
 		return null;
 	}
-	return <ExpandableDescription text={mediaItemDetails.description} />;
+	return <ExpandableTextBlock text={mediaItemDetails.description} />;
 }

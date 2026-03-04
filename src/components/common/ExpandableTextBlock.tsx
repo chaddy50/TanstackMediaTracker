@@ -1,11 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-interface ExpandableDescriptionProps {
+const LINE_CLAMP_CLASSES: Record<number, string> = {
+	3: "line-clamp-3",
+	4: "line-clamp-4",
+	5: "line-clamp-5",
+	6: "line-clamp-6",
+	7: "line-clamp-7",
+};
+
+interface ExpandableTextBlockProps {
 	text: string;
+	maxLines?: number;
 }
 
-export function ExpandableDescription({ text }: ExpandableDescriptionProps) {
+export function ExpandableTextBlock({
+	text,
+	maxLines = 7,
+}: ExpandableTextBlockProps) {
 	const { t } = useTranslation();
 	const paragraphRef = useRef<HTMLParagraphElement>(null);
 	const [isOverflowing, setIsOverflowing] = useState(false);
@@ -18,11 +30,13 @@ export function ExpandableDescription({ text }: ExpandableDescriptionProps) {
 		}
 	}, []);
 
+	const clampClass = LINE_CLAMP_CLASSES[maxLines] ?? "line-clamp-5";
+
 	return (
 		<div>
 			<p
 				ref={paragraphRef}
-				className={`text-muted-foreground text-sm leading-relaxed ${isExpanded ? "" : "line-clamp-7"}`}
+				className={`text-foreground text-sm leading-relaxed ${isExpanded ? "" : clampClass}`}
 			>
 				{text}
 			</p>
