@@ -8,6 +8,7 @@ import {
 	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	serial,
 	text,
 	timestamp,
@@ -88,6 +89,7 @@ export type FilterAndSortOptions = {
 	completedYearStart?: number;
 	completedYearEnd?: number;
 	isSeriesComplete?: boolean;
+	tags?: string[];
 	sortBy?: ItemSortField | SeriesSortField;
 	sortDirection?: SortDirection;
 };
@@ -315,6 +317,42 @@ export const mediaItemInstances = pgTable(
 		// Used by the DISTINCT ON ratings lookup and per-item instance queries
 		index("media_item_instances_mediaItemId_idx").on(table.mediaItemId),
 	],
+);
+
+/**
+ * User-defined tags for organizing media items.
+ * Each tag is unique per user (name is case-sensitive).
+ */
+export const tags = pgTable(
+	"tags",
+	{
+		id: serial("id").primaryKey(),
+		userId: text("user_id").notNull(),
+		name: text("name").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("tags_userId_name_unique").on(table.userId, table.name),
+	],
+);
+
+export type Tag = typeof tags.$inferSelect;
+
+/**
+ * Junction table linking media items to tags.
+ * Deletes cascade when either the media item or the tag is removed.
+ */
+export const mediaItemTags = pgTable(
+	"media_item_tags",
+	{
+		mediaItemId: integer("media_item_id")
+			.notNull()
+			.references(() => mediaItems.id, { onDelete: "cascade" }),
+		tagId: integer("tag_id")
+			.notNull()
+			.references(() => tags.id, { onDelete: "cascade" }),
+	},
+	(table) => [primaryKey({ columns: [table.mediaItemId, table.tagId] })],
 );
 
 /**

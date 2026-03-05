@@ -12,12 +12,14 @@ export function MetadataList({
 	releaseDate,
 	seriesId,
 	seriesName,
+	tags = [],
 }: {
 	type: MediaItemDetails["type"];
 	metadata: MediaItemDetails["metadata"];
 	releaseDate: MediaItemDetails["releaseDate"];
 	seriesId?: number | null;
 	seriesName?: string | null;
+	tags?: string[];
 }) {
 	const { t } = useTranslation();
 	const fields: Array<{
@@ -159,7 +161,7 @@ export function MetadataList({
 		}
 	}
 
-	if (fields.length === 0) return null;
+	if (fields.length === 0 && tags.length === 0) return null;
 
 	return (
 		<div className="flex flex-col gap-1.5 text-sm">
@@ -177,6 +179,23 @@ export function MetadataList({
 					</div>
 				</Fragment>
 			))}
+			{tags.length > 0 && (
+				<div className="flex gap-3">
+					<span className="text-muted-foreground w-28 shrink-0">
+						{t("mediaItem.tags")}
+					</span>
+					<div className="flex flex-wrap gap-1.5">
+						{tags.map((tag) => (
+							<span
+								key={tag}
+								className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs"
+							>
+								{tag}
+							</span>
+						))}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -7,9 +7,11 @@ import {
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItemStatusEnum,
+	mediaItemTags,
 	mediaItems,
 	mediaTypeEnum,
 	series,
+	tags,
 } from "#/db/schema";
 import { MediaItemStatus } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
@@ -146,8 +148,16 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.where(eq(mediaItemInstances.mediaItemId, id))
 			.orderBy(desc(mediaItemInstances.id));
 
+		const itemTags = await db
+			.select({ name: tags.name })
+			.from(mediaItemTags)
+			.innerJoin(tags, eq(tags.id, mediaItemTags.tagId))
+			.where(eq(mediaItemTags.mediaItemId, id))
+			.orderBy(tags.name);
+
 		return {
 			...row,
+			tags: itemTags.map((t) => t.name),
 			instances: instances.map((i) => ({
 				...i,
 				rating: parseFloat(i.rating ?? "") || 0,

@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
+import { getTags } from "#/server/tags";
 import { useState } from "react";
 import { FilterAndSortActions } from "../common/filterAndSortForm/components/FilterAndSortActions";
 import { Filters } from "../common/filterAndSortForm/components/Filters";
@@ -31,13 +33,18 @@ export function ViewFilterAndSortForm({
 	const [name, setName] = useState(initialName);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const { data: tagsList = [] } = useQuery({
+		queryKey: ["tags"],
+		queryFn: () => getTags(),
+	});
+	const availableTags = tagsList.map((tag) => tag.name);
 	const {
 		subject,
 		onSubjectChanged,
 		filtersProps,
 		sortingProps,
 		buildFilters,
-	} = useFilterAndSortFormState(initialSubject, initialFilters);
+	} = useFilterAndSortFormState(initialSubject, initialFilters, availableTags);
 
 	async function handleSubmit() {
 		setIsSubmitting(true);

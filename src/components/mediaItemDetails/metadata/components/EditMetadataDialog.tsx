@@ -14,12 +14,14 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "#/server/mediaItem";
+import { saveMediaItemTags } from "#/server/tags";
 import { BookFields } from "./editMetadata/BookFields";
 import { MovieFields } from "./editMetadata/MovieFields";
 import { TvShowFields } from "./editMetadata/TvShowFields";
 import { GameFields } from "./editMetadata/GameFields";
 import { FormField } from "./editMetadata/FormField";
 import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
+import { TagsEditor } from "./TagsEditor";
 
 interface EditMetadataDialogProps {
 	mediaItemDetails: MediaItemDetails;
@@ -50,6 +52,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			? { mode: "existing", seriesId: mediaItemDetails.seriesId }
 			: { mode: "none" },
 	);
+	const [pendingTags, setPendingTags] = useState<string[]>(mediaItemDetails.tags);
 
 	const isSaveDisabled =
 		isSaving ||
@@ -84,6 +87,10 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							? seriesFieldValue.name.trim()
 							: undefined,
 				},
+			});
+
+			await saveMediaItemTags({
+				data: { mediaItemId: mediaItemDetails.id, tagNames: pendingTags },
 			});
 
 			router.invalidate();
@@ -166,6 +173,11 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 						{mediaItemDetails.type === MediaItemType.VIDEO_GAME && (
 							<GameFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
 						)}
+
+						<TagsEditor
+							pendingTags={pendingTags}
+							onPendingTagsChange={setPendingTags}
+						/>
 					</div>
 
 					{error && (
