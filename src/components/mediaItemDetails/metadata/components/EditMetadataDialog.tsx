@@ -13,7 +13,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "@/server/mediaItem";
+import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "#/server/mediaItem";
 import { BookFields } from "./editMetadata/BookFields";
 import { MovieFields } from "./editMetadata/MovieFields";
 import { TvShowFields } from "./editMetadata/TvShowFields";

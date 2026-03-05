@@ -1,6 +1,6 @@
-import type { MediaItemDetails } from "@/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItem";
 
-import { TypeBadge } from "@/components/common/TypeBadge";
+import { TypeBadge } from "#/components/common/TypeBadge";
 
 interface TitleProps {
 	mediaItemDetails: MediaItemDetails;

@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -8,10 +7,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { ViewFilters, ViewSubject } from "#/db/schema";
+import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
 import type { View } from "#/server/views";
 import { updateView } from "#/server/views";
-import { EditViewForm } from "./components/editViewForm/EditViewForm";
+import { ViewFilterAndSortForm } from "./ViewFilterAndSortForm";
 
 interface EditViewDialogProps {
 	view: View;
@@ -19,7 +18,6 @@ interface EditViewDialogProps {
 	onClose: () => void;
 	onUpdated: () => void;
 	onDelete: () => void;
-	isDeleting?: boolean;
 }
 
 export function EditViewDialog({
@@ -28,33 +26,9 @@ export function EditViewDialog({
 	onClose,
 	onUpdated,
 	onDelete,
-	isDeleting = false,
 }: EditViewDialogProps) {
 	const { t } = useTranslation();
 	const queryClient = useQueryClient();
-	const [isSubmitting, setIsSubmitting] = useState(false);
-
-	async function handleSubmit(data: {
-		name: string;
-		subject: ViewSubject;
-		filters: ViewFilters;
-	}) {
-		setIsSubmitting(true);
-		try {
-			await updateView({
-				data: {
-					id: view.id,
-					name: data.name,
-					filters: data.filters,
-				},
-			});
-			await queryClient.invalidateQueries({ queryKey: ["views"] });
-			onClose();
-			onUpdated();
-		} finally {
-			setIsSubmitting(false);
-		}
-	}
 
 	return (
 		<Dialog
@@ -67,15 +41,20 @@ export function EditViewDialog({
 				<DialogHeader>
 					<DialogTitle>{t("views.editView")}</DialogTitle>
 				</DialogHeader>
-				<EditViewForm
+				<ViewFilterAndSortForm
 					initialName={view.name}
 					initialSubject={view.subject as ViewSubject}
-					initialFilters={(view.filters ?? {}) as ViewFilters}
-					onSubmit={handleSubmit}
+					initialFilters={(view.filters ?? {}) as FilterAndSortOptions}
+					onSubmit={async ({ name, filters }) => {
+						await updateView({ data: { id: view.id, name, filters } });
+						await queryClient.invalidateQueries({ queryKey: ["views"] });
+						onClose();
+						onUpdated();
+					}}
 					onCancel={onClose}
-					isSubmitting={isSubmitting}
-					onDelete={onDelete}
-					isDeleting={isDeleting}
+					onDelete={async () => {
+						onDelete();
+					}}
 				/>
 			</DialogContent>
 		</Dialog>

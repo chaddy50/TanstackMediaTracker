@@ -1,4 +1,4 @@
-import type { MediaItemDetails } from "@/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItem";
 import { Artwork } from "./components/Artwork";
 import { Description } from "./components/Description";
 import { EditMetadataDialog } from "./components/EditMetadataDialog";

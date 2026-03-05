@@ -1,16 +1,16 @@
+import { PageHeader } from "#/components/common/PageHeader";
+import { SeriesList } from "#/components/common/SeriesList";
+import { Button } from "#/components/ui/button";
+import { EditViewDialog } from "#/components/views/EditViewDialog";
+import type { View } from "#/server/views";
+import { deleteView, getViewResults } from "#/server/views";
+import { MediaItemList } from "@/components/common/MediaItemList";
+import type { LibraryItem } from "@/server/library";
+import type { SeriesListItem } from "@/server/seriesList";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { PageHeader } from "#/components/common/PageHeader";
-import { MediaCard } from "#/components/MediaCard";
-import { Button } from "#/components/ui/button";
-import type { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import type { View } from "#/server/views";
-import { deleteView, getViewResults } from "#/server/views";
-import { SeriesList } from "@/components/dataViews/components/SeriesList";
-import { EditViewDialog } from "@/components/dataViews/EditViewDialog";
 
 export const Route = createFileRoute("/_authenticated/_app/views/$viewId")({
 	loader: ({ params }) =>
@@ -25,7 +25,7 @@ function ViewPage() {
 	const queryClient = useQueryClient();
 	const { t } = useTranslation();
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
+	const [_isDeleting, setIsDeleting] = useState(false);
 
 	async function handleDelete() {
 		setIsDeleting(true);
@@ -55,9 +55,9 @@ function ViewPage() {
 
 			<main className="px-6 py-6">
 				{view.subject === "items" ? (
-					<ItemResults items={results as ItemResult[]} />
+					<MediaItemList items={results as LibraryItem[]} />
 				) : (
-					<SeriesList items={results as SeriesResult[]} />
+					<SeriesList items={results as SeriesListItem[]} />
 				)}
 			</main>
 
@@ -67,54 +67,7 @@ function ViewPage() {
 				onClose={() => setIsEditDialogOpen(false)}
 				onUpdated={handleUpdated}
 				onDelete={handleDelete}
-				isDeleting={isDeleting}
 			/>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Item results
-// ---------------------------------------------------------------------------
-
-interface ItemResult {
-	id: number;
-	status: MediaItemStatus;
-	isPurchased: boolean;
-	mediaItemId: number;
-	title: string;
-	type: MediaItemType;
-	coverImageUrl: string | null;
-	seriesId: number | null;
-	seriesName: string | null;
-	rating: number;
-}
-
-interface SeriesResult {
-	id: number;
-	name: string;
-	type: MediaItemType;
-	status: MediaItemStatus;
-	isComplete: boolean;
-	itemCount: number;
-}
-
-function ItemResults({ items }: { items: ItemResult[] }) {
-	const { t } = useTranslation();
-
-	if (items.length === 0) {
-		return (
-			<p className="text-muted-foreground text-center py-12">
-				{t("views.empty")}
-			</p>
-		);
-	}
-
-	return (
-		<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-			{items.map((item) => (
-				<MediaCard key={item.id} mediaItem={item} />
-			))}
 		</div>
 	);
 }

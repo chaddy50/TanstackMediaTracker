@@ -1,6 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import { Input } from "../../ui/input";
+import { Input } from "../../../ui/input";
 
 interface SearchEntryFieldProps {
 	query: string;

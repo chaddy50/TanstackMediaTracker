@@ -4,13 +4,13 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select";
-import { mediaItemStatusEnum } from "@/db/schema";
-import { SERIES_ONLY_STATUSES } from "@/lib/enums";
+} from "#/components/ui/select";
+import { mediaItemStatusEnum } from "#/db/schema";
+import { SERIES_ONLY_STATUSES } from "#/lib/enums";
 import {
 	type MediaItemDetails,
 	updateMediaItemStatus,
-} from "@/server/mediaItem";
+} from "#/server/mediaItem";
 import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 

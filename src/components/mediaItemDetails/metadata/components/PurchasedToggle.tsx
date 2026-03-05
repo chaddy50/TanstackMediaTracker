@@ -1,5 +1,5 @@
-import { PurchasedBadge } from "@/components/common/PurchasedBadge";
-import { type MediaItemDetails, togglePurchased } from "@/server/mediaItem";
+import { PurchasedBadge } from "#/components/common/PurchasedBadge";
+import { type MediaItemDetails, togglePurchased } from "#/server/mediaItem";
 import { useRouter } from "@tanstack/react-router";
 
 interface PurchasedToggleProps {

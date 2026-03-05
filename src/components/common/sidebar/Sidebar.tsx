@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Layers, Library, Plus, Settings } from "lucide-react";
+import { Layers, LayoutDashboard, Library, Plus, Settings } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "#/components/ui/button";
 import { getViews } from "#/server/views";
-import { CreateViewDialog } from "@/components/dataViews/CreateViewDialog";
+import { CreateViewDialog } from "#/components/views/CreateViewDialog";
 import { SidebarItem } from "./components/SidebarItem";
 
 export function Sidebar() {

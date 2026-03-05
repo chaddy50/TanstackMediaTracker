@@ -7,7 +7,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
-import { SearchPopup } from "@/components/searchPopup/SearchPopup";
+import { SearchPopup } from "#/components/searchPopup/SearchPopup";
 
 export function AddMediaButton() {
 	const { t } = useTranslation();

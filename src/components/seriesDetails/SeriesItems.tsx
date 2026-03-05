@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { MediaCard } from "#/components/MediaCard";
+import { MediaCard } from "#/components/common/MediaCard";
 import type { SeriesItem } from "#/server/series";
 
 interface SeriesItemsProps {
@@ -12,9 +12,7 @@ export function SeriesItems({ items }: SeriesItemsProps) {
 
 	return (
 		<div>
-			<h2 className="text-xl font-semibold mb-4">
-				{t("seriesDetails.items")}
-			</h2>
+			<h2 className="text-xl font-semibold mb-4">{t("seriesDetails.items")}</h2>
 			{items.length === 0 ? (
 				<p className="text-muted-foreground">{t("library.empty")}</p>
 			) : (

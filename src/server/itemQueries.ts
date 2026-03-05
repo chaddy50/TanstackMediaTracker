@@ -13,14 +13,14 @@ import { db } from "#/db/index";
 import {
 	type ItemSortField,
 	type SeriesSortField,
-	type ViewFilters,
+	type FilterAndSortOptions,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItems,
 	series,
 } from "#/db/schema";
 
-function buildCompletedYearCondition(filters: ViewFilters) {
+function buildCompletedYearCondition(filters: FilterAndSortOptions) {
 	let yearStart: number | null = null;
 	let yearEnd: number | null = null;
 
@@ -58,7 +58,7 @@ function buildCompletedYearCondition(filters: ViewFilters) {
 	)`;
 }
 
-export async function queryItemResults(filters: ViewFilters, userId: string) {
+export async function queryItemResults(filters: FilterAndSortOptions, userId: string) {
 	const conditions = [
 		eq(mediaItems.userId, userId),
 		filters.mediaTypes?.length
@@ -160,7 +160,7 @@ export async function queryItemResults(filters: ViewFilters, userId: string) {
 	return enrichedItems;
 }
 
-export async function querySeriesResults(filters: ViewFilters, userId: string) {
+export async function querySeriesResults(filters: FilterAndSortOptions, userId: string) {
 	const conditions = [
 		eq(series.userId, userId),
 		filters.mediaTypes?.length

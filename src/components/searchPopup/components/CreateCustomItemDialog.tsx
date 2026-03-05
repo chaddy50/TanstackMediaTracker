@@ -21,11 +21,11 @@ import { createCustomItem } from "#/server/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BookFields } from "../mediaItemDetails/metadata/components/editMetadata/BookFields";
-import { FormField } from "../mediaItemDetails/metadata/components/editMetadata/FormField";
-import { GameFields } from "../mediaItemDetails/metadata/components/editMetadata/GameFields";
-import { MovieFields } from "../mediaItemDetails/metadata/components/editMetadata/MovieFields";
-import { TvShowFields } from "../mediaItemDetails/metadata/components/editMetadata/TvShowFields";
+import { BookFields } from "../../mediaItemDetails/metadata/components/editMetadata/BookFields";
+import { FormField } from "../../mediaItemDetails/metadata/components/editMetadata/FormField";
+import { GameFields } from "../../mediaItemDetails/metadata/components/editMetadata/GameFields";
+import { MovieFields } from "../../mediaItemDetails/metadata/components/editMetadata/MovieFields";
+import { TvShowFields } from "../../mediaItemDetails/metadata/components/editMetadata/TvShowFields";
 
 interface CreateCustomItemDialogProps {
 	isOpen: boolean;

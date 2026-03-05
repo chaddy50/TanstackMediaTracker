@@ -2,10 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { getLoggedInUser } from "#/lib/session";
 import { querySeriesResults } from "#/server/itemQueries";
-import { viewFiltersSchema } from "#/server/views";
+import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const getSeriesList = createServerFn({ method: "GET" })
-	.inputValidator(viewFiltersSchema)
+	.inputValidator(filterAndSortOptionsSchema)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 		return querySeriesResults(data, user.id);

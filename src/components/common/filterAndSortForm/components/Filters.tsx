@@ -34,7 +34,7 @@ const MEDIA_TYPES = [
 	MediaItemType.VIDEO_GAME,
 ] as const;
 
-interface ViewFiltersSectionProps {
+export interface FiltersProps {
 	subject: ViewSubject;
 	selectedMediaTypes: MediaItemType[];
 	onToggleMediaType: (type: MediaItemType) => void;
@@ -52,7 +52,7 @@ interface ViewFiltersSectionProps {
 	onSeriesCompleteFilterChange: (filter: SeriesCompleteFilter) => void;
 }
 
-export function ViewFiltersSection({
+export function Filters({
 	subject,
 	selectedMediaTypes,
 	onToggleMediaType,
@@ -68,7 +68,7 @@ export function ViewFiltersSection({
 	onYearEndChange,
 	seriesCompleteFilter,
 	onSeriesCompleteFilterChange,
-}: ViewFiltersSectionProps) {
+}: FiltersProps) {
 	const { t } = useTranslation();
 	const statusOptions = subject === "items" ? ITEM_STATUSES : SERIES_STATUSES;
 

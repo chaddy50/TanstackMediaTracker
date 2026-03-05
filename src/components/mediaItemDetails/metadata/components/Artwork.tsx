@@ -1,4 +1,4 @@
-import type { MediaItemDetails } from "@/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItem";
 
 interface ArtworkProps {
 	mediaItemDetails: MediaItemDetails;

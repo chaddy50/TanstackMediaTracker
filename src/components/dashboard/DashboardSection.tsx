@@ -1,4 +1,4 @@
-import { MediaCard } from "#/components/MediaCard";
+import { MediaCard } from "#/components/common/MediaCard";
 import type { DashboardItem } from "#/server/dashboard";
 
 interface DashboardSectionProps {
