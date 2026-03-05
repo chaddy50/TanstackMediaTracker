@@ -54,6 +54,12 @@ export const en = {
 		overallRating: "Overall Rating",
 		detailedRating: "+ Detailed Rating",
 		removeDetailedRating: "Remove Detailed Rating",
+		seasonReviews: "Season Reviews",
+		addSeasonReview: "+ Add Season",
+		season: "Season",
+		seasonN: "Season {{season}}",
+		collapse: "Collapse",
+		removeSeason: "Remove Season",
 	},
 	search: {
 		addButton: "+ Add Item",
