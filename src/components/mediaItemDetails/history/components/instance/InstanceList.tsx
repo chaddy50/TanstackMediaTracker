@@ -1,3 +1,4 @@
+import { MediaItemType } from "#/lib/enums";
 import type { MediaItemDetails } from "@/server/mediaItem";
 import { useRouter } from "@tanstack/react-router";
 import type { SetStateAction } from "react";
@@ -29,11 +30,18 @@ export function InstanceList(props: InstanceListProps) {
 		);
 	}
 
+	const isTvShow = mediaItemDetails.type === MediaItemType.TV_SHOW;
+	const totalSeasons = isTvShow
+		? (mediaItemDetails.metadata as { seasons?: number })?.seasons
+		: undefined;
+
 	return (
 		<div className="flex flex-col gap-3">
 			{idBeingEdited === "new" && (
 				<InstanceEditForm
 					mediaItemId={mediaItemDetails.id}
+					isTvShow={isTvShow}
+					totalSeasons={totalSeasons}
 					onSave={onInstanceSaved}
 					onCancel={() => setIdBeingEdited(null)}
 				/>
@@ -45,6 +53,8 @@ export function InstanceList(props: InstanceListProps) {
 						key={instance.id}
 						instance={instance}
 						mediaItemId={mediaItemDetails.id}
+						isTvShow={isTvShow}
+						totalSeasons={totalSeasons}
 						onSave={onInstanceSaved}
 						onCancel={() => setIdBeingEdited(null)}
 					/>

@@ -1,10 +1,10 @@
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import type { FictionRating } from "#/db/schema";
+import type { FictionRating, SeasonReview } from "#/db/schema";
 import { DeleteButton } from "@/components/common/DeleteButton";
-import { FictionRatingForm } from "@/components/common/rating/fictionRating/FictionRatingForm";
-import { RatingStars } from "@/components/common/rating/RatingStars";
+import { RatingEditor } from "@/components/common/rating/RatingEditor";
+import { SeasonReviewRow } from "@/components/mediaItemDetails/history/components/instance/SeasonReviewRow";
 import {
 	deleteInstance,
 	type MediaItemDetails,
@@ -16,13 +16,21 @@ import { useTranslation } from "react-i18next";
 interface InstanceEditFormProps {
 	instance?: MediaItemDetails["instances"][number];
 	mediaItemId: number;
+	isTvShow: boolean;
+	totalSeasons?: number;
 	onSave: () => void;
 	onCancel: () => void;
+}
+
+function emptySeasonReview(season: number): SeasonReview {
+	return { season, startedAt: "", completedAt: "", rating: 0, reviewText: "" };
 }
 
 export function InstanceEditForm({
 	instance,
 	mediaItemId,
+	isTvShow,
+	totalSeasons,
 	onSave,
 	onCancel,
 }: InstanceEditFormProps) {
@@ -31,19 +39,79 @@ export function InstanceEditForm({
 	const [fictionRating, setFictionRating] = useState<FictionRating | null>(
 		instance?.fictionRating ?? null,
 	);
-	const [showFictionRating, setShowFictionRating] = useState(
-		!!instance?.fictionRating,
-	);
 	const [reviewText, setReviewText] = useState(instance?.reviewText ?? "");
 	const [startedAt, setStartedAt] = useState(
 		instance?.startedAt ??
 			(instance === undefined ? new Date().toISOString().split("T")[0] : ""),
 	);
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
+	const [seasonReviews, setSeasonReviews] = useState<SeasonReview[]>(
+		instance?.seasonReviews ?? [],
+	);
+	const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(
+		new Set(),
+	);
 	const [saving, setSaving] = useState(false);
 	const startedAtId = useId();
 	const completedAtId = useId();
 	const reviewTextId = useId();
+
+	const usedSeasons = new Set(seasonReviews.map((r) => r.season));
+	const nextAvailableSeason = totalSeasons
+		? Array.from({ length: totalSeasons }, (_, i) => i + 1).find(
+				(s) => !usedSeasons.has(s),
+			)
+		: Math.max(0, ...seasonReviews.map((r) => r.season)) + 1 || 1;
+	const allSeasonsAdded =
+		totalSeasons !== undefined && seasonReviews.length >= totalSeasons;
+
+	function addSeasonReview() {
+		if (nextAvailableSeason === undefined) return;
+		setSeasonReviews((previous) =>
+			[...previous, emptySeasonReview(nextAvailableSeason)].sort(
+				(a, b) => a.season - b.season,
+			),
+		);
+		setExpandedSeasons(
+			(previous) => new Set([...previous, nextAvailableSeason]),
+		);
+	}
+
+	function toggleExpandedSeason(season: number) {
+		const isCollapsing = expandedSeasons.has(season);
+
+		setExpandedSeasons((previous) => {
+			const next = new Set(previous);
+			if (next.has(season)) {
+				next.delete(season);
+			} else {
+				next.add(season);
+			}
+			return next;
+		});
+
+		if (isCollapsing && !startedAt) {
+			const earliestSeasonStart = seasonReviews
+				.map((r) => r.startedAt)
+				.filter(Boolean)
+				.sort()[0];
+			if (earliestSeasonStart) {
+				setStartedAt(earliestSeasonStart);
+			}
+		}
+	}
+
+	function updateSeasonReview(index: number, patch: Partial<SeasonReview>) {
+		setSeasonReviews((previous) =>
+			previous.map((review, i) =>
+				i === index ? { ...review, ...patch } : review,
+			),
+		);
+	}
+
+	function removeSeasonReview(index: number) {
+		setSeasonReviews((previous) => previous.filter((_, i) => i !== index));
+	}
 
 	async function onSaveInstance() {
 		setSaving(true);
@@ -57,6 +125,7 @@ export function InstanceEditForm({
 					reviewText: reviewText || undefined,
 					startedAt: startedAt || undefined,
 					completedAt: completedAt || undefined,
+					seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
 				},
 			});
 			onSave();
@@ -66,9 +135,6 @@ export function InstanceEditForm({
 	}
 
 	async function onRemoveDetailedRating() {
-		setShowFictionRating(false);
-		setFictionRating(null);
-		setRating(0);
 		if (instance?.id) {
 			setSaving(true);
 			try {
@@ -80,6 +146,7 @@ export function InstanceEditForm({
 						reviewText: reviewText || undefined,
 						startedAt: startedAt || undefined,
 						completedAt: completedAt || undefined,
+						seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
 					},
 				});
 			} finally {
@@ -133,44 +200,14 @@ export function InstanceEditForm({
 				</div>
 			</div>
 
-			{showFictionRating ? (
-				<div className="flex flex-col gap-2">
-					<div className="flex flex-row items-center gap-2">
-						<span className="text-sm text-muted-foreground w-32">
-							{t("mediaItemDetails.overallRating")}
-						</span>
-						<RatingStars rating={rating} shouldShowIfNoRating={true} />
-						<DeleteButton
-							className="ml-auto"
-							onClick={onRemoveDetailedRating}
-							disabled={saving}
-						>
-							{t("mediaItemDetails.removeDetailedRating")}
-						</DeleteButton>
-					</div>
-					<hr className="border-border" />
-					<FictionRatingForm
-						initialValue={fictionRating}
-						updateRating={setRating}
-						updateFictionRating={setFictionRating}
-					/>
-				</div>
-			) : (
-				<div className="flex flex-row items-center gap-2">
-					<RatingStars
-						rating={rating}
-						updateRating={setRating}
-						shouldShowIfNoRating={true}
-					/>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setShowFictionRating(true)}
-					>
-						{t("mediaItemDetails.detailedRating")}
-					</Button>
-				</div>
-			)}
+			<RatingEditor
+				rating={rating}
+				fictionRating={fictionRating}
+				onRatingChange={setRating}
+				onFictionRatingChange={setFictionRating}
+				onRemoveDetailedRating={onRemoveDetailedRating}
+				disabled={saving}
+			/>
 
 			{/* Review */}
 			<div className="flex flex-col gap-1.5">
@@ -185,6 +222,38 @@ export function InstanceEditForm({
 					rows={3}
 				/>
 			</div>
+
+			{/* Season Reviews */}
+			{isTvShow && (
+				<div className="flex flex-col gap-3">
+					<div className="flex items-center justify-between">
+						<span className="text-sm font-medium">
+							{t("mediaItemDetails.seasonReviews")}
+						</span>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={addSeasonReview}
+							disabled={allSeasonsAdded}
+						>
+							{t("mediaItemDetails.addSeasonReview")}
+						</Button>
+					</div>
+
+					{seasonReviews.map((seasonReview, index) => (
+						<SeasonReviewRow
+							key={seasonReview.season}
+							seasonReview={seasonReview}
+							totalSeasons={totalSeasons}
+							usedSeasons={usedSeasons}
+							isExpanded={expandedSeasons.has(seasonReview.season)}
+							onToggleExpanded={() => toggleExpandedSeason(seasonReview.season)}
+							onChange={(patch) => updateSeasonReview(index, patch)}
+							onRemove={() => removeSeasonReview(index)}
+						/>
+					))}
+				</div>
+			)}
 
 			{/* Actions */}
 			<div className="flex gap-2">

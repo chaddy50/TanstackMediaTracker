@@ -137,6 +137,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				id: mediaItemInstances.id,
 				rating: mediaItemInstances.rating,
 				fictionRating: mediaItemInstances.fictionRating,
+				seasonReviews: mediaItemInstances.seasonReviews,
 				reviewText: mediaItemInstances.reviewText,
 				startedAt: mediaItemInstances.startedAt,
 				completedAt: mediaItemInstances.completedAt,
@@ -224,39 +225,36 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 		}
 	});
 
+const fictionRatingSchema = z.object({
+	setting: z.object({ rating: z.number(), comment: z.string().optional() }),
+	character: z.object({ rating: z.number(), comment: z.string().optional() }),
+	plot: z.object({ rating: z.number(), comment: z.string().optional() }),
+	enjoyment: z.object({ rating: z.number(), comment: z.string().optional() }),
+	depth: z.object({ rating: z.number(), comment: z.string().optional() }),
+});
+
 export const saveInstance = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			mediaItemId: z.number(),
 			instanceId: z.number().optional(),
 			rating: z.string().optional(),
-			fictionRating: z
-				.object({
-					setting: z.object({
-						rating: z.number(),
-						comment: z.string().optional(),
-					}),
-					character: z.object({
-						rating: z.number(),
-						comment: z.string().optional(),
-					}),
-					plot: z.object({
-						rating: z.number(),
-						comment: z.string().optional(),
-					}),
-					enjoyment: z.object({
-						rating: z.number(),
-						comment: z.string().optional(),
-					}),
-					depth: z.object({
-						rating: z.number(),
-						comment: z.string().optional(),
-					}),
-				})
-				.optional(),
+			fictionRating: fictionRatingSchema.optional(),
 			reviewText: z.string().optional(),
 			startedAt: z.string().optional(),
 			completedAt: z.string().optional(),
+			seasonReviews: z
+				.array(
+					z.object({
+						season: z.number(),
+						startedAt: z.string(),
+						completedAt: z.string(),
+						rating: z.number(),
+						reviewText: z.string(),
+						fictionRating: fictionRatingSchema.optional(),
+					}),
+				)
+				.optional(),
 		}),
 	)
 	.handler(
@@ -269,12 +267,14 @@ export const saveInstance = createServerFn({ method: "POST" })
 				reviewText,
 				startedAt,
 				completedAt,
+				seasonReviews,
 			},
 		}) => {
 			const user = await getLoggedInUser();
 			const values = {
 				rating: rating ?? null,
 				fictionRating: fictionRating ?? null,
+				seasonReviews: seasonReviews ?? null,
 				reviewText: reviewText || null,
 				startedAt: startedAt || null,
 				completedAt: completedAt || null,

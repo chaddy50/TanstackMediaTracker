@@ -1,6 +1,7 @@
 import { Button } from "#/components/ui/button";
 import { formatDateRange } from "#/lib/utils";
 import { ExpandableTextBlock } from "@/components/common/ExpandableTextBlock";
+import { FictionRatingComments } from "@/components/common/rating/FictionRatingComments";
 import { RatingStars } from "@/components/common/rating/RatingStars";
 import type { MediaItemDetails } from "@/server/mediaItem";
 import { useTranslation } from "react-i18next";
@@ -33,22 +34,46 @@ export function InstanceRow({
 					<ExpandableTextBlock text={instance.reviewText} maxLines={5} />
 				)}
 				{instance.fictionRating && (
-					<div className="flex flex-col gap-1 mt-0.5">
-						{(
-							Object.entries(instance.fictionRating) as [
-								keyof typeof instance.fictionRating,
-								{ rating: number; comment?: string },
-							][]
-						)
-							.filter(([, field]) => field.comment)
-							.map(([key, field]) => (
-								<p key={key} className="text-sm">
-									<span className="text-muted-foreground">
-										{t(`fictionRating.${key}`)}:{" "}
-									</span>
-									<span className="text-foreground/80">{field.comment}</span>
-								</p>
-							))}
+					<FictionRatingComments fictionRating={instance.fictionRating} />
+				)}
+				{instance.seasonReviews && instance.seasonReviews.length > 0 && (
+					<div className="flex flex-col gap-2 mt-1 pt-2 border-t border-border">
+						{[...instance.seasonReviews]
+							.sort((a, b) => a.season - b.season)
+							.map((seasonReview) => {
+								const seasonDateRange = formatDateRange(
+									seasonReview.startedAt || null,
+									seasonReview.completedAt || null,
+								);
+								return (
+									<div key={seasonReview.season} className="flex flex-col gap-1">
+										<div className="flex items-center gap-3 flex-wrap">
+											<span className="text-sm font-medium text-muted-foreground">
+												{t("mediaItemDetails.seasonN", {
+													season: seasonReview.season,
+												})}
+											</span>
+											{seasonDateRange && (
+												<span className="text-muted-foreground text-sm">
+													{seasonDateRange}
+												</span>
+											)}
+											<RatingStars rating={seasonReview.rating} />
+										</div>
+										{seasonReview.fictionRating && (
+											<FictionRatingComments
+												fictionRating={seasonReview.fictionRating}
+											/>
+										)}
+										{seasonReview.reviewText && (
+											<ExpandableTextBlock
+												text={seasonReview.reviewText}
+												maxLines={3}
+											/>
+										)}
+									</div>
+								);
+							})}
 					</div>
 				)}
 			</div>

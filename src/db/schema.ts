@@ -102,6 +102,15 @@ export type FictionRating = {
 	depth: FictionRatingField;
 };
 
+export type SeasonReview = {
+	season: number;
+	startedAt: string;
+	completedAt: string;
+	rating: number;
+	reviewText: string;
+	fictionRating?: FictionRating;
+};
+
 // --- Better-auth tables ---
 
 export const user = pgTable("user", {
@@ -292,6 +301,7 @@ export const mediaItemInstances = pgTable(
 			.references(() => mediaItems.id, { onDelete: "cascade" }),
 		rating: decimal("rating", { precision: 3, scale: 1 }),
 		fictionRating: jsonb("fiction_rating").$type<FictionRating>(),
+		seasonReviews: jsonb("season_reviews").$type<SeasonReview[]>(),
 		reviewText: text("review_text"),
 		startedAt: date("started_at"),
 		completedAt: date("completed_at"), // null = still in progress
