@@ -50,6 +50,9 @@ export interface FiltersProps {
 	onYearEndChange: (year: string) => void;
 	seriesCompleteFilter: SeriesCompleteFilter;
 	onSeriesCompleteFilterChange: (filter: SeriesCompleteFilter) => void;
+	availableTags: string[];
+	selectedTags: string[];
+	onToggleTag: (tag: string) => void;
 }
 
 export function Filters({
@@ -68,6 +71,9 @@ export function Filters({
 	onYearEndChange,
 	seriesCompleteFilter,
 	onSeriesCompleteFilterChange,
+	availableTags,
+	selectedTags,
+	onToggleTag,
 }: FiltersProps) {
 	const { t } = useTranslation();
 	const statusOptions = subject === "items" ? ITEM_STATUSES : SERIES_STATUSES;
@@ -166,6 +172,24 @@ export function Filters({
 							</div>
 						)}
 					</div>
+
+					{availableTags.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("views.form.tags")}</Label>
+							<div className="flex gap-2 flex-wrap">
+								{availableTags.map((tag) => (
+									<Toggle
+										key={tag}
+										variant="outline"
+										pressed={selectedTags.includes(tag)}
+										onPressedChange={() => onToggleTag(tag)}
+									>
+										{tag}
+									</Toggle>
+								))}
+							</div>
+						</div>
+					)}
 				</>
 			)}
 

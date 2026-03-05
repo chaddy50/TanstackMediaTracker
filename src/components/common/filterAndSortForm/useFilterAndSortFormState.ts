@@ -18,6 +18,7 @@ import type { SortingOptionsProps } from "./components/SortingOptions";
 export function useFilterAndSortFormState(
 	initialSubject: ViewSubject,
 	initialFilters: FilterAndSortOptions = {},
+	availableTags: string[] = [],
 ) {
 	const [subject, setSubject] = useState<ViewSubject>(initialSubject);
 	const [selectedMediaTypes, setSelectedMediaTypes] = useState<MediaItemType[]>(
@@ -56,6 +57,9 @@ export function useFilterAndSortFormState(
 					? "incomplete"
 					: "all",
 		);
+	const [selectedTags, setSelectedTags] = useState<string[]>(
+		initialFilters.tags ?? [],
+	);
 	const [sortBy, setSortBy] = useState<ItemSortField | SeriesSortField>(
 		initialFilters.sortBy ?? (initialSubject === "series" ? "name" : "title"),
 	);
@@ -76,6 +80,14 @@ export function useFilterAndSortFormState(
 			previous.includes(status)
 				? previous.filter((s) => s !== status)
 				: [...previous, status],
+		);
+	}
+
+	function toggleTag(tag: string) {
+		setSelectedTags((previous) =>
+			previous.includes(tag)
+				? previous.filter((t) => t !== tag)
+				: [...previous, tag],
 		);
 	}
 
@@ -115,6 +127,10 @@ export function useFilterAndSortFormState(
 					filters.completedYearEnd = parsedEnd;
 				}
 			}
+
+			if (selectedTags.length > 0) {
+				filters.tags = selectedTags;
+			}
 		}
 
 		if (subject === "series") {
@@ -147,6 +163,9 @@ export function useFilterAndSortFormState(
 		onYearEndChange: setYearEnd,
 		seriesCompleteFilter,
 		onSeriesCompleteFilterChange: setSeriesCompleteFilter,
+		availableTags,
+		selectedTags,
+		onToggleTag: toggleTag,
 	};
 
 	const sortingProps: SortingOptionsProps = {

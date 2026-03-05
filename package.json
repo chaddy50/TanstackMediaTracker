@@ -20,7 +20,8 @@
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
     "db:seed-views": "dotenv -e .env -- tsx src/db/seedViews.ts",
-    "import:notion-books": "dotenv -e .env.local -e .env -- tsx scripts/import-notion-books.ts"
+    "import:notion-books": "dotenv -e .env.local -e .env -- tsx scripts/import-notion-books.ts",
+    "import:tags": "dotenv -e .env.local -e .env -- tsx scripts/import-tags.ts"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "^10.34.0",

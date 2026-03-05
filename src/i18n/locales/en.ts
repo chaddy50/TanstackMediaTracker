@@ -33,6 +33,14 @@ export const en = {
 	common: {
 		showMore: "Show more",
 		showLess: "Show less",
+		saving: "Saving...",
+		save: "Save",
+		cancel: "Cancel",
+	},
+	mediaItem: {
+		tags: "Tags",
+		addTag: "Add tag...",
+		removeTag: "Remove {{tag}}",
 	},
 	mediaItemDetails: {
 		back: "Back",
@@ -210,7 +218,8 @@ export const en = {
 				complete: "Complete",
 				incomplete: "Incomplete",
 			},
-			filtersSection: "Filters",
+			tags: "Tags",
+		filtersSection: "Filters",
 			sortingSection: "Sorting",
 			saving: "Saving...",
 			sortBy: "Sort by",

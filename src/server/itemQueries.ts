@@ -4,20 +4,22 @@ import {
 	count,
 	desc,
 	eq,
+	exists,
 	inArray,
 	isNotNull,
 	sql,
 } from "drizzle-orm";
-
 import { db } from "#/db/index";
 import {
+	type FilterAndSortOptions,
 	type ItemSortField,
 	type SeriesSortField,
-	type FilterAndSortOptions,
 	mediaItemInstances,
 	mediaItemMetadata,
+	mediaItemTags,
 	mediaItems,
 	series,
+	tags,
 } from "#/db/schema";
 
 function buildCompletedYearCondition(filters: FilterAndSortOptions) {
@@ -71,6 +73,21 @@ export async function queryItemResults(filters: FilterAndSortOptions, userId: st
 			? eq(mediaItems.isPurchased, filters.isPurchased)
 			: undefined,
 		buildCompletedYearCondition(filters),
+		filters.tags?.length
+			? exists(
+					db
+						.select({ one: sql`1` })
+						.from(mediaItemTags)
+						.innerJoin(tags, eq(tags.id, mediaItemTags.tagId))
+						.where(
+							and(
+								eq(mediaItemTags.mediaItemId, mediaItems.id),
+								inArray(tags.name, filters.tags),
+								eq(tags.userId, userId),
+							),
+						),
+				)
+			: undefined,
 	].filter((c) => c !== undefined);
 
 	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "title";

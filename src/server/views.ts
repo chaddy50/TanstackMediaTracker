@@ -29,6 +29,7 @@ export const filterAndSortOptionsSchema = z.object({
 	completedYearStart: z.number().int().optional(),
 	completedYearEnd: z.number().int().optional(),
 	isSeriesComplete: z.boolean().optional(),
+	tags: z.array(z.string()).optional(),
 	sortBy: z.enum([...ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
 	sortDirection: z.enum(["asc", "desc"]).optional(),
 });
