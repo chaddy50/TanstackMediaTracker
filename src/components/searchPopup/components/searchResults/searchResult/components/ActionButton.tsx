@@ -1,6 +1,6 @@
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { addToLibrary, type SearchResultWithStatus } from "@/server/search";
+import { StatusBadge } from "#/components/common/StatusBadge";
+import { Button } from "#/components/ui/button";
+import { addToLibrary, type SearchResultWithStatus } from "#/server/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

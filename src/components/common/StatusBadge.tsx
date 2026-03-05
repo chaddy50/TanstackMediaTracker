@@ -1,5 +1,5 @@
-import { type MediaItemStatus } from "@/lib/enums";
-import { formatDate } from "@/lib/utils";
+import { type MediaItemStatus } from "#/lib/enums";
+import { formatDate } from "#/lib/utils";
 import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {

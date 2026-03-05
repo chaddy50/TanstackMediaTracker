@@ -80,7 +80,7 @@ export type ItemSortField = "updatedAt" | "title" | "rating" | "completedAt";
 export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount";
 export type SortDirection = "asc" | "desc";
 
-export type ViewFilters = {
+export type FilterAndSortOptions = {
 	mediaTypes?: MediaItemType[];
 	statuses?: MediaItemStatus[];
 	isPurchased?: boolean;
@@ -326,7 +326,7 @@ export const views = pgTable("views", {
 	userId: text("user_id").notNull(),
 	name: text("name").notNull(),
 	subject: text("subject").notNull().$type<ViewSubject>(), // 'items' | 'series'
-	filters: jsonb("filters").notNull().default({}).$type<ViewFilters>(),
+	filters: jsonb("filters").notNull().default({}).$type<FilterAndSortOptions>(),
 	displayOrder: integer("display_order").notNull().default(0),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")

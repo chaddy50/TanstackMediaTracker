@@ -3,11 +3,11 @@ import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import type { SeasonReview } from "#/db/schema";
 import { formatDateRange } from "#/lib/utils";
-import { DeleteButton } from "@/components/common/DeleteButton";
-import { ExpandableTextBlock } from "@/components/common/ExpandableTextBlock";
-import { FictionRatingComments } from "@/components/common/rating/FictionRatingComments";
-import { RatingEditor } from "@/components/common/rating/RatingEditor";
-import { RatingStars } from "@/components/common/rating/RatingStars";
+import { DeleteButton } from "#/components/common/DeleteButton";
+import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
+import { FictionRatingComments } from "#/components/common/rating/FictionRatingComments";
+import { RatingEditor } from "#/components/common/rating/RatingEditor";
+import { RatingStars } from "#/components/common/rating/RatingStars";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 

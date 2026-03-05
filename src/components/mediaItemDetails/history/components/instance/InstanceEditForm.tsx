@@ -2,14 +2,14 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import type { FictionRating, SeasonReview } from "#/db/schema";
-import { DeleteButton } from "@/components/common/DeleteButton";
-import { RatingEditor } from "@/components/common/rating/RatingEditor";
-import { SeasonReviewRow } from "@/components/mediaItemDetails/history/components/instance/SeasonReviewRow";
+import { DeleteButton } from "#/components/common/DeleteButton";
+import { RatingEditor } from "#/components/common/rating/RatingEditor";
+import { SeasonReviewRow } from "#/components/mediaItemDetails/history/components/instance/SeasonReviewRow";
 import {
 	deleteInstance,
 	type MediaItemDetails,
 	saveInstance,
-} from "@/server/mediaItem";
+} from "#/server/mediaItem";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 

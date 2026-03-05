@@ -1,4 +1,4 @@
-import type { SearchResultWithStatus } from "@/server/search";
+import type { SearchResultWithStatus } from "#/server/search";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchResult } from "./searchResult/SearchResult";

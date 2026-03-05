@@ -6,32 +6,27 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { ViewFilters, ViewSubject } from "#/db/schema";
-import { EditViewForm } from "./components/editViewForm/EditViewForm";
+import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
+import { FilterAndSortForm } from "../common/filterAndSortForm/FilterAndSortForm";
 
-interface LibraryFilterDialogProps {
+interface LibraryFilterAndSortDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	initialFilters: ViewFilters;
-	onApply: (filters: ViewFilters) => void;
+	initialFilters: FilterAndSortOptions;
+	onApply: (filters: FilterAndSortOptions) => void;
 	subject?: ViewSubject;
 	title?: string;
 }
 
-export function LibraryFilterDialog({
+export function LibraryFilterAndSortDialog({
 	isOpen,
 	onClose,
 	initialFilters,
 	onApply,
 	subject = "items",
 	title,
-}: LibraryFilterDialogProps) {
+}: LibraryFilterAndSortDialogProps) {
 	const { t } = useTranslation();
-
-	function handleSubmit(data: { filters: ViewFilters }) {
-		onApply(data.filters);
-		onClose();
-	}
 
 	return (
 		<Dialog
@@ -44,13 +39,14 @@ export function LibraryFilterDialog({
 				<DialogHeader>
 					<DialogTitle>{title ?? t("library.filterAndSort")}</DialogTitle>
 				</DialogHeader>
-				<EditViewForm
-					initialSubject={subject}
+				<FilterAndSortForm
+					subject={subject}
 					initialFilters={initialFilters}
-					shouldShowName={false}
-					shouldShowSubject={false}
 					submitLabel={t("library.applyFilters")}
-					onSubmit={handleSubmit}
+					onSubmit={async (filters) => {
+						onApply(filters);
+						onClose();
+					}}
 					onCancel={onClose}
 				/>
 			</DialogContent>

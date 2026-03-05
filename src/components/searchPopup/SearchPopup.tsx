@@ -9,10 +9,10 @@ import type { MediaItemType } from "#/lib/enums";
 import { type SearchResultWithStatus, searchMedia } from "#/server/search";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CreateCustomItemDialog } from "./CreateCustomItemDialog";
-import { SearchEntryField } from "./searchField/SearchEntryField";
-import { SearchFilters } from "./searchField/SearchFilters";
-import { SearchResults } from "./searchResults/SearchResults";
+import { CreateCustomItemDialog } from "./components/CreateCustomItemDialog";
+import { SearchEntryField } from "./components/searchField/SearchEntryField";
+import { SearchFilters } from "./components/searchField/SearchFilters";
+import { SearchResults } from "./components/searchResults/SearchResults";
 
 export type SearchType = "all" | MediaItemType;
 

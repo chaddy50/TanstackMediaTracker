@@ -6,7 +6,7 @@ import { db } from "#/db/index";
 import {
 	mediaItemStatusEnum,
 	mediaTypeEnum,
-	type ViewFilters,
+	type FilterAndSortOptions,
 	type ViewSubject,
 	views,
 } from "#/db/schema";
@@ -21,7 +21,7 @@ import {
 // Zod schemas
 // ---------------------------------------------------------------------------
 
-export const viewFiltersSchema = z.object({
+export const filterAndSortOptionsSchema = z.object({
 	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
 	statuses: z.array(z.enum(mediaItemStatusEnum.enumValues)).optional(),
 	isPurchased: z.boolean().optional(),
@@ -36,7 +36,7 @@ export const viewFiltersSchema = z.object({
 const createViewSchema = z.object({
 	name: z.string().min(1),
 	subject: z.enum(["items", "series"]),
-	filters: viewFiltersSchema,
+	filters: filterAndSortOptionsSchema,
 	displayOrder: z.number().int().optional(),
 });
 
@@ -65,7 +65,7 @@ export const getViewResults = createServerFn({ method: "GET" })
 			.where(and(eq(views.id, viewId), eq(views.userId, user.id)));
 		if (!view) throw new Error(`View ${viewId} not found`);
 
-		const filters = (view.filters ?? {}) as ViewFilters;
+		const filters = (view.filters ?? {}) as FilterAndSortOptions;
 
 		if (view.subject === "items") {
 			return { view, results: await queryItemResults(filters, user.id) };
@@ -98,7 +98,7 @@ export const createView = createServerFn({ method: "POST" })
 				userId: user.id,
 				name: data.name,
 				subject: data.subject as ViewSubject,
-				filters: data.filters as ViewFilters,
+				filters: data.filters as FilterAndSortOptions,
 				displayOrder: data.displayOrder ?? 999,
 			})
 			.returning();
@@ -110,7 +110,7 @@ export const updateView = createServerFn({ method: "POST" })
 		z.object({
 			id: z.number(),
 			name: z.string().min(1),
-			filters: viewFiltersSchema,
+			filters: filterAndSortOptionsSchema,
 			displayOrder: z.number().int().optional(),
 		}),
 	)
@@ -120,7 +120,7 @@ export const updateView = createServerFn({ method: "POST" })
 			.update(views)
 			.set({
 				name: data.name,
-				filters: data.filters as ViewFilters,
+				filters: data.filters as FilterAndSortOptions,
 				...(data.displayOrder !== undefined
 					? { displayOrder: data.displayOrder }
 					: {}),

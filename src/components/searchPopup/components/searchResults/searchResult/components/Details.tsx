@@ -1,5 +1,5 @@
 import type { MediaItemType } from "#/lib/enums";
-import { TypeBadge } from "@/components/common/TypeBadge";
+import { TypeBadge } from "#/components/common/TypeBadge";
 
 interface DetailsProps {
 	title: string;

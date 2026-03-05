@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 
-import { MediaItemStatus, type MediaItemType } from "@/lib/enums";
-import { PurchasedBadge } from "./common/PurchasedBadge";
-import { RatingStars } from "./common/rating/RatingStars";
-import { SeriesLink } from "./common/SeriesLink";
-import { StatusBadge } from "./common/StatusBadge";
-import { TypeBadge } from "./common/TypeBadge";
+import { MediaItemStatus, type MediaItemType } from "#/lib/enums";
+import { PurchasedBadge } from "./PurchasedBadge";
+import { RatingStars } from "./rating/RatingStars";
+import { SeriesLink } from "./SeriesLink";
+import { StatusBadge } from "./StatusBadge";
+import { TypeBadge } from "./TypeBadge";
 
 type MediaCardItem = {
 	id: number;
@@ -72,7 +72,12 @@ export function MediaCard({
 				</p>
 
 				<div className="flex items-center gap-1.5 flex-wrap">
-					{shouldShowStatus && <StatusBadge status={mediaItem.status} completedAt={mediaItem.completedAt} />}
+					{shouldShowStatus && (
+						<StatusBadge
+							status={mediaItem.status}
+							completedAt={mediaItem.completedAt}
+						/>
+					)}
 					{mediaItem.status !== MediaItemStatus.IN_PROGRESS &&
 						mediaItem.status !== MediaItemStatus.ON_HOLD &&
 						mediaItem.status !== MediaItemStatus.COMPLETED &&

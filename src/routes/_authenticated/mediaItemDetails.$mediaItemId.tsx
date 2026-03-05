@@ -2,11 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DeleteButton } from "@/components/common/DeleteButton";
-import { PageHeader } from "@/components/common/PageHeader";
-import { History } from "@/components/mediaItemDetails/history/History";
-import { Metadata } from "@/components/mediaItemDetails/metadata/Metadata";
-import { getMediaItemDetails, removeFromLibrary } from "@/server/mediaItem";
+import { DeleteButton } from "#/components/common/DeleteButton";
+import { PageHeader } from "#/components/common/PageHeader";
+import { History } from "#/components/mediaItemDetails/history/History";
+import { Metadata } from "#/components/mediaItemDetails/metadata/Metadata";
+import { getMediaItemDetails, removeFromLibrary } from "#/server/mediaItem";
 
 export const Route = createFileRoute("/_authenticated/mediaItemDetails/$mediaItemId")({
 	loader: ({ params }) =>

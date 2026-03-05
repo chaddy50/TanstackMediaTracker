@@ -1,10 +1,15 @@
 import { Label } from "#/components/ui/label";
 import { Toggle } from "#/components/ui/toggle";
-import type { ItemSortField, SeriesSortField, SortDirection, ViewSubject } from "#/db/schema";
+import type {
+	ItemSortField,
+	SeriesSortField,
+	SortDirection,
+	ViewSubject,
+} from "#/db/schema";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 import { useTranslation } from "react-i18next";
 
-interface ViewSortingSectionProps {
+export interface SortingOptionsProps {
 	subject: ViewSubject;
 	sortBy: ItemSortField | SeriesSortField;
 	onSortByChange: (field: ItemSortField | SeriesSortField) => void;
@@ -12,13 +17,13 @@ interface ViewSortingSectionProps {
 	onSortDirectionChange: (direction: SortDirection) => void;
 }
 
-export function ViewSortingSection({
+export function SortingOptions({
 	subject,
 	sortBy,
 	onSortByChange,
 	sortDirection,
 	onSortDirectionChange,
-}: ViewSortingSectionProps) {
+}: SortingOptionsProps) {
 	const { t } = useTranslation();
 
 	return (

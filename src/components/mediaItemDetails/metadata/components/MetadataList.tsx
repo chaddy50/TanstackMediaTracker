@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import { MediaItemType } from "#/lib/enums";
 import { formatHours, formatMinutes } from "#/lib/utils";
-import { SeriesLink } from "@/components/common/SeriesLink";
-import type { MediaItemDetails } from "@/server/mediaItem";
+import { SeriesLink } from "#/components/common/SeriesLink";
+import type { MediaItemDetails } from "#/server/mediaItem";
 
 export function MetadataList({
 	type,
