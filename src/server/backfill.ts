@@ -42,5 +42,12 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 			return runSeriesRatingsBackfill(user.id);
 		}
 
+		if (data.jobName === "nextItemStatus") {
+			const { runNextItemStatusBackfill } = await import(
+				"#/server/backfillJobs/nextItemStatus"
+			);
+			return runNextItemStatusBackfill(user.id);
+		}
+
 		throw new Error(`Unknown backfill job: ${data.jobName}`);
 	});

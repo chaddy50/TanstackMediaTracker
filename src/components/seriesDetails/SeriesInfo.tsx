@@ -8,10 +8,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { mediaItemStatusEnum } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
+import { mediaItemStatusEnum, nextItemStatusEnum } from "#/db/schema";
+import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 import {
 	type SeriesDetails,
+	updateNextItemStatus,
 	updateSeriesStatus,
 } from "#/server/series";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
@@ -32,11 +33,32 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 		(item) => item.status === MediaItemStatus.IN_PROGRESS,
 	);
 
+	const hasUserCompletedAllItems = seriesDetails.items.every(
+		(item) =>
+			item.status === MediaItemStatus.COMPLETED ||
+			item.status === MediaItemStatus.DROPPED,
+	);
+	const shouldShowNextItemStatus =
+		!hasUserCompletedAllItems || !seriesDetails.isComplete;
+
 	async function handleStatusChange(status: string) {
 		await updateSeriesStatus({
 			data: {
 				seriesId: seriesDetails.id,
 				status: status as (typeof mediaItemStatusEnum.enumValues)[number],
+			},
+		});
+		router.invalidate();
+	}
+
+	async function handleNextItemStatusChange(value: string) {
+		await updateNextItemStatus({
+			data: {
+				seriesId: seriesDetails.id,
+				nextItemStatus:
+					value === "none"
+						? null
+						: (value as (typeof nextItemStatusEnum.enumValues)[number]),
 			},
 		});
 		router.invalidate();
@@ -61,23 +83,57 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<ExpandableTextBlock text={seriesDetails.description} />
 			)}
 
-			<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>
-				<SelectTrigger className="w-56">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{mediaItemStatusEnum.enumValues.map((status) => (
-						<SelectItem key={status} value={status}>
-							{t(`status.${status}`)}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+			<div className="flex items-center gap-3">
+				<span className="text-sm text-muted-foreground w-24">
+					{t("series.columns.status")}
+				</span>
+				<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>
+					<SelectTrigger className="w-56">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{mediaItemStatusEnum.enumValues.map((status) => (
+							<SelectItem key={status} value={status}>
+								{t(`status.${status}`)}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
 
-			<RatingStars
-				rating={seriesDetails.rating}
-				shouldShowIfNoRating={true}
-			/>
+			{shouldShowNextItemStatus && (
+				<div className="flex items-center gap-3">
+					<span className="text-sm text-muted-foreground w-24">
+						{t("nextItemStatus.label")}
+					</span>
+					<Select
+						value={seriesDetails.nextItemStatus ?? "none"}
+						onValueChange={handleNextItemStatusChange}
+					>
+						<SelectTrigger className="w-56">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">—</SelectItem>
+							{nextItemStatusEnum.enumValues.map((status) => (
+								<SelectItem key={status} value={status}>
+									{t(`nextItemStatus.${status}`)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			)}
+
+			<div className="flex items-center gap-3">
+				<span className="text-sm text-muted-foreground w-24">
+					{t("mediaItemDetails.rating")}
+				</span>
+				<RatingStars
+					rating={seriesDetails.rating}
+					shouldShowIfNoRating={true}
+				/>
+			</div>
 		</div>
 	);
 }

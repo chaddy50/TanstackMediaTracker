@@ -15,7 +15,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, NextItemStatus } from "#/lib/enums";
 
 // --- Enums ---
 
@@ -34,6 +34,12 @@ export const mediaItemStatusEnum = pgEnum("media_item_status", [
 	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
 	MediaItemStatus.COMPLETED,
 	MediaItemStatus.DROPPED,
+]);
+
+export const nextItemStatusEnum = pgEnum("next_item_status", [
+	NextItemStatus.WAITING_FOR_RELEASE,
+	NextItemStatus.PURCHASED,
+	NextItemStatus.AVAILABLE,
 ]);
 
 // --- Metadata types (typed at the TS level; JSONB is schemaless in Postgres) ---
@@ -223,6 +229,7 @@ export const series = pgTable("series", {
 	rating: decimal("rating", { precision: 3, scale: 1 }),
 	description: text("description"),
 	isComplete: boolean("is_complete").notNull().default(false),
+	nextItemStatus: nextItemStatusEnum("next_item_status"),
 	sortName: text("sort_name").generatedAlwaysAs(
 		sql`CASE
 			WHEN LOWER(name) LIKE 'the %' THEN SUBSTRING(name FROM 5)
