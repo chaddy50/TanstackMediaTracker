@@ -8,11 +8,15 @@ import { SearchInput } from "#/components/common/SearchInput";
 import { SeriesList } from "#/components/common/SeriesList";
 import { Button } from "#/components/ui/button";
 import { EditViewDialog } from "#/components/views/EditViewDialog";
+import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
+import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
+import type { LibraryItem } from "#/server/library";
+import type { SeriesListItem } from "#/server/seriesList";
 import type { View } from "#/server/views";
 import { deleteView, getViewResults } from "#/server/views";
 import { MediaItemList } from "@/components/common/MediaItemList";
-import type { LibraryItem } from "@/server/library";
-import type { SeriesListItem } from "@/server/seriesList";
+
+type PaginatedResult<T> = { items: T[]; hasMore: boolean };
 
 export const Route = createFileRoute("/_authenticated/_app/views/$viewId")({
 	validateSearch: z.object({ titleQuery: z.string().optional() }),
@@ -37,6 +41,18 @@ function ViewPage() {
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [_isDeleting, setIsDeleting] = useState(false);
 
+	const isItemView = view.subject === "items";
+	const paginatedResults = results as PaginatedResult<LibraryItem> | PaginatedResult<SeriesListItem>;
+
+	const { allItems, isLoadingMore, sentinelRef } = useInfiniteScroll<LibraryItem | SeriesListItem>({
+		initialItems: paginatedResults.items,
+		initialHasMore: paginatedResults.hasMore,
+		fetchMore: (offset) =>
+			getViewResults({
+				data: { viewId: view.id, titleQuery: search.titleQuery, offset },
+			}).then((result) => result.results as PaginatedResult<LibraryItem | SeriesListItem>),
+	});
+
 	async function handleDelete() {
 		setIsDeleting(true);
 		try {
@@ -58,7 +74,7 @@ function ViewPage() {
 				title={view.name}
 				right={
 					<>
-						{view.subject === "items" && (
+						{isItemView && (
 							<SearchInput
 								value={search.titleQuery ?? ""}
 								navigateTo="/views/$viewId"
@@ -73,11 +89,13 @@ function ViewPage() {
 			/>
 
 			<main className="px-6 py-6">
-				{view.subject === "items" ? (
-					<MediaItemList items={results as LibraryItem[]} />
+				{isItemView ? (
+					<MediaItemList items={allItems as LibraryItem[]} />
 				) : (
-					<SeriesList items={results as SeriesListItem[]} />
+					<SeriesList items={allItems as SeriesListItem[]} />
 				)}
+				<div ref={sentinelRef} className="h-1" />
+				<InfiniteScrollLoader isLoading={isLoadingMore} />
 			</main>
 
 			<EditViewDialog

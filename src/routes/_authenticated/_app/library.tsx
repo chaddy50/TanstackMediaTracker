@@ -1,6 +1,8 @@
 import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
+import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
 import { PageHeader } from "#/components/common/PageHeader";
 import { SearchInput } from "#/components/common/SearchInput";
+import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
 import { getLibrary, type LibraryItem } from "#/server/library";
 import { filterAndSortOptionsSchema } from "#/server/views";
 import { MediaItemList } from "@/components/common/MediaItemList";
@@ -16,10 +18,16 @@ export const Route = createFileRoute("/_authenticated/_app/library")({
 });
 
 function LibraryPage() {
-	const mediaItems: LibraryItem[] = Route.useLoaderData();
+	const loaderData = Route.useLoaderData();
 	const search = Route.useSearch();
 	const { t } = useTranslation();
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+	const { allItems, isLoadingMore, sentinelRef } = useInfiniteScroll<LibraryItem>({
+		initialItems: loaderData.items,
+		initialHasMore: loaderData.hasMore,
+		fetchMore: (offset) => getLibrary({ data: { ...search, offset } }),
+	});
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
@@ -39,7 +47,9 @@ function LibraryPage() {
 			/>
 
 			<main className="px-6 py-6">
-				<MediaItemList items={mediaItems} />
+				<MediaItemList items={allItems} />
+				<div ref={sentinelRef} className="h-1" />
+				<InfiniteScrollLoader isLoading={isLoadingMore} />
 			</main>
 		</div>
 	);

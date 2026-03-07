@@ -3,9 +3,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PageHeader } from "#/components/common/PageHeader";
-import { getSeriesList, type SeriesListItem } from "#/server/seriesList";
 import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
+import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
 import { SeriesList } from "#/components/common/SeriesList";
+import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
+import { getSeriesList, type SeriesListItem } from "#/server/seriesList";
 import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const Route = createFileRoute("/_authenticated/_app/series")({
@@ -16,10 +18,16 @@ export const Route = createFileRoute("/_authenticated/_app/series")({
 });
 
 function SeriesPage() {
-	const seriesItems: SeriesListItem[] = Route.useLoaderData();
+	const loaderData = Route.useLoaderData();
 	const search = Route.useSearch();
 	const { t } = useTranslation();
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+	const { allItems, isLoadingMore, sentinelRef } = useInfiniteScroll<SeriesListItem>({
+		initialItems: loaderData.items,
+		initialHasMore: loaderData.hasMore,
+		fetchMore: (offset) => getSeriesList({ data: { ...search, offset } }),
+	});
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
@@ -37,12 +45,16 @@ function SeriesPage() {
 			/>
 
 			<main className="px-6 py-6">
-				{seriesItems.length === 0 ? (
+				{allItems.length === 0 && !isLoadingMore ? (
 					<p className="text-muted-foreground text-center py-12">
 						{t("series.empty")}
 					</p>
 				) : (
-					<SeriesList items={seriesItems} />
+					<>
+						<SeriesList items={allItems} />
+						<div ref={sentinelRef} className="h-1" />
+						<InfiniteScrollLoader isLoading={isLoadingMore} />
+					</>
 				)}
 			</main>
 		</div>

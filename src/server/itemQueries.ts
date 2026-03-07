@@ -14,13 +14,11 @@ import { MediaItemStatus } from "#/lib/enums";
 import {
 	and,
 	asc,
-	count,
 	desc,
 	eq,
 	exists,
 	ilike,
 	inArray,
-	isNotNull,
 	or,
 	type SQL,
 	sql,
@@ -65,9 +63,12 @@ function buildCompletedYearCondition(filters: FilterAndSortOptions) {
 	)`;
 }
 
+const PAGE_SIZE = 48;
+
 export async function queryItemResults(
 	filters: FilterAndSortOptions,
 	userId: string,
+	offset: number = 0,
 ) {
 	const conditions = [
 		eq(mediaItems.userId, userId),
@@ -147,12 +148,34 @@ export async function queryItemResults(
 							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
 							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END DESC NULLS LAST`,
 						];
+			case "rating":
+				return sortDirection === "asc"
+					? [sql`latest_instance.latest_rating ASC NULLS LAST`, ...bySeriesThenTitle]
+					: [sql`latest_instance.latest_rating DESC NULLS LAST`, ...bySeriesThenTitle];
+			case "completedAt":
+				return sortDirection === "asc"
+					? [sql`latest_instance.latest_completed_at ASC NULLS LAST`, ...bySeriesThenTitle]
+					: [sql`latest_instance.latest_completed_at DESC NULLS LAST`, ...bySeriesThenTitle];
 			default:
 				return [dir(mediaItemMetadata.sortTitle)];
 		}
 	})();
 
-	const items = await db
+	// LATERAL join to get the most recent completed instance per item in a single query.
+	// This replaces the previous two-query pattern and enables SQL-level sorting by
+	// rating and completedAt.
+	const lateralLatestInstance = sql`LATERAL (
+		SELECT
+			${mediaItemInstances.rating} AS latest_rating,
+			${mediaItemInstances.completedAt} AS latest_completed_at
+		FROM ${mediaItemInstances}
+		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
+			AND ${mediaItemInstances.completedAt} IS NOT NULL
+		ORDER BY ${mediaItemInstances.id} DESC
+		LIMIT 1
+	) AS latest_instance`;
+
+	const rawItems = await db
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
@@ -163,6 +186,8 @@ export async function queryItemResults(
 			coverImageUrl: mediaItemMetadata.coverImageUrl,
 			seriesId: mediaItems.seriesId,
 			seriesName: series.name,
+			latestRating: sql<string | null>`latest_instance.latest_rating`,
+			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
 		})
 		.from(mediaItems)
 		.innerJoin(
@@ -170,69 +195,27 @@ export async function queryItemResults(
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.leftJoin(lateralLatestInstance, sql`true`)
 		.where(and(...conditions))
-		.orderBy(...sortClauses);
+		.orderBy(...sortClauses)
+		.limit(PAGE_SIZE + 1)
+		.offset(offset);
 
-	if (items.length === 0) {
-		return [];
-	}
+	const hasMore = rawItems.length > PAGE_SIZE;
+	const pageItems = rawItems.slice(0, PAGE_SIZE);
 
-	const itemIds = items.map((item) => item.id);
-	const latestRatings = await db
-		.selectDistinctOn([mediaItemInstances.mediaItemId], {
-			mediaItemId: mediaItemInstances.mediaItemId,
-			rating: mediaItemInstances.rating,
-			completedAt: mediaItemInstances.completedAt,
-		})
-		.from(mediaItemInstances)
-		.where(
-			and(
-				inArray(mediaItemInstances.mediaItemId, itemIds),
-				isNotNull(mediaItemInstances.completedAt),
-			),
-		)
-		.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
-
-	const ratingMap = new Map(
-		latestRatings.map((r) => [r.mediaItemId, r.rating]),
-	);
-	const completedAtMap = new Map(
-		latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
-	);
-
-	const enrichedItems = items.map((item) => ({
+	const items = pageItems.map(({ latestRating, ...item }) => ({
 		...item,
-		rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
-		completedAt: completedAtMap.get(item.id) ?? null,
+		rating: parseFloat(latestRating ?? "") || 0,
 	}));
 
-	if (sortBy === "rating") {
-		enrichedItems.sort((a, b) =>
-			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
-		);
-	} else if (sortBy === "completedAt") {
-		enrichedItems.sort((a, b) => {
-			if (!a.completedAt && !b.completedAt) {
-				return 0;
-			}
-			if (!a.completedAt) {
-				return 1;
-			}
-			if (!b.completedAt) {
-				return -1;
-			}
-			return sortDirection === "desc"
-				? b.completedAt.localeCompare(a.completedAt)
-				: a.completedAt.localeCompare(b.completedAt);
-		});
-	}
-
-	return enrichedItems;
+	return { items, hasMore };
 }
 
 export async function querySeriesResults(
 	filters: FilterAndSortOptions,
 	userId: string,
+	offset: number = 0,
 ) {
 	const conditions = [
 		eq(series.userId, userId),
@@ -251,14 +234,27 @@ export async function querySeriesResults(
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
 
+	// Correlated subquery for item count — avoids a separate aggregation query
+	// and enables SQL-level sorting by itemCount.
+	const itemCountSql = sql<number>`(
+		SELECT COUNT(*)::int
+		FROM ${mediaItems}
+		WHERE ${mediaItems.seriesId} = ${series.id}
+			AND ${mediaItems.userId} = ${userId}
+	)`;
+
 	const dbOrderClauses =
 		sortBy === "updatedAt"
 			? [dir(series.updatedAt)]
 			: sortBy === "status"
 				? [dir(series.statusSortOrder), asc(series.sortName)]
-				: [dir(series.sortName)];
+				: sortBy === "rating"
+					? [sql`${series.rating} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+					: sortBy === "itemCount"
+						? [sql`${itemCountSql} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+						: [dir(series.sortName)];
 
-	const seriesRows = await db
+	const rawRows = await db
 		.select({
 			id: series.id,
 			name: series.name,
@@ -267,51 +263,23 @@ export async function querySeriesResults(
 			rating: series.rating,
 			isComplete: series.isComplete,
 			nextItemStatus: series.nextItemStatus,
+			itemCount: itemCountSql,
 		})
 		.from(series)
 		.where(and(...conditions))
-		.orderBy(...dbOrderClauses);
+		.orderBy(...dbOrderClauses)
+		.limit(PAGE_SIZE + 1)
+		.offset(offset);
 
-	if (seriesRows.length === 0) {
-		return [];
-	}
+	const hasMore = rawRows.length > PAGE_SIZE;
+	const pageRows = rawRows.slice(0, PAGE_SIZE);
 
-	const seriesIds = seriesRows.map((s) => s.id);
-	const itemCounts = await db
-		.select({
-			seriesId: mediaItems.seriesId,
-			itemCount: count(),
-		})
-		.from(mediaItems)
-		.where(
-			and(
-				inArray(mediaItems.seriesId, seriesIds),
-				eq(mediaItems.userId, userId),
-			),
-		)
-		.groupBy(mediaItems.seriesId);
-
-	const countMap = new Map(itemCounts.map((r) => [r.seriesId, r.itemCount]));
-
-	const enrichedSeries = seriesRows.map((s) => ({
+	const items = pageRows.map((s) => ({
 		...s,
 		rating: parseFloat(s.rating ?? "") || 0,
-		itemCount: countMap.get(s.id) ?? 0,
 	}));
 
-	if (sortBy === "rating") {
-		enrichedSeries.sort((a, b) =>
-			sortDirection === "desc" ? b.rating - a.rating : a.rating - b.rating,
-		);
-	} else if (sortBy === "itemCount") {
-		enrichedSeries.sort((a, b) =>
-			sortDirection === "desc"
-				? b.itemCount - a.itemCount
-				: a.itemCount - b.itemCount,
-		);
-	}
-
-	return enrichedSeries;
+	return { items, hasMore };
 }
 
 /**
