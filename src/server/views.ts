@@ -32,6 +32,7 @@ export const filterAndSortOptionsSchema = z.object({
 	tags: z.array(z.string()).optional(),
 	sortBy: z.enum([...ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
 	sortDirection: z.enum(["asc", "desc"]).optional(),
+	titleQuery: z.string().optional(),
 });
 
 const createViewSchema = z.object({
@@ -57,8 +58,8 @@ export const getViews = createServerFn({ method: "GET" }).handler(async () => {
 export type View = Awaited<ReturnType<typeof getViews>>[number];
 
 export const getViewResults = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ viewId: z.number() }))
-	.handler(async ({ data: { viewId } }) => {
+	.inputValidator(z.object({ viewId: z.number(), titleQuery: z.string().optional() }))
+	.handler(async ({ data: { viewId, titleQuery } }) => {
 		const user = await getLoggedInUser();
 		const [view] = await db
 			.select()
@@ -66,7 +67,7 @@ export const getViewResults = createServerFn({ method: "GET" })
 			.where(and(eq(views.id, viewId), eq(views.userId, user.id)));
 		if (!view) throw new Error(`View ${viewId} not found`);
 
-		const filters = (view.filters ?? {}) as FilterAndSortOptions;
+		const filters = { ...(view.filters ?? {}), titleQuery } as FilterAndSortOptions;
 
 		if (view.subject === "items") {
 			return { view, results: await queryItemResults(filters, user.id) };

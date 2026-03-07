@@ -1,11 +1,13 @@
 import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
 import { PageHeader } from "#/components/common/PageHeader";
+import { SearchInput } from "#/components/common/SearchInput";
 import { getLibrary, type LibraryItem } from "#/server/library";
 import { filterAndSortOptionsSchema } from "#/server/views";
 import { MediaItemList } from "@/components/common/MediaItemList";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
 export const Route = createFileRoute("/_authenticated/_app/library")({
 	validateSearch: filterAndSortOptionsSchema,
 	loaderDeps: ({ search }) => search,
@@ -24,12 +26,15 @@ function LibraryPage() {
 			<PageHeader
 				title={t("library.title")}
 				right={
-					<FilterAndSortButton
-						filterAndSortChoices={search}
-						isFilterAndSortPopupOpen={isFilterOpen}
-						setIsFilterAndSortPopupOpen={setIsFilterOpen}
-						navigateTo="/library"
-					/>
+					<>
+						<SearchInput value={search.titleQuery ?? ""} navigateTo="/library" />
+						<FilterAndSortButton
+							filterAndSortChoices={search}
+							isFilterAndSortPopupOpen={isFilterOpen}
+							setIsFilterAndSortPopupOpen={setIsFilterOpen}
+							navigateTo="/library"
+						/>
+					</>
 				}
 			/>
 
