@@ -45,11 +45,11 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	return (
 		<div className="flex flex-col gap-5 mb-10">
 			<div className="flex items-start justify-between gap-2">
-				<div className="flex items-start gap-3 flex-wrap">
+				<div className="flex items-center gap-3 flex-wrap">
 					<h1 className="text-3xl font-bold leading-tight">
 						{seriesDetails.name}
 					</h1>
-					<span className="mt-2 shrink-0">
+					<span className="shrink-0">
 						<TypeBadge type={seriesDetails.type} />
 					</span>
 					<SeriesCompletionBadge isComplete={seriesDetails.isComplete} />
