@@ -92,6 +92,7 @@ export type FilterAndSortOptions = {
 	tags?: string[];
 	sortBy?: ItemSortField | SeriesSortField;
 	sortDirection?: SortDirection;
+	titleQuery?: string;
 };
 
 export type FictionRatingField = { rating: number; comment?: string };

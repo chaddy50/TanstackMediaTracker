@@ -1,4 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import { PageHeader } from "#/components/common/PageHeader";
+import { SearchInput } from "#/components/common/SearchInput";
 import { SeriesList } from "#/components/common/SeriesList";
 import { Button } from "#/components/ui/button";
 import { EditViewDialog } from "#/components/views/EditViewDialog";
@@ -7,20 +13,24 @@ import { deleteView, getViewResults } from "#/server/views";
 import { MediaItemList } from "@/components/common/MediaItemList";
 import type { LibraryItem } from "@/server/library";
 import type { SeriesListItem } from "@/server/seriesList";
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/_authenticated/_app/views/$viewId")({
-	loader: ({ params }) =>
-		getViewResults({ data: { viewId: parseInt(params.viewId, 10) } }),
+	validateSearch: z.object({ titleQuery: z.string().optional() }),
+	loaderDeps: ({ search }) => search,
+	loader: ({ params, deps }) =>
+		getViewResults({
+			data: {
+				viewId: parseInt(params.viewId, 10),
+				titleQuery: deps.titleQuery,
+			},
+		}),
 	staleTime: 30_000,
 	component: ViewPage,
 });
 
 function ViewPage() {
 	const { view, results } = Route.useLoaderData();
+	const search = Route.useSearch();
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const { t } = useTranslation();
@@ -47,9 +57,18 @@ function ViewPage() {
 			<PageHeader
 				title={view.name}
 				right={
-					<Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
-						{t("views.editView")}
-					</Button>
+					<>
+						{view.subject === "items" && (
+							<SearchInput
+								value={search.titleQuery ?? ""}
+								navigateTo="/views/$viewId"
+								params={{ viewId: String(view.id) }}
+							/>
+						)}
+						<Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+							{t("views.editView")}
+						</Button>
+					</>
 				}
 			/>
 

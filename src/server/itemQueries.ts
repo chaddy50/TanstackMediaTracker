@@ -5,8 +5,10 @@ import {
 	desc,
 	eq,
 	exists,
+	ilike,
 	inArray,
 	isNotNull,
+	or,
 	sql,
 } from "drizzle-orm";
 import { db } from "#/db/index";
@@ -86,6 +88,14 @@ export async function queryItemResults(filters: FilterAndSortOptions, userId: st
 								eq(tags.userId, userId),
 							),
 						),
+				)
+			: undefined,
+		filters.titleQuery
+			? or(
+					ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
+					ilike(series.name, `%${filters.titleQuery}%`),
+					sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
+					sql`${mediaItemMetadata.metadata}->>'series' ILIKE ${`%${filters.titleQuery}%`}`,
 				)
 			: undefined,
 	].filter((c) => c !== undefined);
