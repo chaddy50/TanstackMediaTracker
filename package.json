@@ -24,6 +24,9 @@
     "import:tags": "dotenv -e .env.local -e .env -- tsx scripts/import-tags.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@sentry/tanstackstart-react": "^10.34.0",
     "@t3-oss/env-core": "^0.13.8",
     "@tailwindcss/vite": "^4.1.18",
@@ -39,8 +42,8 @@
     "better-auth": "^1.4.12",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "docker": "^1.0.0",
     "csv-parse": "^6.1.0",
+    "docker": "^1.0.0",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.0",

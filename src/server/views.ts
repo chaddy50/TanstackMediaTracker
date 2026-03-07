@@ -137,3 +137,17 @@ export const deleteView = createServerFn({ method: "POST" })
 			.delete(views)
 			.where(and(eq(views.id, id), eq(views.userId, user.id)));
 	});
+
+export const reorderViews = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ orderedIds: z.array(z.number()) }))
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await Promise.all(
+			data.orderedIds.map((id, index) =>
+				db
+					.update(views)
+					.set({ displayOrder: index })
+					.where(and(eq(views.id, id), eq(views.userId, user.id))),
+			),
+		);
+	});
