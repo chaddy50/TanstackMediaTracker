@@ -1,8 +1,8 @@
-import type { FilterAndSortOptions } from "#/db/schema";
 import { useNavigate } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
 import { LibraryFilterAndSortDialog } from "../library/LibraryFilterAndSortDialog";
 import { Button } from "../ui/button";
 
@@ -11,6 +11,7 @@ interface FilterAndSortButtonProps {
 	isFilterAndSortPopupOpen: boolean;
 	setIsFilterAndSortPopupOpen: Dispatch<SetStateAction<boolean>>;
 	navigateTo: string;
+	subject?: ViewSubject;
 }
 
 export function FilterAndSortButton({
@@ -18,9 +19,13 @@ export function FilterAndSortButton({
 	isFilterAndSortPopupOpen,
 	setIsFilterAndSortPopupOpen,
 	navigateTo = "/",
+	subject = "items",
 }: FilterAndSortButtonProps) {
 	const { t } = useTranslation();
-	const numberOfActiveFilters = countActiveFilters(filterAndSortChoices);
+	const numberOfActiveFilters = countActiveFilters(
+		filterAndSortChoices,
+		subject,
+	);
 	const navigate = useNavigate();
 
 	function handleApply(filters: FilterAndSortOptions) {
@@ -47,6 +52,7 @@ export function FilterAndSortButton({
 				onClose={() => setIsFilterAndSortPopupOpen(false)}
 				initialFilters={filterAndSortChoices}
 				onApply={handleApply}
+				subject={subject}
 			/>
 		</>
 	);
@@ -54,6 +60,7 @@ export function FilterAndSortButton({
 
 function countActiveFilters(
 	filterAndSortOptions: FilterAndSortOptions,
+	subject: ViewSubject,
 ): number {
 	let count = 0;
 	if (filterAndSortOptions.mediaTypes?.length) count += 1;
@@ -66,11 +73,13 @@ function countActiveFilters(
 	) {
 		count += 1;
 	}
+	const defaultSortBy = subject === "series" ? "name" : "series";
 	if (
 		filterAndSortOptions.sortBy !== undefined &&
-		filterAndSortOptions.sortBy !== "series"
-	)
+		filterAndSortOptions.sortBy !== defaultSortBy
+	) {
 		count += 1;
+	}
 	if (
 		filterAndSortOptions.sortDirection !== undefined &&
 		filterAndSortOptions.sortDirection !== "asc"

@@ -115,7 +115,7 @@ export async function queryItemResults(
 			case "updatedAt":
 				return [dir(mediaItems.updatedAt)];
 			case "status":
-				return [dir(mediaItems.status)];
+				return [dir(mediaItems.statusSortOrder)];
 			case "author":
 				return sortDirection === "asc"
 					? [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') ASC NULLS LAST`]
@@ -246,7 +246,11 @@ export async function querySeriesResults(
 	const dir = sortDirection === "asc" ? asc : desc;
 
 	const dbOrderClause =
-		sortBy === "updatedAt" ? dir(series.updatedAt) : dir(series.sortName);
+		sortBy === "updatedAt"
+			? dir(series.updatedAt)
+			: sortBy === "status"
+				? dir(series.statusSortOrder)
+				: dir(series.sortName);
 
 	const seriesRows = await db
 		.select({
