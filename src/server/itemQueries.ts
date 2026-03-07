@@ -108,39 +108,44 @@ export async function queryItemResults(
 	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "series";
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
+	// Secondary tiebreakers: series name → book number → release date → title.
+	// COALESCE falls back to sortTitle for standalone items, so they sort by
+	// name alongside series items rather than being pushed to a separate group.
+	const seriesKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
+	const bySeriesThenTitle = [
+		sql`${seriesKey} ASC`,
+		sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
+		asc(mediaItemMetadata.sortTitle),
+	];
 	const sortClauses = ((): SQL[] => {
 		switch (sortBy) {
 			case "title":
 				return [dir(mediaItemMetadata.sortTitle)];
 			case "updatedAt":
-				return [dir(mediaItems.updatedAt)];
+				return [dir(mediaItems.updatedAt), ...bySeriesThenTitle];
 			case "status":
-				return [dir(mediaItems.statusSortOrder)];
+				return [dir(mediaItems.statusSortOrder), ...bySeriesThenTitle];
 			case "author":
 				return sortDirection === "asc"
-					? [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') ASC NULLS LAST`]
-					: [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') DESC NULLS LAST`];
+					? [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') ASC NULLS LAST`, ...bySeriesThenTitle]
+					: [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') DESC NULLS LAST`, ...bySeriesThenTitle];
 			case "director":
 				return sortDirection === "asc"
-					? [sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`]
-					: [sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`];
-			case "series": {
-				// Items without a series fall back to sortTitle so they intermix
-				// alphabetically with series items rather than being pushed to the end.
-				// Within a series, entries are ordered by their series number.
-				const primaryKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
+					? [sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`, ...bySeriesThenTitle]
+					: [sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`, ...bySeriesThenTitle];
+			case "series":
 				return sortDirection === "asc"
 					? [
-							sql`${primaryKey} ASC`,
+							sql`${seriesKey} ASC`,
 							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
-							asc(mediaItemMetadata.releaseDate),
+							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
 						]
 					: [
-							sql`${primaryKey} DESC`,
+							sql`${seriesKey} DESC`,
 							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
-							desc(mediaItemMetadata.releaseDate),
+							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END DESC NULLS LAST`,
 						];
-			}
 			default:
 				return [dir(mediaItemMetadata.sortTitle)];
 		}
@@ -245,12 +250,12 @@ export async function querySeriesResults(
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
 
-	const dbOrderClause =
+	const dbOrderClauses =
 		sortBy === "updatedAt"
-			? dir(series.updatedAt)
+			? [dir(series.updatedAt)]
 			: sortBy === "status"
-				? dir(series.statusSortOrder)
-				: dir(series.sortName);
+				? [dir(series.statusSortOrder), asc(series.sortName)]
+				: [dir(series.sortName)];
 
 	const seriesRows = await db
 		.select({
@@ -263,7 +268,7 @@ export async function querySeriesResults(
 		})
 		.from(series)
 		.where(and(...conditions))
-		.orderBy(dbOrderClause);
+		.orderBy(...dbOrderClauses);
 
 	if (seriesRows.length === 0) {
 		return [];
