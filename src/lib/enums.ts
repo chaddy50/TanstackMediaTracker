@@ -4,7 +4,7 @@ export const MediaItemStatus = {
 	IN_PROGRESS: "in_progress",
 	ON_HOLD: "on_hold",
 	WAITING_FOR_NEXT_RELEASE: "waiting_for_next_release",
-	COMPLETED: "completed",
+	COMPLETED: "done",
 	DROPPED: "dropped",
 } as const;
 

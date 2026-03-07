@@ -247,16 +247,16 @@ async function seed() {
 	] = await db
 		.insert(mediaItems)
 		.values([
-			{ mediaItemMetadataId: nameOfTheWind.id, status: "completed" },
+			{ mediaItemMetadataId: nameOfTheWind.id, status: "done" },
 			{ mediaItemMetadataId: dune.id, status: "in_progress" }, // re-read in progress
 			{ mediaItemMetadataId: projectHailMary.id, status: "backlog" },
-			{ mediaItemMetadataId: shawshank.id, status: "completed" },
-			{ mediaItemMetadataId: oppenheimer.id, status: "completed" },
+			{ mediaItemMetadataId: shawshank.id, status: "done" },
+			{ mediaItemMetadataId: oppenheimer.id, status: "done" },
 			{ mediaItemMetadataId: inception.id, status: "backlog" },
-			{ mediaItemMetadataId: breakingBad.id, status: "completed" },
+			{ mediaItemMetadataId: breakingBad.id, status: "done" },
 			{ mediaItemMetadataId: lastOfUs.id, status: "in_progress" },
 			{ mediaItemMetadataId: severance.id, status: "backlog" },
-			{ mediaItemMetadataId: hollowKnight.id, status: "completed" },
+			{ mediaItemMetadataId: hollowKnight.id, status: "done" },
 			{ mediaItemMetadataId: eldenRing.id, status: "in_progress" },
 			{ mediaItemMetadataId: bg3.id, status: "on_hold" },
 		])

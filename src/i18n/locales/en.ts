@@ -27,7 +27,7 @@ export const en = {
 		in_progress: "In Progress",
 		on_hold: "On Hold",
 		waiting_for_next_release: "Waiting for Next Release",
-		completed: "Completed",
+		done: "Done",
 		dropped: "Dropped",
 	},
 	common: {
