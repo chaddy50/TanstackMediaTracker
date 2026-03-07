@@ -64,12 +64,14 @@ export function MediaCard({
 					{mediaItem.title}
 				</p>
 
-				<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
-					<SeriesLink
-						seriesId={mediaItem.seriesId}
-						seriesName={mediaItem.seriesName}
-					/>
-				</p>
+				{mediaItem.seriesId && (
+					<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
+						<SeriesLink
+							seriesId={mediaItem.seriesId}
+							seriesName={mediaItem.seriesName}
+						/>
+					</p>
+				)}
 
 				<div className="flex items-center gap-1.5 flex-wrap">
 					{shouldShowStatus && (
