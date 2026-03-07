@@ -148,6 +148,13 @@
       "when": 1772901846732,
       "tag": "0020_brown_marauders",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1772902000000,
+      "tag": "0021_fix_view_completed_status",
+      "breakpoints": true
     }
   ]
 }
