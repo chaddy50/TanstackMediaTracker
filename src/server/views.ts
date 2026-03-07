@@ -58,8 +58,8 @@ export const getViews = createServerFn({ method: "GET" }).handler(async () => {
 export type View = Awaited<ReturnType<typeof getViews>>[number];
 
 export const getViewResults = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ viewId: z.number(), titleQuery: z.string().optional() }))
-	.handler(async ({ data: { viewId, titleQuery } }) => {
+	.inputValidator(z.object({ viewId: z.number(), titleQuery: z.string().optional(), offset: z.number().default(0) }))
+	.handler(async ({ data: { viewId, titleQuery, offset } }) => {
 		const user = await getLoggedInUser();
 		const [view] = await db
 			.select()
@@ -70,10 +70,10 @@ export const getViewResults = createServerFn({ method: "GET" })
 		const filters = { ...(view.filters ?? {}), titleQuery } as FilterAndSortOptions;
 
 		if (view.subject === "items") {
-			return { view, results: await queryItemResults(filters, user.id) };
+			return { view, results: await queryItemResults(filters, user.id, offset) };
 		}
 
-		return { view, results: await querySeriesResults(filters, user.id) };
+		return { view, results: await querySeriesResults(filters, user.id, offset) };
 	});
 
 export type ViewResults = Awaited<ReturnType<typeof getViewResults>>;

@@ -47,6 +47,7 @@ export const en = {
 		showMore: "Show more",
 		showLess: "Show less",
 		saving: "Saving...",
+		loading: "Loading...",
 		save: "Save",
 		cancel: "Cancel",
 	},
