@@ -86,7 +86,7 @@ export type ItemSortField =
 	| "series"
 	| "status"
 	| "director";
-export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount";
+export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount" | "status";
 export type SortDirection = "asc" | "desc";
 
 export type FilterAndSortOptions = {
@@ -208,6 +208,18 @@ export const series = pgTable("series", {
 	name: text("name").notNull(),
 	type: mediaTypeEnum("type").notNull(),
 	status: mediaItemStatusEnum("status").notNull().default("backlog"),
+	statusSortOrder: integer("status_sort_order").generatedAlwaysAs(
+		sql`CASE status
+			WHEN 'backlog' THEN 0
+			WHEN 'next_up' THEN 1
+			WHEN 'in_progress' THEN 2
+			WHEN 'on_hold' THEN 3
+			WHEN 'waiting_for_next_release' THEN 4
+			WHEN 'done' THEN 5
+			WHEN 'dropped' THEN 6
+			ELSE 99
+		END`,
+	),
 	rating: decimal("rating", { precision: 3, scale: 1 }),
 	description: text("description"),
 	isComplete: boolean("is_complete").notNull().default(false),
@@ -287,6 +299,18 @@ export const mediaItems = pgTable(
 			onDelete: "set null",
 		}),
 		status: mediaItemStatusEnum("status").notNull().default("backlog"),
+		statusSortOrder: integer("status_sort_order").generatedAlwaysAs(
+			sql`CASE status
+				WHEN 'backlog' THEN 0
+				WHEN 'next_up' THEN 1
+				WHEN 'in_progress' THEN 2
+				WHEN 'on_hold' THEN 3
+				WHEN 'waiting_for_next_release' THEN 4
+				WHEN 'done' THEN 5
+				WHEN 'dropped' THEN 6
+				ELSE 99
+			END`,
+		),
 		isPurchased: boolean("is_purchased").notNull().default(false),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")

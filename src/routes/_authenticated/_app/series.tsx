@@ -31,6 +31,7 @@ function SeriesPage() {
 						isFilterAndSortPopupOpen={isFilterOpen}
 						setIsFilterAndSortPopupOpen={setIsFilterOpen}
 						navigateTo="/series"
+						subject="series"
 					/>
 				}
 			/>
