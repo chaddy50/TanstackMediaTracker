@@ -86,7 +86,9 @@ export function MediaCard({
 						)}
 				</div>
 
-				<RatingStars rating={mediaItem.rating} />
+				{mediaItem.status === MediaItemStatus.COMPLETED && (
+					<RatingStars rating={mediaItem.rating} />
+				)}
 			</div>
 		</Link>
 	);
