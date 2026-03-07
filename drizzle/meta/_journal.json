@@ -127,6 +127,13 @@
       "when": 1772745758741,
       "tag": "0017_harsh_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1772897839447,
+      "tag": "0018_colossal_ricochet",
+      "breakpoints": true
     }
   ]
 }

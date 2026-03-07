@@ -230,6 +230,10 @@ export const en = {
 				completedAt: "Completed date",
 				name: "Name",
 				itemCount: "Item count",
+				author: "Author",
+				series: "Series",
+				status: "Status",
+				director: "Director",
 			},
 			sortDirection: "Order",
 			sortDirectionOption: {

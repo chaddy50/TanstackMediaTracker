@@ -61,7 +61,7 @@ export function useFilterAndSortFormState(
 		initialFilters.tags ?? [],
 	);
 	const [sortBy, setSortBy] = useState<ItemSortField | SeriesSortField>(
-		initialFilters.sortBy ?? (initialSubject === "series" ? "name" : "title"),
+		initialFilters.sortBy ?? (initialSubject === "series" ? "name" : "series"),
 	);
 	const [sortDirection, setSortDirection] = useState<SortDirection>(
 		initialFilters.sortDirection ?? "asc",
