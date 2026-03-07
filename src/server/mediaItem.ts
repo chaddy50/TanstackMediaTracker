@@ -13,7 +13,8 @@ import {
 	series,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
+import { getNextItemInSeries } from "#/server/itemQueries";
 import { getLoggedInUser } from "#/lib/session";
 
 function inferStatusAfterInstanceEdit(
@@ -99,9 +100,17 @@ async function syncSeriesStatus(
 		}
 	}
 
+	const seriesUpdates: Partial<typeof series.$inferInsert> = {
+		status: newStatus,
+		rating: newRating,
+	};
+	if (newStatus === MediaItemStatus.COMPLETED) {
+		seriesUpdates.nextItemStatus = null;
+	}
+
 	await db
 		.update(series)
-		.set({ status: newStatus, rating: newRating })
+		.set(seriesUpdates)
 		.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
 }
 
@@ -488,12 +497,32 @@ export const togglePurchased = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data: { mediaItemId, isPurchased } }) => {
 		const user = await getLoggedInUser();
+
+		const [item] = await db
+			.select({ seriesId: mediaItems.seriesId })
+			.from(mediaItems)
+			.where(and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)));
+
 		await db
 			.update(mediaItems)
 			.set({ isPurchased })
-			.where(
-				and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)),
-			);
+			.where(and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)));
+
+		if (item?.seriesId) {
+			const nextItem = await getNextItemInSeries(item.seriesId, user.id);
+			if (nextItem?.id === mediaItemId) {
+				await db
+					.update(series)
+					.set({
+						nextItemStatus: isPurchased
+							? NextItemStatus.PURCHASED
+							: NextItemStatus.AVAILABLE,
+					})
+					.where(
+						and(eq(series.id, item.seriesId), eq(series.userId, user.id)),
+					);
+			}
+		}
 	});
 
 export const removeFromLibrary = createServerFn({ method: "POST" })

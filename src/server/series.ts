@@ -9,8 +9,10 @@ import {
 	mediaItemStatusEnum,
 	mediaItems,
 	mediaTypeEnum,
+	nextItemStatusEnum,
 	series,
 } from "#/db/schema";
+import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
 
 export const getSeriesListByType = createServerFn({ method: "GET" })
@@ -114,9 +116,46 @@ export const updateSeriesStatus = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data: { seriesId, status } }) => {
 		const user = await getLoggedInUser();
+
+		const updates: Partial<typeof series.$inferInsert> = { status };
+
+		if (status === MediaItemStatus.WAITING_FOR_NEXT_RELEASE) {
+			updates.nextItemStatus = NextItemStatus.WAITING_FOR_RELEASE;
+		} else {
+			const [current] = await db
+				.select({ nextItemStatus: series.nextItemStatus })
+				.from(series)
+				.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
+			if (current?.nextItemStatus === NextItemStatus.WAITING_FOR_RELEASE) {
+				updates.nextItemStatus = null;
+			}
+		}
+
 		await db
 			.update(series)
-			.set({ status })
+			.set(updates)
+			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
+	});
+
+export const updateNextItemStatus = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			seriesId: z.number(),
+			nextItemStatus: z.enum(nextItemStatusEnum.enumValues).nullable(),
+		}),
+	)
+	.handler(async ({ data: { seriesId, nextItemStatus } }) => {
+		const user = await getLoggedInUser();
+
+		const updates: Partial<typeof series.$inferInsert> = { nextItemStatus };
+
+		if (nextItemStatus === NextItemStatus.WAITING_FOR_RELEASE) {
+			updates.status = MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
+		}
+
+		await db
+			.update(series)
+			.set(updates)
 			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
 	});
 

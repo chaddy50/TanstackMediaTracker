@@ -10,6 +10,7 @@ import {
 	type SeriesSortField,
 	tags,
 } from "#/db/schema";
+import { MediaItemStatus } from "#/lib/enums";
 import {
 	and,
 	asc,
@@ -265,6 +266,7 @@ export async function querySeriesResults(
 			status: series.status,
 			rating: series.rating,
 			isComplete: series.isComplete,
+			nextItemStatus: series.nextItemStatus,
 		})
 		.from(series)
 		.where(and(...conditions))
@@ -310,4 +312,46 @@ export async function querySeriesResults(
 	}
 
 	return enrichedSeries;
+}
+
+/**
+ * Returns the "next" item in a series — the first backlog item that comes after
+ * the last item the user has engaged with (anything other than backlog).
+ * Returns null if there is no such item.
+ */
+export async function getNextItemInSeries(
+	seriesId: number,
+	userId: string,
+): Promise<{ id: number; isPurchased: boolean } | null> {
+	const items = await db
+		.select({
+			id: mediaItems.id,
+			status: mediaItems.status,
+			isPurchased: mediaItems.isPurchased,
+		})
+		.from(mediaItems)
+		.innerJoin(mediaItemMetadata, eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id))
+		.where(and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)))
+		.orderBy(
+			sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+			asc(mediaItemMetadata.releaseDate),
+			asc(mediaItemMetadata.sortTitle),
+		);
+
+	let lastEngagedIndex = -1;
+	for (let index = 0; index < items.length; index++) {
+		if (items[index].status !== MediaItemStatus.BACKLOG) {
+			lastEngagedIndex = index;
+		}
+	}
+
+	if (lastEngagedIndex === -1) {
+		return null;
+	}
+
+	const nextItem = items.slice(lastEngagedIndex + 1).find(
+		(item) => item.status === MediaItemStatus.BACKLOG,
+	);
+
+	return nextItem ?? null;
 }

@@ -15,6 +15,14 @@ export const SERIES_ONLY_STATUSES = new Set<string>([
 	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
 ]);
 
+export const NextItemStatus = {
+	WAITING_FOR_RELEASE: "waiting_for_release",
+	PURCHASED: "purchased",
+	AVAILABLE: "available",
+} as const;
+
+export type NextItemStatus = (typeof NextItemStatus)[keyof typeof NextItemStatus];
+
 export const MediaItemType = {
 	BOOK: "book",
 	MOVIE: "movie",

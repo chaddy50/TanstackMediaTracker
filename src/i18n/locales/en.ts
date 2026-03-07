@@ -10,6 +10,13 @@ export const en = {
 	series: {
 		title: "Series",
 		empty: "No series found.",
+		columns: {
+			name: "Name",
+			items: "Items",
+			status: "Status",
+			nextItem: "Next Item",
+			complete: "Complete",
+		},
 	},
 	mediaType: {
 		book: "Book",
@@ -20,6 +27,12 @@ export const en = {
 	purchased: {
 		purchased: "Purchased",
 		notPurchased: "Not Purchased",
+	},
+	nextItemStatus: {
+		label: "Next Item",
+		waiting_for_release: "Waiting for Release",
+		purchased: "Purchased",
+		available: "Available",
 	},
 	status: {
 		backlog: "Backlog",
@@ -151,6 +164,11 @@ export const en = {
 			label: "Backfill Series Ratings",
 			description:
 				"Compute and store the average rating for all completed series based on their items' ratings.",
+		},
+		nextItemStatus: {
+			label: "Backfill Next Item Status",
+			description:
+				"Set the next item status for in-progress series: 'Waiting for Release' if the series is waiting, or 'Purchased'/'Available' based on whether you own the next installment.",
 		},
 	},
 	settings: {
