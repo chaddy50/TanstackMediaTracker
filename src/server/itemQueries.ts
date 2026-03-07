@@ -1,3 +1,15 @@
+import { db } from "#/db/index";
+import {
+	type FilterAndSortOptions,
+	type ItemSortField,
+	mediaItemInstances,
+	mediaItemMetadata,
+	mediaItems,
+	mediaItemTags,
+	series,
+	type SeriesSortField,
+	tags,
+} from "#/db/schema";
 import {
 	and,
 	asc,
@@ -9,20 +21,10 @@ import {
 	inArray,
 	isNotNull,
 	or,
+	type SQL,
 	sql,
 } from "drizzle-orm";
-import { db } from "#/db/index";
-import {
-	type FilterAndSortOptions,
-	type ItemSortField,
-	type SeriesSortField,
-	mediaItemInstances,
-	mediaItemMetadata,
-	mediaItemTags,
-	mediaItems,
-	series,
-	tags,
-} from "#/db/schema";
+
 
 function buildCompletedYearCondition(filters: FilterAndSortOptions) {
 	let yearStart: number | null = null;
@@ -62,7 +64,10 @@ function buildCompletedYearCondition(filters: FilterAndSortOptions) {
 	)`;
 }
 
-export async function queryItemResults(filters: FilterAndSortOptions, userId: string) {
+export async function queryItemResults(
+	filters: FilterAndSortOptions,
+	userId: string,
+) {
 	const conditions = [
 		eq(mediaItems.userId, userId),
 		filters.mediaTypes?.length
@@ -100,14 +105,46 @@ export async function queryItemResults(filters: FilterAndSortOptions, userId: st
 			: undefined,
 	].filter((c) => c !== undefined);
 
-	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "title";
+	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "series";
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
-
-	const dbOrderClause =
-		sortBy === "title"
-			? dir(mediaItemMetadata.sortTitle)
-			: dir(mediaItems.updatedAt);
+	const sortClauses = ((): SQL[] => {
+		switch (sortBy) {
+			case "title":
+				return [dir(mediaItemMetadata.sortTitle)];
+			case "updatedAt":
+				return [dir(mediaItems.updatedAt)];
+			case "status":
+				return [dir(mediaItems.status)];
+			case "author":
+				return sortDirection === "asc"
+					? [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') ASC NULLS LAST`]
+					: [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') DESC NULLS LAST`];
+			case "director":
+				return sortDirection === "asc"
+					? [sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`]
+					: [sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`];
+			case "series": {
+				// Items without a series fall back to sortTitle so they intermix
+				// alphabetically with series items rather than being pushed to the end.
+				// Within a series, entries are ordered by their series number.
+				const primaryKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
+				return sortDirection === "asc"
+					? [
+							sql`${primaryKey} ASC`,
+							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+							asc(mediaItemMetadata.releaseDate),
+						]
+					: [
+							sql`${primaryKey} DESC`,
+							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
+							desc(mediaItemMetadata.releaseDate),
+						];
+			}
+			default:
+				return [dir(mediaItemMetadata.sortTitle)];
+		}
+	})();
 
 	const items = await db
 		.select({
@@ -128,7 +165,7 @@ export async function queryItemResults(filters: FilterAndSortOptions, userId: st
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.where(and(...conditions))
-		.orderBy(dbOrderClause);
+		.orderBy(...sortClauses);
 
 	if (items.length === 0) {
 		return [];
@@ -187,7 +224,10 @@ export async function queryItemResults(filters: FilterAndSortOptions, userId: st
 	return enrichedItems;
 }
 
-export async function querySeriesResults(filters: FilterAndSortOptions, userId: string) {
+export async function querySeriesResults(
+	filters: FilterAndSortOptions,
+	userId: string,
+) {
 	const conditions = [
 		eq(series.userId, userId),
 		filters.mediaTypes?.length

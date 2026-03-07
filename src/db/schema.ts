@@ -77,7 +77,15 @@ type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
 
 export type ViewSubject = "items" | "series";
 
-export type ItemSortField = "updatedAt" | "title" | "rating" | "completedAt";
+export type ItemSortField =
+	| "updatedAt"
+	| "title"
+	| "rating"
+	| "completedAt"
+	| "author"
+	| "series"
+	| "status"
+	| "director";
 export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount";
 export type SortDirection = "asc" | "desc";
 
@@ -240,6 +248,14 @@ export const mediaItemMetadata = pgTable(
 				WHEN LOWER(title) LIKE 'an %' THEN SUBSTRING(title FROM 4)
 				WHEN LOWER(title) LIKE 'a %' THEN SUBSTRING(title FROM 3)
 				ELSE title
+			END`,
+		),
+		seriesSortName: text("series_sort_name").generatedAlwaysAs(
+			sql`CASE
+				WHEN LOWER(metadata->>'series') LIKE 'the %' THEN SUBSTRING(metadata->>'series' FROM 5)
+				WHEN LOWER(metadata->>'series') LIKE 'an %' THEN SUBSTRING(metadata->>'series' FROM 4)
+				WHEN LOWER(metadata->>'series') LIKE 'a %' THEN SUBSTRING(metadata->>'series' FROM 3)
+				ELSE metadata->>'series'
 			END`,
 		),
 		createdAt: timestamp("created_at").defaultNow().notNull(),

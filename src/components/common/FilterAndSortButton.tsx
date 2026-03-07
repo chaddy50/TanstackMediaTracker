@@ -68,7 +68,7 @@ function countActiveFilters(
 	}
 	if (
 		filterAndSortOptions.sortBy !== undefined &&
-		filterAndSortOptions.sortBy !== "title"
+		filterAndSortOptions.sortBy !== "series"
 	)
 		count += 1;
 	if (
