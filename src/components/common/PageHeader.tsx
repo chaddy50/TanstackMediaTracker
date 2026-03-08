@@ -21,7 +21,7 @@ export function PageHeader({
 	const navigate = useNavigate();
 
 	return (
-		<header className="px-6 py-4 border-b border-border sticky top-0 z-10 bg-background flex items-center justify-between">
+		<header className="px-3 py-2 md:px-6 md:py-4 border-b border-border sticky top-0 z-10 bg-background grid grid-cols-[auto_1fr_auto] items-center gap-2">
 			<span className="flex items-center gap-1">
 				{shouldShowBackButton && (
 					<>
@@ -44,12 +44,14 @@ export function PageHeader({
 					</>
 				)}
 			</span>
-			{title && (
-				<span className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-					<h1 className="text-2xl font-bold">{title}</h1>
+			{title ? (
+				<span className="flex justify-center min-w-0 pointer-events-none">
+					<h1 className="text-xl md:text-2xl font-bold truncate">{title}</h1>
 				</span>
+			) : (
+				<span />
 			)}
-			<span className="flex items-center gap-2">
+			<span className="flex items-center gap-1 md:gap-2 justify-end">
 				{right}
 				<AddMediaButton />
 			</span>

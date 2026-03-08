@@ -46,7 +46,7 @@ function LibraryPage() {
 				}
 			/>
 
-			<main className="px-6 py-6">
+			<main className="px-4 md:px-6 py-6">
 				<MediaItemList items={allItems} />
 				<div ref={sentinelRef} className="h-1" />
 				<InfiniteScrollLoader isLoading={isLoadingMore} />

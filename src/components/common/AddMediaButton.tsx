@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,8 +11,16 @@ export function AddMediaButton() {
 
 	return (
 		<>
-			<Button variant="outline" onClick={() => setIsSearchOpen(true)}>
-				{t("search.addButton")}
+			<Button
+				variant="outline"
+				size="icon"
+				className="sm:w-auto sm:px-4"
+				onClick={() => setIsSearchOpen(true)}
+			>
+				<Plus className="size-4" />
+				<span className="sr-only sm:not-sr-only sm:ml-1">
+					{t("search.addButton")}
+				</span>
 			</Button>
 			<SearchPopup
 				isOpen={isSearchOpen}

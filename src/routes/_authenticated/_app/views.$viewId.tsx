@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -81,14 +82,22 @@ function ViewPage() {
 								params={{ viewId: String(view.id) }}
 							/>
 						)}
-						<Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
-							{t("views.editView")}
+						<Button
+							variant="outline"
+							size="icon"
+							className="sm:w-auto sm:px-4"
+							onClick={() => setIsEditDialogOpen(true)}
+						>
+							<Pencil className="size-4" />
+							<span className="sr-only sm:not-sr-only sm:ml-1">
+								{t("views.editView")}
+							</span>
 						</Button>
 					</>
 				}
 			/>
 
-			<main className="px-6 py-6">
+			<main className="px-4 md:px-6 py-6">
 				{isItemView ? (
 					<MediaItemList items={allItems as LibraryItem[]} />
 				) : (
