@@ -6,6 +6,7 @@ import {
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import "../i18n";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
@@ -55,12 +56,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				rel: "manifest",
 				href: "/manifest.json",
 			},
+			{
+				rel: "apple-touch-icon",
+				href: "/logo192.png",
+			},
 		],
 	}),
 	shellComponent: RootDocument,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	useEffect(() => {
+		if ("serviceWorker" in navigator) {
+			void navigator.serviceWorker.register("/sw.js", { scope: "/" });
+		}
+	}, []);
+
 	return (
 		<html lang="en">
 			<head>
