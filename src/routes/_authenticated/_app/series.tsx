@@ -44,7 +44,7 @@ function SeriesPage() {
 				}
 			/>
 
-			<main className="px-6 py-6">
+			<main className="px-4 md:px-6 py-6">
 				{allItems.length === 0 && !isLoadingMore ? (
 					<p className="text-muted-foreground text-center py-12">
 						{t("series.empty")}

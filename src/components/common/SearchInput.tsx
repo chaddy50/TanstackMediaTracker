@@ -76,7 +76,7 @@ export function SearchInput({ value, navigateTo, params }: SearchInputProps) {
 						onBlur={() => setIsFocused(false)}
 						onMouseEnter={() => setIsHovered(true)}
 						onMouseLeave={() => setIsHovered(false)}
-						className="pl-8 w-48"
+						className="pl-8 w-32 sm:w-48"
 					/>
 				</div>
 			</TooltipTrigger>

@@ -36,13 +36,16 @@ export function FilterAndSortButton({
 		<>
 			<Button
 				variant="outline"
+				size="icon"
+				className="sm:w-auto sm:px-4 gap-2"
 				onClick={() => setIsFilterAndSortPopupOpen(true)}
-				className="gap-2"
 			>
-				<SlidersHorizontal />
-				{t("library.filterAndSort")}
+				<SlidersHorizontal className="size-4 shrink-0" />
+				<span className="sr-only sm:not-sr-only">
+					{t("library.filterAndSort")}
+				</span>
 				{numberOfActiveFilters > 0 && (
-					<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center">
+					<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center shrink-0">
 						{numberOfActiveFilters}
 					</span>
 				)}

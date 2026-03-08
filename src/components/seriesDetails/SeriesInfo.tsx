@@ -83,12 +83,12 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<ExpandableTextBlock text={seriesDetails.description} />
 			)}
 
-			<div className="flex items-center gap-3">
-				<span className="text-sm text-muted-foreground w-24">
+			<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+				<span className="text-sm text-muted-foreground sm:w-24">
 					{t("series.columns.status")}
 				</span>
 				<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>
-					<SelectTrigger className="w-56">
+					<SelectTrigger className="w-full sm:w-56">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -102,15 +102,15 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 			</div>
 
 			{shouldShowNextItemStatus && (
-				<div className="flex items-center gap-3">
-					<span className="text-sm text-muted-foreground w-24">
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+					<span className="text-sm text-muted-foreground sm:w-24">
 						{t("nextItemStatus.label")}
 					</span>
 					<Select
 						value={seriesDetails.nextItemStatus ?? "none"}
 						onValueChange={handleNextItemStatusChange}
 					>
-						<SelectTrigger className="w-56">
+						<SelectTrigger className="w-full sm:w-56">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -125,8 +125,8 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				</div>
 			)}
 
-			<div className="flex items-center gap-3">
-				<span className="text-sm text-muted-foreground w-24">
+			<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+				<span className="text-sm text-muted-foreground sm:w-24">
 					{t("mediaItemDetails.rating")}
 				</span>
 				<RatingStars

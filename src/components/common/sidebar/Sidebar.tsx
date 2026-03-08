@@ -79,7 +79,7 @@ export function Sidebar() {
 
 	return (
 		<>
-			<aside className="w-56 border-r border-border shrink-0 bg-card flex flex-col">
+			<aside className="hidden md:flex w-56 border-r border-border shrink-0 bg-card flex-col">
 				<div className="flex-1 flex flex-col overflow-hidden pt-4">
 					<nav className="flex flex-col gap-0.5 px-2">
 						<SidebarItem
