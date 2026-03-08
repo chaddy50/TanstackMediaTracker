@@ -236,10 +236,14 @@ export async function querySeriesResults(
 
 	// Correlated subquery for item count — avoids a separate aggregation query
 	// and enables SQL-level sorting by itemCount.
+	// NOTE: ${series.id} cannot be used directly here — Drizzle strips the table
+	// qualifier in query-builder context, so it becomes bare "id" which PostgreSQL
+	// resolves to media_items.id inside the subquery instead of series.id.
+	// sql.raw forces the fully-qualified reference needed for correct correlation.
 	const itemCountSql = sql<number>`(
 		SELECT COUNT(*)::int
 		FROM ${mediaItems}
-		WHERE ${mediaItems.seriesId} = ${series.id}
+		WHERE ${mediaItems.seriesId} = ${sql.raw('"series"."id"')}
 			AND ${mediaItems.userId} = ${userId}
 	)`;
 
