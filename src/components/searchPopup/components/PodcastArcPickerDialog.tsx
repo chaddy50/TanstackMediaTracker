@@ -280,7 +280,7 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 					</DialogTitle>
 				</DialogHeader>
 
-				<div className="flex flex-col gap-4">
+				<div className="flex flex-col gap-4 min-w-0">
 					<div className="flex flex-col gap-2">
 						<p className="text-sm font-medium">{t("podcast.selectEpisodes")}</p>
 						<p className="text-xs text-muted-foreground">
@@ -314,7 +314,7 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 											onClick={(event) =>
 												handleEpisodeClick(event, episode.guid, index)
 											}
-											className={`flex items-start gap-2 p-2 rounded text-left text-sm transition-colors hover:bg-muted/50 ${
+											className={`w-full flex items-start gap-2 p-2 rounded text-left text-sm transition-colors hover:bg-muted/50 ${
 												isSelected ? "bg-accent text-accent-foreground" : ""
 											}`}
 										>
