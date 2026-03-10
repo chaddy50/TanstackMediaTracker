@@ -60,7 +60,11 @@ export async function searchPodcasts(query: string): Promise<ExternalSearchResul
 function extractTagContent(xml: string, tag: string): string | undefined {
 	const escapedTag = tag.replace(":", "\\:");
 	const match = xml.match(new RegExp(`<${escapedTag}[^>]*>([\\s\\S]*?)<\\/${escapedTag}>`));
-	return match?.[1]?.trim();
+	const raw = match?.[1]?.trim();
+	if (!raw) return undefined;
+	// Strip CDATA wrapper: <![CDATA[...]]>
+	const cdataMatch = raw.match(/^<!\[CDATA\[([\s\S]*?)]]>$/);
+	return cdataMatch ? cdataMatch[1].trim() : raw;
 }
 
 function parseDurationToMinutes(duration: string | undefined): number | undefined {
