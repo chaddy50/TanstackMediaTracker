@@ -85,7 +85,7 @@ export const en = {
 		removeSeason: "Remove Season",
 	},
 	search: {
-		addButton: "+ Add Item",
+		addButton: "Add Item",
 		placeholder: "Search for books, movies, TV shows, games, podcasts...",
 		title: "Search & Add",
 		prompt: "Start typing to search.",
@@ -255,7 +255,7 @@ export const en = {
 				incomplete: "Incomplete",
 			},
 			tags: "Tags",
-		filtersSection: "Filters",
+			filtersSection: "Filters",
 			sortingSection: "Sorting",
 			saving: "Saving...",
 			sortBy: "Sort by",
