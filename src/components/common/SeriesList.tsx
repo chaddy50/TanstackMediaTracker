@@ -34,7 +34,7 @@ export function SeriesList({ items }: SeriesListProps) {
 	}
 
 	const hasAnyNextItemStatus = items.some((item) => item.nextItemStatus !== null);
-	const thClass = "md:sticky md:top-[60px] z-9 bg-background border-b border-border px-2 py-2 text-left text-xs text-muted-foreground font-medium uppercase tracking-wide whitespace-nowrap";
+	const thClass = "md:sticky md:top-[65px] z-10 bg-background border-b border-border px-2 py-2 text-left text-xs text-muted-foreground font-medium uppercase tracking-wide whitespace-nowrap";
 
 	return (
 		<>
@@ -74,7 +74,7 @@ export function SeriesList({ items }: SeriesListProps) {
 			</ul>
 
 			{/* Desktop table */}
-			<div className="hidden md:block overflow-x-auto">
+			<div className="hidden md:block">
 				<table className="w-full border-collapse">
 					<thead>
 						<tr>
