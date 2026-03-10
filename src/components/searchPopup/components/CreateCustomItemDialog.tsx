@@ -25,7 +25,9 @@ import { BookFields } from "../../mediaItemDetails/metadata/components/editMetad
 import { FormField } from "../../mediaItemDetails/metadata/components/editMetadata/FormField";
 import { GameFields } from "../../mediaItemDetails/metadata/components/editMetadata/GameFields";
 import { MovieFields } from "../../mediaItemDetails/metadata/components/editMetadata/MovieFields";
+import { PodcastFields } from "../../mediaItemDetails/metadata/components/editMetadata/PodcastFields";
 import { TvShowFields } from "../../mediaItemDetails/metadata/components/editMetadata/TvShowFields";
+
 
 interface CreateCustomItemDialogProps {
 	isOpen: boolean;
@@ -183,6 +185,9 @@ export function CreateCustomItemDialog({
 					)}
 					{type === MediaItemType.VIDEO_GAME && (
 						<GameFields rawMetadata={{}} onChange={setTypeMetadata} />
+					)}
+					{type === MediaItemType.PODCAST && (
+						<PodcastFields rawMetadata={{}} onChange={setTypeMetadata} />
 					)}
 				</div>
 

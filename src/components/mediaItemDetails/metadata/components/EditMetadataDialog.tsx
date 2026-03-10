@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
+import { PodcastArcPickerDialog } from "#/components/searchPopup/components/PodcastArcPickerDialog";
 
 import { MediaItemType } from "#/lib/enums";
 import { Button } from "#/components/ui/button";
@@ -16,9 +17,10 @@ import {
 import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "#/server/mediaItem";
 import { saveMediaItemTags } from "#/server/tags";
 import { BookFields } from "./editMetadata/BookFields";
-import { MovieFields } from "./editMetadata/MovieFields";
-import { TvShowFields } from "./editMetadata/TvShowFields";
 import { GameFields } from "./editMetadata/GameFields";
+import { MovieFields } from "./editMetadata/MovieFields";
+import { PodcastFields } from "./editMetadata/PodcastFields";
+import { TvShowFields } from "./editMetadata/TvShowFields";
 import { FormField } from "./editMetadata/FormField";
 import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
 import { TagsEditor } from "./TagsEditor";
@@ -33,10 +35,15 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 	const router = useRouter();
 
 	const [isOpen, setIsOpen] = useState(false);
+	const [isArcDialogOpen, setIsArcDialogOpen] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const rawMetadata = (mediaItemDetails.metadata ?? {}) as Record<string, unknown>;
+	const feedUrl = typeof rawMetadata.feedUrl === "string" ? rawMetadata.feedUrl : undefined;
+	const currentEpisodeGuids = Array.isArray(rawMetadata.episodeGuids)
+		? (rawMetadata.episodeGuids as string[])
+		: [];
 
 	const [title, setTitle] = useState(mediaItemDetails.title ?? "");
 	const [description, setDescription] = useState(mediaItemDetails.description ?? "");
@@ -174,6 +181,28 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							<GameFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
 						)}
 
+						{mediaItemDetails.type === MediaItemType.PODCAST && (
+							<PodcastFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+						)}
+
+						{mediaItemDetails.type === MediaItemType.PODCAST && feedUrl && (
+							<FormField label={t("podcast.episodes")}>
+								<div className="flex items-center gap-3">
+									<span className="text-sm text-muted-foreground">
+										{currentEpisodeGuids.length} {t("podcast.episodesCount")}
+									</span>
+									<Button
+										variant="outline"
+										size="sm"
+										type="button"
+										onClick={() => setIsArcDialogOpen(true)}
+									>
+										{t("podcast.editEpisodes")}
+									</Button>
+								</div>
+							</FormField>
+						)}
+
 						<TagsEditor
 							pendingTags={pendingTags}
 							onPendingTagsChange={setPendingTags}
@@ -199,6 +228,22 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					</div>
 				</DialogContent>
 			</Dialog>
+
+			{feedUrl && (
+				<PodcastArcPickerDialog
+					isOpen={isArcDialogOpen}
+					onClose={() => setIsArcDialogOpen(false)}
+					mode="edit"
+					metadataId={mediaItemDetails.metadataId}
+					currentArcTitle={mediaItemDetails.title ?? ""}
+					feedUrl={feedUrl}
+					currentEpisodeGuids={currentEpisodeGuids}
+					podcastTitle={mediaItemDetails.seriesName ?? mediaItemDetails.title ?? ""}
+					podcastCoverImageUrl={mediaItemDetails.coverImageUrl ?? undefined}
+					creator={typeof rawMetadata.creator === "string" ? rawMetadata.creator : undefined}
+					genres={Array.isArray(rawMetadata.genres) ? (rawMetadata.genres as string[]) : undefined}
+				/>
+			)}
 		</>
 	);
 }

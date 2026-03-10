@@ -24,6 +24,7 @@ export const mediaTypeEnum = pgEnum("media_type", [
 	MediaItemType.MOVIE,
 	MediaItemType.TV_SHOW,
 	MediaItemType.VIDEO_GAME,
+	MediaItemType.PODCAST,
 ]);
 
 export const mediaItemStatusEnum = pgEnum("media_item_status", [
@@ -79,7 +80,19 @@ type GameMetadata = {
 	timeToBeatCompletely?: number; // hours (rounded)
 };
 
-type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata;
+type PodcastMetadata = {
+	creator?: string;
+	genres?: string[];
+	feedUrl?: string; // parent podcast RSS feed URL
+	episodeNumbers?: number[]; // e.g. [1] or [47, 48, 49, 50, 51, 52]
+	episodeTitles?: string[];
+	episodeGuids?: string[]; // RSS GUIDs, used for pre-selecting episodes in edit mode
+	totalDuration?: number; // minutes
+	firstPublishedAt?: string;
+	lastPublishedAt?: string;
+};
+
+type MediaMetadata = BookMetadata | MovieMetadata | TvMetadata | GameMetadata | PodcastMetadata;
 
 export type ViewSubject = "items" | "series";
 

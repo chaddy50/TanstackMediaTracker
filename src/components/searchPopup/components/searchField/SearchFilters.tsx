@@ -22,6 +22,10 @@ const TYPE_OPTIONS = [
 		value: MediaItemType.VIDEO_GAME as SearchType,
 		labelKey: "mediaType.video_game" as const,
 	},
+	{
+		value: MediaItemType.PODCAST as SearchType,
+		labelKey: "mediaType.podcast" as const,
+	},
 ];
 
 interface SearchFiltersProps {

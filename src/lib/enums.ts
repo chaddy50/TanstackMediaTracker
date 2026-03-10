@@ -28,6 +28,7 @@ export const MediaItemType = {
 	MOVIE: "movie",
 	TV_SHOW: "tv_show",
 	VIDEO_GAME: "video_game",
+	PODCAST: "podcast",
 } as const;
 
 export type MediaItemType = (typeof MediaItemType)[keyof typeof MediaItemType];
