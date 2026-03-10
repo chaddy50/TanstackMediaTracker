@@ -110,14 +110,17 @@ export async function queryItemResults(
 	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "series";
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
-	// Secondary tiebreakers: series name → book number → release date → title.
+	// Secondary tiebreakers: series name → book number → release date → firstPublishedAt → title.
 	// COALESCE falls back to sortTitle for standalone items, so they sort by
 	// name alongside series items rather than being pushed to a separate group.
+	// firstPublishedAt (from JSONB) provides full timestamp precision as a tiebreaker
+	// when releaseDate values are equal (e.g. podcast arcs stored with year-only dates).
 	const seriesKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
 	const bySeriesThenTitle = [
 		sql`${seriesKey} ASC`,
 		sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
 		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
+		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
 		asc(mediaItemMetadata.sortTitle),
 	];
 	const sortClauses = ((): SQL[] => {
@@ -142,11 +145,13 @@ export async function queryItemResults(
 							sql`${seriesKey} ASC`,
 							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
 							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
+							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
 						]
 					: [
 							sql`${seriesKey} DESC`,
 							sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
 							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END DESC NULLS LAST`,
+							sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END DESC NULLS LAST`,
 						];
 			case "rating":
 				return sortDirection === "asc"
