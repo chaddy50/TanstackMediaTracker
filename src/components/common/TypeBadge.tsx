@@ -1,4 +1,4 @@
-import { BookOpen, Film, Gamepad2, Tv } from "lucide-react";
+import { BookOpen, Film, Gamepad2, Podcast, Tv } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -13,6 +13,7 @@ const TYPE_ICONS: Record<MediaItemType, React.ComponentType<{ className?: string
 	[MediaItemType.MOVIE]: Film,
 	[MediaItemType.TV_SHOW]: Tv,
 	[MediaItemType.VIDEO_GAME]: Gamepad2,
+	[MediaItemType.PODCAST]: Podcast,
 };
 
 interface TypeBadgeProps {

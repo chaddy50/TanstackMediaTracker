@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { MediaItemStatus, type MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { PurchasedBadge } from "./PurchasedBadge";
 import { RatingStars } from "./rating/RatingStars";
 import { SeriesLink } from "./SeriesLink";
@@ -35,9 +35,9 @@ export function MediaCard({
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
 			params={{ mediaItemId: String(mediaItem.id) }}
-			className="flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors"
+			className="flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors self-start"
 		>
-			<div className="aspect-2/3 bg-muted relative">
+			<div className={`${mediaItem.type === MediaItemType.PODCAST ? "aspect-square" : "aspect-2/3"} bg-muted relative`}>
 				{mediaItem.coverImageUrl ? (
 					<img
 						src={mediaItem.coverImageUrl}

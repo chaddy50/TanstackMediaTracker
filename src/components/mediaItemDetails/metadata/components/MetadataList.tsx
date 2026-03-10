@@ -158,6 +158,35 @@ export function MetadataList({
 						value: formatHours(m.timeToBeatCompletely, t),
 					});
 				break;
+			case MediaItemType.PODCAST:
+				if (seriesName)
+					fields.push({
+						label: t("metadata.series"),
+						value: seriesName,
+						shouldSeriesNameBeLink: !!seriesId,
+					});
+				if (typeof m.creator === "string")
+					fields.push({ label: t("metadata.creator"), value: m.creator });
+				if (Array.isArray(m.episodeTitles) && m.episodeTitles.length) {
+					fields.push({
+						label: t("podcast.episodes"),
+						value:
+							m.episodeTitles.length === 1
+								? String(m.episodeTitles[0])
+								: `${m.episodeTitles.length} ${t("podcast.episodesCount")}`,
+					});
+				}
+				if (typeof m.totalDuration === "number" && m.totalDuration > 0)
+					fields.push({
+						label: t("metadata.runtime"),
+						value: formatMinutes(m.totalDuration as number, t),
+					});
+				if (Array.isArray(m.genres) && m.genres.length)
+					fields.push({
+						label: t("metadata.genres"),
+						value: m.genres.join(", "),
+					});
+				break;
 		}
 	}
 

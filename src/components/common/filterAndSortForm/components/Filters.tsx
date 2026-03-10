@@ -32,6 +32,7 @@ const MEDIA_TYPES = [
 	MediaItemType.MOVIE,
 	MediaItemType.TV_SHOW,
 	MediaItemType.VIDEO_GAME,
+	MediaItemType.PODCAST,
 ] as const;
 
 export interface FiltersProps {

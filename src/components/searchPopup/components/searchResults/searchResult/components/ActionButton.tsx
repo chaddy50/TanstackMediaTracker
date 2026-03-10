@@ -1,5 +1,7 @@
 import { StatusBadge } from "#/components/common/StatusBadge";
+import { PodcastArcPickerDialog } from "#/components/searchPopup/components/PodcastArcPickerDialog";
 import { Button } from "#/components/ui/button";
+import { MediaItemType } from "#/lib/enums";
 import { addToLibrary, type SearchResultWithStatus } from "#/server/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -15,6 +17,7 @@ export function ActionButton(props: ActionButtionProps) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [isAdding, setIsAdding] = useState(false);
+	const [isPodcastPickerOpen, setIsPodcastPickerOpen] = useState(false);
 
 	async function addItemToLibrary() {
 		setIsAdding(true);
@@ -48,6 +51,27 @@ export function ActionButton(props: ActionButtionProps) {
 			to: "/mediaItemDetails/$mediaItemId",
 			params: { mediaItemId: String(result.mediaItemId) },
 		});
+	}
+
+	if (result.type === MediaItemType.PODCAST) {
+		return (
+			<>
+				<Button
+					size="sm"
+					variant="outline"
+					className="shrink-0"
+					onClick={() => setIsPodcastPickerOpen(true)}
+				>
+					{t("podcast.addArc")}
+				</Button>
+				<PodcastArcPickerDialog
+					mode="add"
+					isOpen={isPodcastPickerOpen}
+					onClose={() => setIsPodcastPickerOpen(false)}
+					podcast={result}
+				/>
+			</>
+		);
 	}
 
 	return (

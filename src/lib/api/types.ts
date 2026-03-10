@@ -1,7 +1,7 @@
 export type ExternalSearchResult = {
 	externalId: string;
 	externalSource: string;
-	type: "book" | "movie" | "tv_show" | "video_game";
+	type: "book" | "movie" | "tv_show" | "video_game" | "podcast";
 	title: string;
 	description?: string;
 	coverImageUrl?: string;
