@@ -75,6 +75,10 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 
+	const [isSubscriberFeedExpanded, setIsSubscriberFeedExpanded] = useState(false);
+	const [subscriberFeedUrl, setSubscriberFeedUrl] = useState("");
+	const [isFewEpisodes, setIsFewEpisodes] = useState(false);
+
 	// Anchor index for shift-click range selection — stored in a ref to avoid re-renders
 	const anchorIndexRef = useRef<number | null>(null);
 	const listRef = useRef<HTMLDivElement>(null);
@@ -89,6 +93,9 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 		setStatus(MediaItemStatus.BACKLOG);
 		setLoadError(null);
 		setSubmitError(null);
+		setIsFewEpisodes(false);
+		setIsSubscriberFeedExpanded(false);
+		setSubscriberFeedUrl("");
 		anchorIndexRef.current = null;
 		hasScrolledRef.current = false;
 
@@ -96,6 +103,7 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 		fetchEpisodesForFeed({ data: { feedUrl } })
 			.then((fetchedEpisodes) => {
 				setEpisodes(fetchedEpisodes);
+				setIsFewEpisodes(fetchedEpisodes.length <= 1);
 				if (currentEpisodeGuids && currentEpisodeGuids.length > 0) {
 					setSelectedGuids(new Set(currentEpisodeGuids));
 				}
@@ -190,6 +198,32 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 			return `${hours}h ${remainingMinutes}m`;
 		}
 		return `${remainingMinutes}m`;
+	}
+
+	async function handleLoadSubscriberFeed() {
+		const urlToFetch = subscriberFeedUrl.trim();
+		if (!urlToFetch) return;
+
+		setEpisodes([]);
+		setSelectedGuids(new Set());
+		setLoadError(null);
+		setIsFewEpisodes(false);
+		anchorIndexRef.current = null;
+		hasScrolledRef.current = false;
+
+		setIsLoadingEpisodes(true);
+		try {
+			const fetchedEpisodes = await fetchEpisodesForFeed({ data: { feedUrl: urlToFetch } });
+			setEpisodes(fetchedEpisodes);
+			setIsFewEpisodes(fetchedEpisodes.length <= 1);
+			if (currentEpisodeGuids && currentEpisodeGuids.length > 0) {
+				setSelectedGuids(new Set(currentEpisodeGuids));
+			}
+		} catch {
+			setLoadError(t("podcast.episodeLoadError"));
+		} finally {
+			setIsLoadingEpisodes(false);
+		}
 	}
 
 	async function handleSubmit() {
@@ -301,6 +335,48 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 							<p className="text-sm text-muted-foreground">
 								{t("podcast.noEpisodes")}
 							</p>
+						)}
+
+						{!isLoadingEpisodes && (
+							<div className="flex flex-col gap-1.5">
+								{isFewEpisodes && !isSubscriberFeedExpanded && (
+									<p className="text-xs text-amber-600 dark:text-amber-400">
+										{t("podcast.fewEpisodesHint")}
+									</p>
+								)}
+								<button
+									type="button"
+									onClick={() => setIsSubscriberFeedExpanded(!isSubscriberFeedExpanded)}
+									className={`text-xs underline text-left w-fit ${isFewEpisodes && !isSubscriberFeedExpanded ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
+								>
+									{isSubscriberFeedExpanded
+										? t("podcast.hideSubscriberFeed")
+										: t("podcast.useSubscriberFeed")}
+								</button>
+								{isSubscriberFeedExpanded && (
+									<div className="flex gap-2">
+										<Input
+											value={subscriberFeedUrl}
+											onChange={(e) => setSubscriberFeedUrl(e.target.value)}
+											onKeyDown={(e) => {
+												if (e.key === "Enter") {
+													void handleLoadSubscriberFeed();
+												}
+											}}
+											placeholder={t("podcast.subscriberFeedPlaceholder")}
+										/>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											onClick={() => void handleLoadSubscriberFeed()}
+											disabled={!subscriberFeedUrl.trim() || isLoadingEpisodes}
+										>
+											{t("podcast.loadEpisodes")}
+										</Button>
+									</div>
+								)}
+							</div>
 						)}
 
 						{episodes.length > 0 && (
