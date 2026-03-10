@@ -18,14 +18,12 @@ function DashboardPage() {
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<PageHeader title={t("dashboard.title")} />
-			<main className="px-4 md:px-6 py-4 flex flex-col gap-6 md:flex-row md:flex-wrap md:gap-x-24 md:gap-y-6 items-start">
-				<div className="w-full">
-					<DashboardSection
-						title={t("dashboard.inProgress")}
-						items={inProgressItems}
-						emptyMessage={t("dashboard.emptyInProgress")}
-					/>
-				</div>
+			<main className="px-4 md:px-6 py-4 flex flex-col gap-8">
+				<DashboardSection
+					title={t("dashboard.inProgress")}
+					items={inProgressItems}
+					emptyMessage={t("dashboard.emptyInProgress")}
+				/>
 				<DashboardSection
 					title={t("dashboard.recentlyFinished")}
 					items={recentlyFinishedItems}
