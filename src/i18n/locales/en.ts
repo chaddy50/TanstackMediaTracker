@@ -114,6 +114,11 @@ export const en = {
 		editArcTitle: "Edit Arc Episodes",
 		editEpisodes: "Edit episodes",
 		shiftClickHint: "Shift-click to select a range",
+		fewEpisodesHint: "Fewer episodes than expected? This podcast may require a subscriber feed URL.",
+		useSubscriberFeed: "Use subscriber feed URL",
+		hideSubscriberFeed: "Hide subscriber feed URL",
+		subscriberFeedPlaceholder: "Paste your private subscriber feed URL",
+		loadEpisodes: "Load episodes",
 	},
 	fictionRating: {
 		setting: "Setting",
