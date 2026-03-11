@@ -1,4 +1,4 @@
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
@@ -20,11 +20,7 @@ import { mediaItemStatusEnum } from "#/db/schema";
 import type { PodcastEpisode } from "#/lib/api/itunes";
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, SERIES_ONLY_STATUSES } from "#/lib/enums";
-import {
-	addPodcastArc,
-	fetchEpisodesForFeed,
-	updatePodcastArcEpisodes,
-} from "#/server/search";
+import { addPodcastArc, fetchEpisodesForFeed } from "#/server/search";
 import { FormField } from "../../mediaItemDetails/metadata/components/editMetadata/FormField";
 
 type AddMode = {
@@ -42,6 +38,7 @@ type EditMode = {
 	podcastCoverImageUrl?: string;
 	creator?: string;
 	genres?: string[];
+	onArcUpdated?: (arcTitle: string, updatedMetadata: Record<string, unknown>) => void;
 };
 
 type PodcastArcPickerDialogProps = (AddMode | EditMode) & {
@@ -53,7 +50,7 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 	const { isOpen, onClose } = props;
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const router = useRouter();
+
 
 	const isEditMode = props.mode === "edit";
 	const feedUrl = isEditMode
@@ -260,10 +257,10 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 			lastPublishedAt: sortedEpisodes[sortedEpisodes.length - 1]?.publishedAt,
 		};
 
-		setIsSubmitting(true);
-		setSubmitError(null);
-		try {
-			if (!isEditMode) {
+		if (!isEditMode) {
+			setIsSubmitting(true);
+			setSubmitError(null);
+			try {
 				const { mediaItemId } = await addPodcastArc({
 					data: {
 						podcastTitle: props.podcast.title,
@@ -278,21 +275,16 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 					to: "/mediaItemDetails/$mediaItemId",
 					params: { mediaItemId: String(mediaItemId) },
 				});
-			} else {
-				await updatePodcastArcEpisodes({
-					data: {
-						metadataId: props.metadataId,
-						arcTitle: arcTitle.trim(),
-						arcMetadata,
-					},
-				});
-				router.invalidate();
-				onClose();
+			} catch {
+				setSubmitError(t("podcast.addArcError"));
+			} finally {
+				setIsSubmitting(false);
 			}
-		} catch {
-			setSubmitError(t("podcast.addArcError"));
-		} finally {
-			setIsSubmitting(false);
+		} else {
+			// In edit mode, stage the changes locally — the parent EditMetadataDialog
+			// will persist everything together when its Save button is clicked.
+			props.onArcUpdated?.(arcTitle.trim(), arcMetadata);
+			onClose();
 		}
 	}
 

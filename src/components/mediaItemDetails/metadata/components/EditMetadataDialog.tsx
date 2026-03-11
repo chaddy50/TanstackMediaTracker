@@ -1,28 +1,31 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useRouter } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PodcastArcPickerDialog } from "#/components/searchPopup/components/PodcastArcPickerDialog";
-
-import { MediaItemType } from "#/lib/enums";
 import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { type MediaItemDetails, updateMediaItemMetadata, updateMediaItemSeries } from "#/server/mediaItem";
+import { Input } from "#/components/ui/input";
+import { Textarea } from "#/components/ui/textarea";
+import { MediaItemType } from "#/lib/enums";
+import {
+	type MediaItemDetails,
+	updateMediaItemMetadata,
+	updateMediaItemSeries,
+} from "#/server/mediaItem";
 import { saveMediaItemTags } from "#/server/tags";
 import { BookFields } from "./editMetadata/BookFields";
+import { FormField } from "./editMetadata/FormField";
 import { GameFields } from "./editMetadata/GameFields";
 import { MovieFields } from "./editMetadata/MovieFields";
 import { PodcastFields } from "./editMetadata/PodcastFields";
-import { TvShowFields } from "./editMetadata/TvShowFields";
-import { FormField } from "./editMetadata/FormField";
 import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
+import { TvShowFields } from "./editMetadata/TvShowFields";
 import { TagsEditor } from "./TagsEditor";
 
 interface EditMetadataDialogProps {
@@ -39,27 +42,41 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const rawMetadata = (mediaItemDetails.metadata ?? {}) as Record<string, unknown>;
-	const feedUrl = typeof rawMetadata.feedUrl === "string" ? rawMetadata.feedUrl : undefined;
-	const currentEpisodeGuids = Array.isArray(rawMetadata.episodeGuids)
-		? (rawMetadata.episodeGuids as string[])
-		: [];
+	const rawMetadata = (mediaItemDetails.metadata ?? {}) as Record<
+		string,
+		unknown
+	>;
+	const feedUrl =
+		typeof rawMetadata.feedUrl === "string" ? rawMetadata.feedUrl : undefined;
 
 	const [title, setTitle] = useState(mediaItemDetails.title ?? "");
-	const [description, setDescription] = useState(mediaItemDetails.description ?? "");
-	const [coverImageUrl, setCoverImageUrl] = useState(mediaItemDetails.coverImageUrl ?? "");
+	const [description, setDescription] = useState(
+		mediaItemDetails.description ?? "",
+	);
+	const [coverImageUrl, setCoverImageUrl] = useState(
+		mediaItemDetails.coverImageUrl ?? "",
+	);
 	const [releaseYear, setReleaseYear] = useState(
 		mediaItemDetails.releaseDate
-			? new Date(`${mediaItemDetails.releaseDate}T00:00:00`).getFullYear().toString()
+			? new Date(`${mediaItemDetails.releaseDate}T00:00:00`)
+					.getFullYear()
+					.toString()
 			: "",
 	);
-	const [typeMetadata, setTypeMetadata] = useState<Record<string, unknown>>(rawMetadata);
+	const [typeMetadata, setTypeMetadata] =
+		useState<Record<string, unknown>>(rawMetadata);
+	const currentEpisodeGuids = Array.isArray(typeMetadata.episodeGuids)
+		? (typeMetadata.episodeGuids as string[])
+		: [];
 	const [seriesFieldValue, setSeriesFieldValue] = useState<SeriesFieldValue>(
-		mediaItemDetails.seriesId !== null && mediaItemDetails.seriesId !== undefined
+		mediaItemDetails.seriesId !== null &&
+			mediaItemDetails.seriesId !== undefined
 			? { mode: "existing", seriesId: mediaItemDetails.seriesId }
 			: { mode: "none" },
 	);
-	const [pendingTags, setPendingTags] = useState<string[]>(mediaItemDetails.tags);
+	const [pendingTags, setPendingTags] = useState<string[]>(
+		mediaItemDetails.tags,
+	);
 
 	const isSaveDisabled =
 		isSaving ||
@@ -166,23 +183,38 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 						/>
 
 						{mediaItemDetails.type === MediaItemType.BOOK && (
-							<BookFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+							<BookFields
+								rawMetadata={rawMetadata}
+								onChange={setTypeMetadata}
+							/>
 						)}
 
 						{mediaItemDetails.type === MediaItemType.MOVIE && (
-							<MovieFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+							<MovieFields
+								rawMetadata={rawMetadata}
+								onChange={setTypeMetadata}
+							/>
 						)}
 
 						{mediaItemDetails.type === MediaItemType.TV_SHOW && (
-							<TvShowFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+							<TvShowFields
+								rawMetadata={rawMetadata}
+								onChange={setTypeMetadata}
+							/>
 						)}
 
 						{mediaItemDetails.type === MediaItemType.VIDEO_GAME && (
-							<GameFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+							<GameFields
+								rawMetadata={rawMetadata}
+								onChange={setTypeMetadata}
+							/>
 						)}
 
 						{mediaItemDetails.type === MediaItemType.PODCAST && (
-							<PodcastFields rawMetadata={rawMetadata} onChange={setTypeMetadata} />
+							<PodcastFields
+								rawMetadata={rawMetadata}
+								onChange={setTypeMetadata}
+							/>
 						)}
 
 						{mediaItemDetails.type === MediaItemType.PODCAST && feedUrl && (
@@ -209,9 +241,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 						/>
 					</div>
 
-					{error && (
-						<p className="text-sm text-destructive">{error}</p>
-					)}
+					{error && <p className="text-sm text-destructive">{error}</p>}
 
 					<div className="flex gap-2 pt-2">
 						<Button size="sm" onClick={handleSave} disabled={isSaveDisabled}>
@@ -238,10 +268,30 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					currentArcTitle={mediaItemDetails.title ?? ""}
 					feedUrl={feedUrl}
 					currentEpisodeGuids={currentEpisodeGuids}
-					podcastTitle={mediaItemDetails.seriesName ?? mediaItemDetails.title ?? ""}
+					podcastTitle={
+						mediaItemDetails.seriesName ?? mediaItemDetails.title ?? ""
+					}
 					podcastCoverImageUrl={mediaItemDetails.coverImageUrl ?? undefined}
-					creator={typeof rawMetadata.creator === "string" ? rawMetadata.creator : undefined}
-					genres={Array.isArray(rawMetadata.genres) ? (rawMetadata.genres as string[]) : undefined}
+					creator={
+						typeof rawMetadata.creator === "string"
+							? rawMetadata.creator
+							: undefined
+					}
+					genres={
+						Array.isArray(rawMetadata.genres)
+							? (rawMetadata.genres as string[])
+							: undefined
+					}
+					onArcUpdated={(newArcTitle, updatedMetadata) => {
+						setTitle(newArcTitle);
+						setTypeMetadata((previous) => Object.assign({}, previous, updatedMetadata));
+						if (typeof updatedMetadata.firstPublishedAt === "string") {
+							const year = new Date(updatedMetadata.firstPublishedAt).getFullYear();
+							if (!Number.isNaN(year)) {
+								setReleaseYear(String(year));
+							}
+						}
+					}}
 				/>
 			)}
 		</>
