@@ -420,6 +420,24 @@ export const mediaItemTags = pgTable(
  * User-defined views — named, saved filter configurations that can show
  * either media items or series.
  */
+/**
+ * One row per user — stores user-level application preferences.
+ */
+export const userSettings = pgTable("user_settings", {
+	userId: text("user_id")
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	dashboardReport: text("dashboard_report")
+		.notNull()
+		.default("pages_read_by_month"),
+	dashboardReportMonths: integer("dashboard_report_months").notNull().default(12),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.notNull()
+		.$onUpdateFn(() => new Date()),
+});
+
 export const views = pgTable("views", {
 	id: serial("id").primaryKey(),
 	userId: text("user_id").notNull(),

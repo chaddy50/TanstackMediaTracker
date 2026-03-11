@@ -169,6 +169,20 @@
       "when": 1773104753961,
       "tag": "0023_charming_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1773258006056,
+      "tag": "0024_blushing_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1773258342149,
+      "tag": "0025_petite_zzzax",
+      "breakpoints": true
     }
   ]
 }

@@ -145,6 +145,19 @@ export const en = {
 		emptyInProgress: "Nothing in progress.",
 		emptyNextInSeries: "Nothing marked as next up.",
 		emptyRecentlyFinished: "Nothing finished in the last 30 days.",
+		report: {
+			pagesReadByMonth: "Pages Read by Month",
+			itemsCompletedByMonth: "Items Completed by Month",
+			pagesRead: "Pages Read",
+			itemsCompleted: "Items Completed",
+			months: {
+				last3: "Last 3 months",
+				last6: "Last 6 months",
+				last12: "Last 12 months",
+				last2Years: "Last 2 years",
+				last5Years: "Last 5 years",
+			},
+		},
 	},
 	nav: {
 		menu: "Menu",
