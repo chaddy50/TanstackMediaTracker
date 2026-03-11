@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "dashboard_report_months" integer DEFAULT 12 NOT NULL;
