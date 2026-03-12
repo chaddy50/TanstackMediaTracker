@@ -13,8 +13,6 @@ interface MovieFieldsProps {
 export function MovieFields({ rawMetadata, onChange }: MovieFieldsProps) {
 	const { t } = useTranslation();
 	const [fields, setFields] = useState({
-		director:
-			typeof rawMetadata.director === "string" ? rawMetadata.director : "",
 		runtime:
 			typeof rawMetadata.runtime === "number"
 				? String(rawMetadata.runtime)
@@ -28,7 +26,7 @@ export function MovieFields({ rawMetadata, onChange }: MovieFieldsProps) {
 		const updated = { ...fields, [key]: value };
 		setFields(updated);
 		onChange({
-			director: updated.director || undefined,
+			...rawMetadata,
 			runtime: updated.runtime ? parseInt(updated.runtime, 10) : undefined,
 			genres: parseArrayField(updated.genres),
 		});
@@ -36,13 +34,6 @@ export function MovieFields({ rawMetadata, onChange }: MovieFieldsProps) {
 
 	return (
 		<>
-			<FormField label={t("metadata.director")}>
-				<Input
-					value={fields.director}
-					onChange={(e) => updateField("director", e.target.value)}
-				/>
-			</FormField>
-
 			<FormField label={t("metadata.runtime")}>
 				<Input
 					type="number"

@@ -32,14 +32,18 @@ export function BackfillSection() {
 function BackfillJobRow({ jobName }: { jobName: string }) {
 	const { t } = useTranslation();
 	const [isRunning, setIsRunning] = useState(false);
-	const [result, setResult] = useState<{ processedCount: number } | null>(null);
+	const [result, setResult] = useState<{ processedCount: number; remaining?: number } | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
 	async function handleRun() {
 		setIsRunning(true);
 		setResult(null);
+		setError(null);
 		try {
 			const jobResult = await runBackfillJob({ data: { jobName } });
 			setResult(jobResult);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : String(err));
 		} finally {
 			setIsRunning(false);
 		}
@@ -68,7 +72,16 @@ function BackfillJobRow({ jobName }: { jobName: string }) {
 				{result && (
 					<span className="text-sm text-muted-foreground">
 						{t("backfill.result", { count: result.processedCount })}
+						{result.remaining != null && result.remaining > 0 && (
+							<>
+								{" · "}
+								{t("backfill.remaining", { count: result.remaining })}
+							</>
+						)}
 					</span>
+				)}
+				{error && (
+					<span className="text-sm text-destructive">{error}</span>
 				)}
 			</div>
 		</div>

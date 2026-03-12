@@ -4,7 +4,28 @@
       "Bash(docker exec media_tracker-postgres-1 psql -U media_tracker -d media_tracker -c \":*)",
       "Bash(docker exec media_tracker-postgres-1 psql -U media_tracker -d media_tracker -c \"SELECT oid, enumsortorder, enumlabel FROM pg_enum WHERE enumtypid = \\(SELECT oid FROM pg_type WHERE typname = ''media_type''\\) ORDER BY enumsortorder;\")",
       "Bash(npm install:*)",
-      "Bash(npx biome:*)"
+      "Bash(npx biome:*)",
+      "Bash(find /home/nathan/Development/TanstackStart/media_tracker/src/routes/_authenticated -type f -name *.tsx)",
+      "WebFetch(domain:api-docs.igdb.com)",
+      "WebSearch",
+      "WebFetch(domain:podcastindex-org.github.io)",
+      "Bash(grep -v \"ExperimentalWarning\\\\|CommonJS\\\\|require\\(\\)\\\\|Use \\\\`node\")",
+      "WebFetch(domain:developer.themoviedb.org)",
+      "WebFetch(domain:affiliate.itunes.apple.com)",
+      "WebFetch(domain:podcastindex.org)",
+      "WebFetch(domain:www.themoviedb.org)",
+      "WebFetch(domain:community.hardcover.app)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:developers.themoviedb.org)",
+      "WebFetch(domain:api.podcastindex.org)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:blog.hardcover.app)",
+      "WebFetch(domain:nationalpodcastday.com)",
+      "WebFetch(domain:help.apple.com)",
+      "WebFetch(domain:developers.podcastindex.org)",
+      "WebFetch(domain:webcache.googleusercontent.com)",
+      "WebFetch(domain:forum.hardcover.app)",
+      "Bash(psql $DATABASE_URL -c \"DELETE FROM creators;\")"
     ]
   }
 }

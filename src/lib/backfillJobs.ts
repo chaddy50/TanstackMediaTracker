@@ -17,4 +17,5 @@ export const BACKFILL_JOBS: BackfillJobInfo[] = [
 	{ name: "renameEmotionalImpact" },
 	{ name: "seriesRatings" },
 	{ name: "nextItemStatus" },
+	{ name: "creators" },
 ];

@@ -60,6 +60,9 @@ export function useFilterAndSortFormState(
 	const [selectedTags, setSelectedTags] = useState<string[]>(
 		initialFilters.tags ?? [],
 	);
+	const [creatorQuery, setCreatorQuery] = useState(
+		initialFilters.creatorQuery ?? "",
+	);
 	const [sortBy, setSortBy] = useState<ItemSortField | SeriesSortField>(
 		initialFilters.sortBy ?? (initialSubject === "series" ? "name" : "series"),
 	);
@@ -131,6 +134,10 @@ export function useFilterAndSortFormState(
 			if (selectedTags.length > 0) {
 				filters.tags = selectedTags;
 			}
+
+			if (creatorQuery.trim() !== "") {
+				filters.creatorQuery = creatorQuery.trim();
+			}
 		}
 
 		if (subject === "series") {
@@ -166,6 +173,8 @@ export function useFilterAndSortFormState(
 		availableTags,
 		selectedTags,
 		onToggleTag: toggleTag,
+		creatorQuery,
+		onCreatorQueryChange: setCreatorQuery,
 	};
 
 	const sortingProps: SortingOptionsProps = {

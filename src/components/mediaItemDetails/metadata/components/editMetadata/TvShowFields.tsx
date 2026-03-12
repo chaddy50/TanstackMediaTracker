@@ -13,8 +13,6 @@ interface TvShowFieldsProps {
 export function TvShowFields({ rawMetadata, onChange }: TvShowFieldsProps) {
 	const { t } = useTranslation();
 	const [fields, setFields] = useState({
-		creator:
-			typeof rawMetadata.creator === "string" ? rawMetadata.creator : "",
 		seasons:
 			typeof rawMetadata.seasons === "number"
 				? String(rawMetadata.seasons)
@@ -28,7 +26,7 @@ export function TvShowFields({ rawMetadata, onChange }: TvShowFieldsProps) {
 		const updated = { ...fields, [key]: value };
 		setFields(updated);
 		onChange({
-			creator: updated.creator || undefined,
+			...rawMetadata,
 			seasons: updated.seasons ? parseInt(updated.seasons, 10) : undefined,
 			genres: parseArrayField(updated.genres),
 		});
@@ -36,13 +34,6 @@ export function TvShowFields({ rawMetadata, onChange }: TvShowFieldsProps) {
 
 	return (
 		<>
-			<FormField label={t("metadata.creator")}>
-				<Input
-					value={fields.creator}
-					onChange={(e) => updateField("creator", e.target.value)}
-				/>
-			</FormField>
-
 			<FormField label={t("metadata.seasons")}>
 				<Input
 					type="number"

@@ -13,8 +13,6 @@ interface PodcastFieldsProps {
 export function PodcastFields({ rawMetadata, onChange }: PodcastFieldsProps) {
 	const { t } = useTranslation();
 	const [fields, setFields] = useState({
-		creator:
-			typeof rawMetadata.creator === "string" ? rawMetadata.creator : "",
 		genres: Array.isArray(rawMetadata.genres)
 			? rawMetadata.genres.join(", ")
 			: "",
@@ -25,20 +23,12 @@ export function PodcastFields({ rawMetadata, onChange }: PodcastFieldsProps) {
 		setFields(updated);
 		onChange({
 			...rawMetadata,
-			creator: updated.creator || undefined,
 			genres: parseArrayField(updated.genres),
 		});
 	}
 
 	return (
 		<>
-			<FormField label={t("metadata.creator")}>
-				<Input
-					value={fields.creator}
-					onChange={(e) => updateField("creator", e.target.value)}
-				/>
-			</FormField>
-
 			<FormField label={t("metadata.genres")}>
 				<Input
 					value={fields.genres}

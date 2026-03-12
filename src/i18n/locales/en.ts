@@ -186,6 +186,8 @@ export const en = {
 		running: "Running...",
 		result_one: "Updated {{count}} item",
 		result_other: "Updated {{count}} items",
+		remaining_one: "{{count}} creator remaining — run again to continue",
+		remaining_other: "{{count}} creators remaining — run again to continue",
 		timeToComplete: {
 			label: "Time to Complete",
 			description:
@@ -205,6 +207,11 @@ export const en = {
 			label: "Backfill Next Item Status",
 			description:
 				"Set the next item status for in-progress series: 'Waiting for Release' if the series is waiting, or 'Purchased'/'Available' based on whether you own the next installment.",
+		},
+		creators: {
+			label: "Backfill Creator Entities",
+			description:
+				"Create creator records from your existing library items and link them together.",
 		},
 	},
 	settings: {
@@ -273,6 +280,8 @@ export const en = {
 				incomplete: "Incomplete",
 			},
 			tags: "Tags",
+			creatorFilter: "Creator",
+			creatorFilterPlaceholder: "Filter by creator name...",
 			filtersSection: "Filters",
 			sortingSection: "Sorting",
 			saving: "Saving...",
@@ -284,7 +293,7 @@ export const en = {
 				completedAt: "Completed date",
 				name: "Name",
 				itemCount: "Item count",
-				author: "Author",
+				creator: "Creator",
 				series: "Series",
 				status: "Status",
 				director: "Director",
@@ -343,5 +352,14 @@ export const en = {
 		noSeries: "No series",
 		createNewSeries: "Create new series...",
 		newSeriesName: "New series name",
+		noCreator: "No creator",
+		createNewCreator: "Create new creator...",
+		newCreatorName: "New creator name",
+	},
+	creatorDetails: {
+		items: "Works",
+		edit: "Edit Creator",
+		delete: "Delete Creator",
+		biography: "Biography",
 	},
 } as const;

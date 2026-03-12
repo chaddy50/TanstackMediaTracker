@@ -13,6 +13,10 @@ type IgdbGame = {
 	first_release_date?: number; // Unix timestamp
 	genres?: { name: string }[];
 	collections?: { name: string }[];
+	involved_companies?: Array<{
+		developer: boolean;
+		company: { name: string; description?: string };
+	}>;
 };
 
 type IgdbTimeToBeat = {
@@ -126,13 +130,54 @@ export async function fetchTimesToBeat(
 	return timesToBeatByGameId;
 }
 
+export async function fetchGameDeveloper(
+	gameId: string,
+): Promise<{ developer: string; developerBio: string | null } | null> {
+	const clientId = process.env.IGDB_CLIENT_ID;
+	if (!clientId) {
+		return null;
+	}
+
+	try {
+		const accessToken = await getAccessToken();
+		const body = `fields involved_companies.developer,involved_companies.company.name,involved_companies.company.description; where id = ${gameId};`;
+		const result = await fetch("https://api.igdb.com/v4/games", {
+			method: "POST",
+			headers: {
+				"Client-ID": clientId,
+				Authorization: `Bearer ${accessToken}`,
+				"Content-Type": "text/plain",
+			},
+			body,
+		});
+		if (!result.ok) {
+			return null;
+		}
+		const games: IgdbGame[] = await result.json();
+		const game = games[0];
+		if (!game) {
+			return null;
+		}
+		const developerCompany = game.involved_companies?.find((c) => c.developer);
+		if (!developerCompany) {
+			return null;
+		}
+		return {
+			developer: developerCompany.company.name,
+			developerBio: developerCompany.company.description ?? null,
+		};
+	} catch {
+		return null;
+	}
+}
+
 export async function search(query: string): Promise<ExternalSearchResult[]> {
 	const clientId = process.env.IGDB_CLIENT_ID;
 	if (!clientId) throw new Error("IGDB_CLIENT_ID is not set");
 
 	const accessToken = await getAccessToken();
 
-	const body = `fields name,cover.url,first_release_date,summary,genres.name,collections.name; search "${query.replace(/"/g, "")}"; limit 10;`;
+	const body = `fields name,cover.url,first_release_date,summary,genres.name,collections.name,involved_companies.developer,involved_companies.company.name,involved_companies.company.description; search "${query.replace(/"/g, "")}"; limit 10;`;
 
 	const result = await fetch("https://api.igdb.com/v4/games", {
 		method: "POST",
@@ -165,10 +210,15 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		releaseDate: game.first_release_date
 			? new Date(game.first_release_date * 1000).toISOString().split("T")[0]
 			: undefined,
-		metadata: {
-			genres: game.genres?.map((g) => g.name),
-			...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
-			...(timesToBeatByGameId.get(game.id) ?? {}),
-		},
+		metadata: (() => {
+			const developerCompany = game.involved_companies?.find((c) => c.developer);
+			return {
+				genres: game.genres?.map((g) => g.name),
+				...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
+				...(developerCompany ? { developer: developerCompany.company.name } : {}),
+				...(developerCompany?.company.description ? { developerBio: developerCompany.company.description } : {}),
+				...(timesToBeatByGameId.get(game.id) ?? {}),
+			};
+		})(),
 	}));
 }

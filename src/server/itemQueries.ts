@@ -1,5 +1,6 @@
 import { db } from "#/db/index";
 import {
+	creators,
 	type FilterAndSortOptions,
 	type ItemSortField,
 	mediaItemInstances,
@@ -105,9 +106,20 @@ export async function queryItemResults(
 					sql`${mediaItemMetadata.metadata}->>'series' ILIKE ${`%${filters.titleQuery}%`}`,
 				)
 			: undefined,
+		filters.creatorQuery
+			? or(
+					ilike(creators.name, `%${filters.creatorQuery}%`),
+					sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItemMetadata.metadata}->>'director' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItemMetadata.metadata}->>'creator' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItemMetadata.metadata}->>'developer' ILIKE ${`%${filters.creatorQuery}%`}`,
+				)
+			: undefined,
 	].filter((c) => c !== undefined);
 
-	const sortBy = (filters.sortBy as ItemSortField | undefined) ?? "series";
+	// Handle legacy "author" value from saved views created before rename to "creator"
+	const rawSortBy = (filters.sortBy as string) === "author" ? "creator" : filters.sortBy;
+	const sortBy = (rawSortBy as ItemSortField | undefined) ?? "series";
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
 	// Secondary tiebreakers: series name → book number → release date → firstPublishedAt → title.
@@ -131,10 +143,12 @@ export async function queryItemResults(
 				return [dir(mediaItems.updatedAt), ...bySeriesThenTitle];
 			case "status":
 				return [dir(mediaItems.statusSortOrder), ...bySeriesThenTitle];
-			case "author":
-				return sortDirection === "asc"
-					? [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') ASC NULLS LAST`, ...bySeriesThenTitle]
-					: [sql`REGEXP_REPLACE(${mediaItemMetadata.metadata}->>'author', '^.* ', '') DESC NULLS LAST`, ...bySeriesThenTitle];
+			case "creator":
+			// Fall back to JSONB fields for items not yet linked to a creator entity
+			// biome-ignore format: long SQL expression
+			return sortDirection === "asc"
+				? [sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItemMetadata.metadata}->>'author', ${mediaItemMetadata.metadata}->>'director', ${mediaItemMetadata.metadata}->>'creator', ${mediaItemMetadata.metadata}->>'developer'), '^.* ', '')) ASC NULLS LAST`, ...bySeriesThenTitle]
+				: [sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItemMetadata.metadata}->>'author', ${mediaItemMetadata.metadata}->>'director', ${mediaItemMetadata.metadata}->>'creator', ${mediaItemMetadata.metadata}->>'developer'), '^.* ', '')) DESC NULLS LAST`, ...bySeriesThenTitle];
 			case "director":
 				return sortDirection === "asc"
 					? [sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`, ...bySeriesThenTitle]
@@ -191,6 +205,8 @@ export async function queryItemResults(
 			coverImageUrl: mediaItemMetadata.coverImageUrl,
 			seriesId: mediaItems.seriesId,
 			seriesName: series.name,
+			creatorId: mediaItems.creatorId,
+			creatorName: creators.name,
 			latestRating: sql<string | null>`latest_instance.latest_rating`,
 			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
 		})
@@ -200,6 +216,7 @@ export async function queryItemResults(
 			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 		.leftJoin(lateralLatestInstance, sql`true`)
 		.where(and(...conditions))
 		.orderBy(...sortClauses)

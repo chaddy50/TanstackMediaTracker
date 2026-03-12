@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { MediaItemType } from "#/lib/enums";
 import { formatHours, formatMinutes } from "#/lib/utils";
+import { CreatorLink } from "#/components/common/CreatorLink";
 import { SeriesLink } from "#/components/common/SeriesLink";
 import type { MediaItemDetails } from "#/server/mediaItem";
 
@@ -12,6 +13,8 @@ export function MetadataList({
 	releaseDate,
 	seriesId,
 	seriesName,
+	creatorId,
+	creatorName,
 	tags = [],
 }: {
 	type: MediaItemDetails["type"];
@@ -19,6 +22,8 @@ export function MetadataList({
 	releaseDate: MediaItemDetails["releaseDate"];
 	seriesId?: number | null;
 	seriesName?: string | null;
+	creatorId?: number | null;
+	creatorName?: string | null;
 	tags?: string[];
 }) {
 	const { t } = useTranslation();
@@ -26,6 +31,7 @@ export function MetadataList({
 		label: string;
 		value: string;
 		shouldSeriesNameBeLink?: boolean;
+		shouldCreatorBeLink?: boolean;
 	}> = [];
 
 	if (releaseDate) {
@@ -40,7 +46,7 @@ export function MetadataList({
 		switch (type) {
 			case MediaItemType.BOOK:
 				if (typeof m.author === "string")
-					fields.push({ label: t("metadata.author"), value: m.author });
+					fields.push({ label: t("metadata.author"), value: m.author, shouldCreatorBeLink: !!creatorId });
 				if (seriesName) {
 					const seriesLabel =
 						typeof m.seriesBookNumber === "string"
@@ -80,7 +86,7 @@ export function MetadataList({
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.director === "string")
-					fields.push({ label: t("metadata.director"), value: m.director });
+					fields.push({ label: t("metadata.director"), value: m.director, shouldCreatorBeLink: !!creatorId });
 				if (typeof m.runtime === "number")
 					fields.push({
 						label: t("metadata.runtime"),
@@ -100,7 +106,7 @@ export function MetadataList({
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.creator === "string")
-					fields.push({ label: t("metadata.creator"), value: m.creator });
+					fields.push({ label: t("metadata.creator"), value: m.creator, shouldCreatorBeLink: !!creatorId });
 				if (typeof m.seasons === "number")
 					fields.push({ label: t("metadata.seasons"), value: `${m.seasons}` });
 				if (
@@ -131,7 +137,7 @@ export function MetadataList({
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.developer === "string")
-					fields.push({ label: t("metadata.developer"), value: m.developer });
+					fields.push({ label: t("metadata.developer"), value: m.developer, shouldCreatorBeLink: !!creatorId });
 				if (Array.isArray(m.platforms) && m.platforms.length)
 					fields.push({
 						label: t("metadata.platforms"),
@@ -166,7 +172,7 @@ export function MetadataList({
 						shouldSeriesNameBeLink: !!seriesId,
 					});
 				if (typeof m.creator === "string")
-					fields.push({ label: t("metadata.creator"), value: m.creator });
+					fields.push({ label: t("metadata.creator"), value: m.creator, shouldCreatorBeLink: !!creatorId });
 				if (Array.isArray(m.episodeTitles) && m.episodeTitles.length) {
 					fields.push({
 						label: t("podcast.episodes"),
@@ -194,7 +200,7 @@ export function MetadataList({
 
 	return (
 		<div className="flex flex-col gap-1.5 text-sm">
-			{fields.map(({ label, value, shouldSeriesNameBeLink }) => (
+			{fields.map(({ label, value, shouldSeriesNameBeLink, shouldCreatorBeLink }) => (
 				<Fragment key={label}>
 					<div className="flex gap-3">
 						<span className="text-muted-foreground w-28 shrink-0">
@@ -202,6 +208,8 @@ export function MetadataList({
 						</span>
 						{shouldSeriesNameBeLink ? (
 							<SeriesLink seriesId={seriesId} seriesName={value} />
+						) : shouldCreatorBeLink ? (
+							<CreatorLink creatorId={creatorId} creatorName={creatorName ?? value} />
 						) : (
 							<span className="text-foreground">{value}</span>
 						)}

@@ -33,6 +33,7 @@ export const filterAndSortOptionsSchema = z.object({
 	sortBy: z.enum([...ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
 	sortDirection: z.enum(["asc", "desc"]).optional(),
 	titleQuery: z.string().optional(),
+	creatorQuery: z.string().optional(),
 });
 
 const createViewSchema = z.object({
