@@ -49,5 +49,12 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 			return runNextItemStatusBackfill(user.id);
 		}
 
-		throw new Error(`Unknown backfill job: ${data.jobName}`);
+		if (data.jobName === "creators") {
+		const { runCreatorsBackfillJob } = await import(
+			"#/server/backfillJobs/creators"
+		);
+		return runCreatorsBackfillJob(user.id);
+	}
+
+	throw new Error(`Unknown backfill job: ${data.jobName}`);
 	});

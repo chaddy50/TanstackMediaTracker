@@ -106,6 +106,30 @@ function parseEpisodeNumber(value: string | undefined): number | undefined {
 	return Number.isNaN(number) ? undefined : number;
 }
 
+export async function fetchPodcastChannelInfo(
+	feedUrl: string,
+): Promise<{ description: string | null } | null> {
+	try {
+		const response = await fetch(feedUrl);
+		if (!response.ok) return null;
+
+		const xml = await response.text();
+
+		// Extract the channel block (everything before the first <item>)
+		const channelEndIndex = xml.indexOf("<item");
+		const channelXml = channelEndIndex > -1 ? xml.slice(0, channelEndIndex) : xml;
+
+		const description =
+			extractTagContent(channelXml, "itunes:summary") ??
+			extractTagContent(channelXml, "description") ??
+			null;
+
+		return { description };
+	} catch {
+		return null;
+	}
+}
+
 export async function fetchPodcastEpisodes(feedUrl: string): Promise<PodcastEpisode[]> {
 	const response = await fetch(feedUrl);
 	if (!response.ok) return [];

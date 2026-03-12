@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { PurchasedBadge } from "./PurchasedBadge";
 import { RatingStars } from "./rating/RatingStars";
-import { SeriesLink } from "./SeriesLink";
 import { StatusBadge } from "./StatusBadge";
 import { TypeBadge } from "./TypeBadge";
 
@@ -64,12 +63,9 @@ export function MediaCard({
 					{mediaItem.title}
 				</p>
 
-				{mediaItem.seriesId && (
+				{mediaItem.seriesName && (
 					<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
-						<SeriesLink
-							seriesId={mediaItem.seriesId}
-							seriesName={mediaItem.seriesName}
-						/>
+						{mediaItem.seriesName}
 					</p>
 				)}
 

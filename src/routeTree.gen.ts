@@ -18,6 +18,7 @@ import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticat
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedSeriesSeriesIdRouteImport } from './routes/_authenticated/series.$seriesId'
 import { Route as AuthenticatedMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/mediaItemDetails.$mediaItemId'
+import { Route as AuthenticatedCreatorCreatorIdRouteImport } from './routes/_authenticated/creator.$creatorId'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/_app/settings'
 import { Route as AuthenticatedAppSeriesRouteImport } from './routes/_authenticated/_app/series'
 import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/_app/library'
@@ -68,6 +69,12 @@ const AuthenticatedMediaItemDetailsMediaItemIdRoute =
     path: '/mediaItemDetails/$mediaItemId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedCreatorCreatorIdRoute =
+  AuthenticatedCreatorCreatorIdRouteImport.update({
+    id: '/creator/$creatorId',
+    path: '/creator/$creatorId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppSettingsRoute =
   AuthenticatedAppSettingsRouteImport.update({
     id: '/settings',
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof AuthenticatedAppLibraryRoute
   '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
+  '/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -112,6 +120,7 @@ export interface FileRoutesByTo {
   '/library': typeof AuthenticatedAppLibraryRoute
   '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
+  '/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
   '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -127,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/_app/library': typeof AuthenticatedAppLibraryRoute
   '/_authenticated/_app/series': typeof AuthenticatedAppSeriesRoute
   '/_authenticated/_app/settings': typeof AuthenticatedAppSettingsRoute
+  '/_authenticated/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
   '/_authenticated/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   '/_authenticated/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/series'
     | '/settings'
+    | '/creator/$creatorId'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/api/auth/$'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/series'
     | '/settings'
+    | '/creator/$creatorId'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
     | '/api/auth/$'
@@ -170,6 +182,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/library'
     | '/_authenticated/_app/series'
     | '/_authenticated/_app/settings'
+    | '/_authenticated/creator/$creatorId'
     | '/_authenticated/mediaItemDetails/$mediaItemId'
     | '/_authenticated/series/$seriesId'
     | '/api/auth/$'
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/creator/$creatorId': {
+      id: '/_authenticated/creator/$creatorId'
+      path: '/creator/$creatorId'
+      fullPath: '/creator/$creatorId'
+      preLoaderRoute: typeof AuthenticatedCreatorCreatorIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/_app/settings': {
       id: '/_authenticated/_app/settings'
       path: '/settings'
@@ -302,12 +322,14 @@ const AuthenticatedAppRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
+  AuthenticatedCreatorCreatorIdRoute: typeof AuthenticatedCreatorCreatorIdRoute
   AuthenticatedMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   AuthenticatedSeriesSeriesIdRoute: typeof AuthenticatedSeriesSeriesIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
+  AuthenticatedCreatorCreatorIdRoute: AuthenticatedCreatorCreatorIdRoute,
   AuthenticatedMediaItemDetailsMediaItemIdRoute:
     AuthenticatedMediaItemDetailsMediaItemIdRoute,
   AuthenticatedSeriesSeriesIdRoute: AuthenticatedSeriesSeriesIdRoute,

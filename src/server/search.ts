@@ -16,6 +16,7 @@ import * as tmdb from "#/lib/api/tmdb";
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
+import { findOrCreateCreator } from "#/server/creatorsInternal";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
@@ -219,6 +220,17 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 			seriesId = newSeries.id;
 		}
 
+		// Find or create a creator for this podcast arc
+		let arcCreatorId: number | null = null;
+		if (data.arcMetadata.creator) {
+			let biography: string | null = null;
+			if (data.arcMetadata.feedUrl) {
+				const channelInfo = await itunes.fetchPodcastChannelInfo(data.arcMetadata.feedUrl);
+				biography = channelInfo?.description ?? null;
+			}
+			arcCreatorId = await findOrCreateCreator(data.arcMetadata.creator, user.id, biography);
+		}
+
 		// Podcast arcs have no external ID — each is a custom entry
 		const [insertedMetadata] = await db
 			.insert(mediaItemMetadata)
@@ -243,6 +255,7 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 				mediaItemMetadataId: insertedMetadata.id,
 				status: data.status as MediaItemStatus,
 				seriesId,
+				creatorId: arcCreatorId,
 			})
 			.returning({ id: mediaItems.id });
 
@@ -388,9 +401,46 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			}
 		}
 
+		// Find or create a creator entity for this item
+		const creatorNameRaw = (metadata as Record<string, unknown>);
+		let creatorName: string | null = null;
+		if (data.type === MediaItemType.BOOK) {
+			creatorName = typeof creatorNameRaw.author === "string" ? creatorNameRaw.author : null;
+		} else if (data.type === MediaItemType.MOVIE) {
+			creatorName = typeof creatorNameRaw.director === "string" ? creatorNameRaw.director : null;
+		} else if (data.type === MediaItemType.TV_SHOW || data.type === MediaItemType.PODCAST) {
+			creatorName = typeof creatorNameRaw.creator === "string" ? creatorNameRaw.creator : null;
+		} else if (data.type === MediaItemType.VIDEO_GAME) {
+			creatorName = typeof creatorNameRaw.developer === "string" ? creatorNameRaw.developer : null;
+		}
+
+		let creatorId: number | null = null;
+		if (creatorName) {
+			// Resolve biography based on source/type
+			let biography: string | null = null;
+			if (data.externalSource === "hardcover") {
+				const bioResult = await hardcover.fetchCreatorBio(creatorName);
+				biography = bioResult?.biography ?? null;
+			} else if (data.externalSource === "tmdb") {
+				const bioResult = await tmdb.fetchCreatorBio(creatorName);
+				biography = bioResult?.biography ?? null;
+			} else if (data.externalSource === "igdb") {
+				biography = typeof creatorNameRaw.developerBio === "string" ? creatorNameRaw.developerBio : null;
+			} else if (data.externalSource === "itunes" && typeof creatorNameRaw.feedUrl === "string") {
+				const channelInfo = await itunes.fetchPodcastChannelInfo(creatorNameRaw.feedUrl);
+				biography = channelInfo?.description ?? null;
+			}
+			creatorId = await findOrCreateCreator(creatorName, user.id, biography);
+		}
+
+		// Strip transient developerBio from game metadata before it's persisted
+		if (data.type === MediaItemType.VIDEO_GAME && typeof creatorNameRaw.developerBio === "string") {
+			delete (metadata as Record<string, unknown>).developerBio;
+		}
+
 		// Check if this user already has a mediaItems row for this metadata
 		const [existingItem] = await db
-			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
+			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId, creatorId: mediaItems.creatorId })
 			.from(mediaItems)
 			.where(
 				and(
@@ -400,11 +450,18 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			);
 
 		if (existingItem) {
-			// Backfill seriesId if the item was added before series support
+			// Backfill seriesId and creatorId if the item was added before those were supported
+			const updates: Record<string, unknown> = {};
 			if (seriesId && !existingItem.seriesId) {
+				updates.seriesId = seriesId;
+			}
+			if (creatorId && !existingItem.creatorId) {
+				updates.creatorId = creatorId;
+			}
+			if (Object.keys(updates).length > 0) {
 				await db
 					.update(mediaItems)
-					.set({ seriesId })
+					.set(updates)
 					.where(eq(mediaItems.id, existingItem.id));
 			}
 			return { mediaItemId: existingItem.id };
@@ -418,6 +475,7 @@ export const addToLibrary = createServerFn({ method: "POST" })
 				mediaItemMetadataId: metadataId,
 				status: MediaItemStatus.BACKLOG,
 				seriesId,
+				creatorId,
 			})
 			.returning({ id: mediaItems.id });
 

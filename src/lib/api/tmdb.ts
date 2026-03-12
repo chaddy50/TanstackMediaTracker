@@ -89,25 +89,35 @@ async function searchTvShows(query: string): Promise<ExternalSearchResult[]> {
 type TmdbMovieDetails = {
 	belongs_to_collection?: { name: string } | null;
 	runtime?: number | null;
+	credits?: {
+		crew: Array<{ job: string; name: string }>;
+	};
 };
 
 export async function fetchMovieDetails(
 	movieId: string,
-): Promise<{ series?: string; runtime?: number }> {
+): Promise<{ series?: string; runtime?: number; director?: string }> {
 	try {
-		const params = new URLSearchParams({ api_key: getApiKey() });
+		const params = new URLSearchParams({
+			api_key: getApiKey(),
+			append_to_response: "credits",
+		});
 		const res = await fetch(
 			`https://api.themoviedb.org/3/movie/${movieId}?${params.toString()}`,
 		);
 		if (!res.ok) return {};
 
 		const data: TmdbMovieDetails = await res.json();
-		const result: { series?: string; runtime?: number } = {};
+		const result: { series?: string; runtime?: number; director?: string } = {};
 		if (data.belongs_to_collection?.name) {
 			result.series = data.belongs_to_collection.name;
 		}
 		if (typeof data.runtime === "number" && data.runtime > 0) {
 			result.runtime = data.runtime;
+		}
+		const director = data.credits?.crew.find((c) => c.job === "Director");
+		if (director) {
+			result.director = director.name;
 		}
 		return result;
 	} catch {
@@ -159,6 +169,45 @@ export async function fetchTvShowDetails(
 		return result;
 	} catch {
 		return {};
+	}
+}
+
+type TmdbPersonSearchResult = {
+	id: number;
+};
+
+type TmdbPersonDetails = {
+	biography?: string | null;
+};
+
+export async function fetchCreatorBio(
+	name: string,
+): Promise<{ biography: string | null } | null> {
+	try {
+		const searchParams = new URLSearchParams({
+			query: name,
+			api_key: getApiKey(),
+			language: "en-US",
+		});
+		const searchRes = await fetch(
+			`https://api.themoviedb.org/3/search/person?${searchParams.toString()}`,
+		);
+		if (!searchRes.ok) return null;
+
+		const searchData: TmdbResponse<TmdbPersonSearchResult> = await searchRes.json();
+		const firstResult = searchData.results[0];
+		if (!firstResult) return null;
+
+		const detailParams = new URLSearchParams({ api_key: getApiKey() });
+		const detailRes = await fetch(
+			`https://api.themoviedb.org/3/person/${firstResult.id}?${detailParams.toString()}`,
+		);
+		if (!detailRes.ok) return null;
+
+		const detailData: TmdbPersonDetails = await detailRes.json();
+		return { biography: detailData.biography ?? null };
+	} catch {
+		return null;
 	}
 }
 

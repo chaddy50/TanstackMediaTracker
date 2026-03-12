@@ -15,6 +15,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { MediaItemType } from "#/lib/enums";
 import {
 	type MediaItemDetails,
+	updateMediaItemCreator,
 	updateMediaItemMetadata,
 	updateMediaItemSeries,
 } from "#/server/mediaItem";
@@ -25,6 +26,7 @@ import { GameFields } from "./editMetadata/GameFields";
 import { MovieFields } from "./editMetadata/MovieFields";
 import { PodcastFields } from "./editMetadata/PodcastFields";
 import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
+import { CreatorField, type CreatorFieldValue } from "./editMetadata/CreatorField";
 import { TvShowFields } from "./editMetadata/TvShowFields";
 import { TagsEditor } from "./TagsEditor";
 
@@ -74,13 +76,20 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			? { mode: "existing", seriesId: mediaItemDetails.seriesId }
 			: { mode: "none" },
 	);
+	const [creatorFieldValue, setCreatorFieldValue] = useState<CreatorFieldValue>(
+		mediaItemDetails.creatorId !== null &&
+			mediaItemDetails.creatorId !== undefined
+			? { mode: "existing", creatorId: mediaItemDetails.creatorId }
+			: { mode: "none" },
+	);
 	const [pendingTags, setPendingTags] = useState<string[]>(
 		mediaItemDetails.tags,
 	);
 
 	const isSaveDisabled =
 		isSaving ||
-		(seriesFieldValue.mode === "new" && seriesFieldValue.name.trim() === "");
+		(seriesFieldValue.mode === "new" && seriesFieldValue.name.trim() === "") ||
+		(creatorFieldValue.mode === "new" && creatorFieldValue.name.trim() === "");
 
 	async function handleSave() {
 		setIsSaving(true);
@@ -109,6 +118,22 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					newSeriesName:
 						seriesFieldValue.mode === "new"
 							? seriesFieldValue.name.trim()
+							: undefined,
+				},
+			});
+
+			await updateMediaItemCreator({
+				data: {
+					mediaItemId: mediaItemDetails.id,
+					metadataId: mediaItemDetails.metadataId,
+					type: mediaItemDetails.type,
+					creatorId:
+						creatorFieldValue.mode === "existing"
+							? creatorFieldValue.creatorId
+							: null,
+					newCreatorName:
+						creatorFieldValue.mode === "new"
+							? creatorFieldValue.name.trim()
 							: undefined,
 				},
 			});
@@ -180,6 +205,20 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							type={mediaItemDetails.type}
 							initialSeriesId={mediaItemDetails.seriesId ?? null}
 							onChange={setSeriesFieldValue}
+						/>
+
+						<CreatorField
+							label={
+								mediaItemDetails.type === MediaItemType.BOOK
+									? t("metadata.author")
+									: mediaItemDetails.type === MediaItemType.MOVIE
+										? t("metadata.director")
+										: mediaItemDetails.type === MediaItemType.VIDEO_GAME
+											? t("metadata.developer")
+											: t("metadata.creator")
+							}
+							initialCreatorId={mediaItemDetails.creatorId ?? null}
+							onChange={setCreatorFieldValue}
 						/>
 
 						{mediaItemDetails.type === MediaItemType.BOOK && (

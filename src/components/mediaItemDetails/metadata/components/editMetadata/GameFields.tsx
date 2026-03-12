@@ -13,8 +13,6 @@ interface GameFieldsProps {
 export function GameFields({ rawMetadata, onChange }: GameFieldsProps) {
 	const { t } = useTranslation();
 	const [fields, setFields] = useState({
-		developer:
-			typeof rawMetadata.developer === "string" ? rawMetadata.developer : "",
 		platforms: Array.isArray(rawMetadata.platforms)
 			? rawMetadata.platforms.join(", ")
 			: "",
@@ -27,7 +25,7 @@ export function GameFields({ rawMetadata, onChange }: GameFieldsProps) {
 		const updated = { ...fields, [key]: value };
 		setFields(updated);
 		onChange({
-			developer: updated.developer || undefined,
+			...rawMetadata,
 			platforms: parseArrayField(updated.platforms),
 			genres: parseArrayField(updated.genres),
 		});
@@ -35,13 +33,6 @@ export function GameFields({ rawMetadata, onChange }: GameFieldsProps) {
 
 	return (
 		<>
-			<FormField label={t("metadata.developer")}>
-				<Input
-					value={fields.developer}
-					onChange={(e) => updateField("developer", e.target.value)}
-				/>
-			</FormField>
-
 			<FormField label={t("metadata.platforms")}>
 				<Input
 					value={fields.platforms}

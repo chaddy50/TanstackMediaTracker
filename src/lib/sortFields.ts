@@ -2,7 +2,7 @@ import type { ItemSortField, SeriesSortField } from "#/db/schema";
 
 export const ITEM_SORT_FIELDS = [
 	"title",
-	"author",
+	"creator",
 	"series",
 	"director",
 	"status",

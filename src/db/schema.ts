@@ -101,7 +101,7 @@ export type ItemSortField =
 	| "title"
 	| "rating"
 	| "completedAt"
-	| "author"
+	| "creator"
 	| "series"
 	| "status"
 	| "director";
@@ -120,6 +120,7 @@ export type FilterAndSortOptions = {
 	sortBy?: ItemSortField | SeriesSortField;
 	sortDirection?: SortDirection;
 	titleQuery?: string;
+	creatorQuery?: string;
 };
 
 export type FictionRatingField = { rating: number; comment?: string };
@@ -259,6 +260,32 @@ export const series = pgTable("series", {
 });
 
 /**
+ * A named creator (e.g. "Brandon Sanderson", "Christopher Nolan").
+ * Covers book authors, movie directors, TV show creators, podcast hosts,
+ * and game studio developers. One row per user per unique name.
+ */
+export const creators = pgTable(
+	"creators",
+	{
+		id: serial("id").primaryKey(),
+		userId: text("user_id").notNull(),
+		name: text("name").notNull(),
+		biography: text("biography"),
+		sortName: text("sort_name").generatedAlwaysAs(
+			sql`REGEXP_REPLACE(name, '^.* ', '')`,
+		),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.notNull()
+			.$onUpdateFn(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("creators_userId_name_unique").on(table.userId, table.name),
+	],
+);
+
+/**
  * Stores media data fetched from external APIs (TMDB, IGDB, Open Library).
  * Acts as a local cache — once fetched, never fetched again.
  */
@@ -316,6 +343,9 @@ export const mediaItems = pgTable(
 			.notNull()
 			.references(() => mediaItemMetadata.id, { onDelete: "cascade" }),
 		seriesId: integer("series_id").references(() => series.id, {
+			onDelete: "set null",
+		}),
+		creatorId: integer("creator_id").references(() => creators.id, {
 			onDelete: "set null",
 		}),
 		status: mediaItemStatusEnum("status").notNull().default("backlog"),

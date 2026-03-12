@@ -54,9 +54,22 @@ const SERIES_INFO_QUERY = `
   }
 `;
 
+// Step 4: fetch author biography by name
+const CREATOR_BIO_QUERY = `
+  query CreatorBio($name: String!) {
+    authors(where: { name: { _eq: $name } }, limit: 1) {
+      bio
+    }
+  }
+`;
+
 type SeriesInfoResult = {
   description: string | null;
   is_completed: boolean | null;
+};
+
+type CreatorBioResult = {
+  bio: string | null;
 };
 
 type BookImage = {
@@ -116,6 +129,22 @@ export async function fetchSeriesInfo(
 		description: row.description ?? null,
 		isComplete: row.is_completed ?? false,
 	};
+}
+
+export async function fetchCreatorBio(
+	name: string,
+): Promise<{ biography: string | null } | null> {
+	const data = await gql<{ authors: CreatorBioResult[] }>(CREATOR_BIO_QUERY, {
+		name,
+	});
+	if (!data || data.authors.length === 0) {
+		return null;
+	}
+	const row = data.authors[0];
+	if (!row) {
+		return null;
+	}
+	return { biography: row.bio ?? null };
 }
 
 export async function search(query: string): Promise<ExternalSearchResult[]> {

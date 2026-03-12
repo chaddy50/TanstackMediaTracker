@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import {
+	creators,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItemStatusEnum,
@@ -125,6 +126,8 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				isPurchased: mediaItems.isPurchased,
 				seriesId: mediaItems.seriesId,
 				seriesName: series.name,
+				creatorId: mediaItems.creatorId,
+				creatorName: creators.name,
 				metadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,
@@ -139,6 +142,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				eq(mediaItemMetadata.id, mediaItems.mediaItemMetadataId),
 			)
 			.leftJoin(series, eq(mediaItems.seriesId, series.id))
+			.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 			.where(and(eq(mediaItems.id, id), eq(mediaItems.userId, user.id)));
 
 		if (!row) throw new Error(`Entry ${id} not found`);
@@ -485,6 +489,93 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 		}
 		if (resolvedSeriesId && resolvedSeriesId !== currentItem?.seriesId) {
 			await syncSeriesStatus(resolvedSeriesId, user.id);
+		}
+	});
+
+export const updateMediaItemCreator = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			mediaItemId: z.number(),
+			metadataId: z.number(),
+			type: z.enum(mediaTypeEnum.enumValues),
+			creatorId: z.number().nullable(),
+			newCreatorName: z.string().optional(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+
+		// Validate user owns the item
+		const [currentItem] = await db
+			.select({ id: mediaItems.id })
+			.from(mediaItems)
+			.where(
+				and(
+					eq(mediaItems.id, data.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
+		if (!currentItem) {
+			throw new Error("Unauthorized");
+		}
+
+		let resolvedCreatorId = data.creatorId;
+		let resolvedCreatorName: string | null = null;
+
+		if (data.newCreatorName) {
+			const [newCreator] = await db
+				.insert(creators)
+				.values({ name: data.newCreatorName, userId: user.id, biography: null })
+				.returning({ id: creators.id });
+			if (!newCreator) {
+				throw new Error("Failed to create creator");
+			}
+			resolvedCreatorId = newCreator.id;
+			resolvedCreatorName = data.newCreatorName;
+		} else if (data.creatorId !== null) {
+			const [existing] = await db
+				.select({ name: creators.name })
+				.from(creators)
+				.where(
+					and(eq(creators.id, data.creatorId), eq(creators.userId, user.id)),
+				);
+			resolvedCreatorName = existing?.name ?? null;
+		}
+
+		await db
+			.update(mediaItems)
+			.set({ creatorId: resolvedCreatorId })
+			.where(
+				and(
+					eq(mediaItems.id, data.mediaItemId),
+					eq(mediaItems.userId, user.id),
+				),
+			);
+
+		// Sync the JSONB metadata field to match the resolved creator name
+		const metadataKey =
+			data.type === "book"
+				? "author"
+				: data.type === "movie"
+					? "director"
+					: data.type === "video_game"
+						? "developer"
+						: "creator"; // tv_show and podcast
+
+		if (resolvedCreatorName) {
+			await db
+				.update(mediaItemMetadata)
+				.set({
+					metadata: sql`jsonb_set(coalesce(${mediaItemMetadata.metadata}, '{}'), ${sql.raw(`'{${metadataKey}}'`)}, ${JSON.stringify(resolvedCreatorName)}::jsonb)`,
+				})
+				.where(eq(mediaItemMetadata.id, data.metadataId));
+		} else {
+			await db
+				.update(mediaItemMetadata)
+				.set({
+					metadata: sql`${mediaItemMetadata.metadata} - ${metadataKey}`,
+				})
+				.where(eq(mediaItemMetadata.id, data.metadataId));
 		}
 	});
 

@@ -13,7 +13,6 @@ interface BookFieldsProps {
 export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 	const { t } = useTranslation();
 	const [fields, setFields] = useState({
-		author: typeof rawMetadata.author === "string" ? rawMetadata.author : "",
 		pageCount:
 			typeof rawMetadata.pageCount === "number"
 				? String(rawMetadata.pageCount)
@@ -31,7 +30,7 @@ export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 		const updated = { ...fields, [key]: value };
 		setFields(updated);
 		onChange({
-			author: updated.author || undefined,
+			...rawMetadata,
 			pageCount: updated.pageCount ? parseInt(updated.pageCount, 10) : undefined,
 			seriesBookNumber: updated.seriesBookNumber || undefined,
 			genres: parseArrayField(updated.genres),
@@ -40,13 +39,6 @@ export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 
 	return (
 		<>
-			<FormField label={t("metadata.author")}>
-				<Input
-					value={fields.author}
-					onChange={(e) => updateField("author", e.target.value)}
-				/>
-			</FormField>
-
 			<FormField label={t("metadata.seriesBookNumber")}>
 				<Input
 					value={fields.seriesBookNumber}

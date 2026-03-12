@@ -54,6 +54,8 @@ export interface FiltersProps {
 	availableTags: string[];
 	selectedTags: string[];
 	onToggleTag: (tag: string) => void;
+	creatorQuery: string;
+	onCreatorQueryChange: (query: string) => void;
 }
 
 export function Filters({
@@ -75,6 +77,8 @@ export function Filters({
 	availableTags,
 	selectedTags,
 	onToggleTag,
+	creatorQuery,
+	onCreatorQueryChange,
 }: FiltersProps) {
 	const { t } = useTranslation();
 	const statusOptions = subject === "items" ? ITEM_STATUSES : SERIES_STATUSES;
@@ -191,6 +195,15 @@ export function Filters({
 							</div>
 						</div>
 					)}
+
+					<div className="flex flex-col gap-1.5">
+						<Label>{t("views.form.creatorFilter")}</Label>
+						<Input
+							value={creatorQuery}
+							onChange={(e) => onCreatorQueryChange(e.target.value)}
+							placeholder={t("views.form.creatorFilterPlaceholder")}
+						/>
+					</div>
 				</>
 			)}
 
