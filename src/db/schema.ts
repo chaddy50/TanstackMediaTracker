@@ -15,7 +15,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { MediaItemStatus, MediaItemType, NextItemStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, NextItemStatus, PurchaseStatus } from "#/lib/enums";
 
 // --- Enums ---
 
@@ -41,6 +41,12 @@ export const nextItemStatusEnum = pgEnum("next_item_status", [
 	NextItemStatus.WAITING_FOR_RELEASE,
 	NextItemStatus.PURCHASED,
 	NextItemStatus.AVAILABLE,
+]);
+
+export const purchaseStatusEnum = pgEnum("purchase_status", [
+	PurchaseStatus.NOT_PURCHASED,
+	PurchaseStatus.WANT_TO_BUY,
+	PurchaseStatus.PURCHASED,
 ]);
 
 // --- Metadata types (typed at the TS level; JSONB is schemaless in Postgres) ---
@@ -111,7 +117,7 @@ export type SortDirection = "asc" | "desc";
 export type FilterAndSortOptions = {
 	mediaTypes?: MediaItemType[];
 	statuses?: MediaItemStatus[];
-	isPurchased?: boolean;
+	purchaseStatus?: PurchaseStatus;
 	completedThisYear?: boolean;
 	completedYearStart?: number;
 	completedYearEnd?: number;
@@ -369,7 +375,7 @@ export const mediaItems = pgTable(
 				ELSE 99
 			END`,
 		),
-		isPurchased: boolean("is_purchased").notNull().default(false),
+		purchaseStatus: purchaseStatusEnum("purchase_status").notNull().default("not_purchased"),
 		expectedReleaseDate: date("expected_release_date"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")

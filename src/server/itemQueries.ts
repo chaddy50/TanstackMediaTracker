@@ -80,8 +80,8 @@ export async function queryItemResults(
 		filters.statuses?.length
 			? inArray(mediaItems.status, filters.statuses)
 			: undefined,
-		filters.isPurchased !== undefined
-			? eq(mediaItems.isPurchased, filters.isPurchased)
+		filters.purchaseStatus !== undefined
+			? eq(mediaItems.purchaseStatus, filters.purchaseStatus)
 			: undefined,
 		buildCompletedYearCondition(filters),
 		filters.tags?.length
@@ -199,7 +199,7 @@ export async function queryItemResults(
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
-			isPurchased: mediaItems.isPurchased,
+			purchaseStatus: mediaItems.purchaseStatus,
 			expectedReleaseDate: mediaItems.expectedReleaseDate,
 			mediaItemId: mediaItemMetadata.id,
 			title: mediaItemMetadata.title,
@@ -320,12 +320,12 @@ export async function querySeriesResults(
 export async function getNextItemInSeries(
 	seriesId: number,
 	userId: string,
-): Promise<{ id: number; isPurchased: boolean } | null> {
+): Promise<{ id: number; purchaseStatus: string } | null> {
 	const items = await db
 		.select({
 			id: mediaItems.id,
 			status: mediaItems.status,
-			isPurchased: mediaItems.isPurchased,
+			purchaseStatus: mediaItems.purchaseStatus,
 		})
 		.from(mediaItems)
 		.innerJoin(mediaItemMetadata, eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id))

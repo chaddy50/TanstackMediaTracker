@@ -25,9 +25,10 @@ export const en = {
 		video_game: "Game",
 		podcast: "Podcast",
 	},
-	purchased: {
+	purchaseStatus: {
+		not_purchased: "Not Purchased",
+		want_to_buy: "Want to Buy",
 		purchased: "Purchased",
-		notPurchased: "Not Purchased",
 	},
 	nextItemStatus: {
 		label: "Next Item",
@@ -261,11 +262,12 @@ export const en = {
 			subject: "Show",
 			mediaTypes: "Media types",
 			statuses: "Statuses",
-			purchased: "Purchased",
+			purchased: "Purchase status",
 			purchasedOption: {
 				all: "All",
-				owned: "Owned",
-				"not-owned": "Not owned",
+				not_purchased: "Not purchased",
+				want_to_buy: "Want to buy",
+				purchased: "Purchased",
 			},
 			completionDate: "Finished",
 			completionDateOption: {

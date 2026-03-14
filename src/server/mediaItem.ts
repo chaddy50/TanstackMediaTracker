@@ -14,7 +14,7 @@ import {
 	series,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
+import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/lib/enums";
 import { getNextItemInSeries, syncSeriesStatus, transitionReleasedItems } from "#/server/itemQueries";
 import { getLoggedInUser } from "#/lib/session";
 
@@ -64,7 +64,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			.select({
 				id: mediaItems.id,
 				status: mediaItems.status,
-				isPurchased: mediaItems.isPurchased,
+				purchaseStatus: mediaItems.purchaseStatus,
 				expectedReleaseDate: mediaItems.expectedReleaseDate,
 				seriesId: mediaItems.seriesId,
 				seriesName: series.name,
@@ -521,14 +521,18 @@ export const updateMediaItemCreator = createServerFn({ method: "POST" })
 		}
 	});
 
-export const togglePurchased = createServerFn({ method: "POST" })
+export const setPurchaseStatus = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			mediaItemId: z.number(),
-			isPurchased: z.boolean(),
+			purchaseStatus: z.enum([
+				PurchaseStatus.NOT_PURCHASED,
+				PurchaseStatus.WANT_TO_BUY,
+				PurchaseStatus.PURCHASED,
+			]),
 		}),
 	)
-	.handler(async ({ data: { mediaItemId, isPurchased } }) => {
+	.handler(async ({ data: { mediaItemId, purchaseStatus } }) => {
 		const user = await getLoggedInUser();
 
 		const [item] = await db
@@ -538,7 +542,7 @@ export const togglePurchased = createServerFn({ method: "POST" })
 
 		await db
 			.update(mediaItems)
-			.set({ isPurchased })
+			.set({ purchaseStatus })
 			.where(and(eq(mediaItems.id, mediaItemId), eq(mediaItems.userId, user.id)));
 
 		if (item?.seriesId) {
@@ -547,7 +551,7 @@ export const togglePurchased = createServerFn({ method: "POST" })
 				await db
 					.update(series)
 					.set({
-						nextItemStatus: isPurchased
+						nextItemStatus: purchaseStatus === PurchaseStatus.PURCHASED
 							? NextItemStatus.PURCHASED
 							: NextItemStatus.AVAILABLE,
 					})

@@ -6,24 +6,23 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
+import type { PurchaseStatus } from "#/lib/enums";
 
 interface PurchasedBadgeProps {
-	isPurchased: boolean;
+	purchaseStatus: PurchaseStatus;
 	onClick?: () => void;
 }
 
-export function PurchasedBadge({ isPurchased, onClick }: PurchasedBadgeProps) {
+const COLOR_CLASSES: Record<PurchaseStatus, string> = {
+	not_purchased: "bg-gray-700 text-gray-400",
+	want_to_buy: "bg-amber-600 text-amber-100",
+	purchased: "bg-green-700 text-green-100",
+};
+
+export function PurchasedBadge({ purchaseStatus, onClick }: PurchasedBadgeProps) {
 	const { t } = useTranslation();
 
-	const colorClasses = isPurchased
-		? "bg-green-700 text-green-100"
-		: "bg-gray-700 text-gray-400";
-
-	const label = isPurchased
-		? t("purchased.purchased")
-		: t("purchased.notPurchased");
-
-	const commonClasses = `inline-flex items-center justify-center p-1.5 rounded-full transition-colors duration-300 ${colorClasses}`;
+	const commonClasses = `inline-flex items-center justify-center p-1.5 rounded-full transition-colors duration-300 ${COLOR_CLASSES[purchaseStatus]}`;
 
 	return (
 		<Tooltip>
@@ -38,7 +37,7 @@ export function PurchasedBadge({ isPurchased, onClick }: PurchasedBadgeProps) {
 					</span>
 				)}
 			</TooltipTrigger>
-			<TooltipContent>{label}</TooltipContent>
+			<TooltipContent>{t(`purchaseStatus.${purchaseStatus}`)}</TooltipContent>
 		</Tooltip>
 	);
 }

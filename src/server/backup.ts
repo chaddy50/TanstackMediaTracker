@@ -104,7 +104,7 @@ const mediaItemBackupSchema = z.object({
 	mediaItemMetadataId: z.number().int(),
 	seriesId: z.number().int().nullable(),
 	status: z.string(),
-	isPurchased: z.boolean(),
+	purchaseStatus: z.enum(["not_purchased", "want_to_buy", "purchased"]),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 });
@@ -227,7 +227,7 @@ export const importBackup = createServerFn({ method: "POST" })
 							? (seriesIdMap.get(itemRow.seriesId) ?? null)
 							: null,
 						status: itemRow.status as typeof mediaItems.$inferInsert.status,
-						isPurchased: itemRow.isPurchased,
+						purchaseStatus: itemRow.purchaseStatus,
 						createdAt: new Date(itemRow.createdAt),
 						updatedAt: new Date(itemRow.updatedAt),
 					})

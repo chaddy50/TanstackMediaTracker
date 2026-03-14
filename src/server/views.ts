@@ -6,6 +6,7 @@ import { db } from "#/db/index";
 import {
 	mediaItemStatusEnum,
 	mediaTypeEnum,
+	purchaseStatusEnum,
 	type FilterAndSortOptions,
 	type ViewSubject,
 	views,
@@ -24,7 +25,7 @@ import {
 export const filterAndSortOptionsSchema = z.object({
 	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
 	statuses: z.array(z.enum(mediaItemStatusEnum.enumValues)).optional(),
-	isPurchased: z.boolean().optional(),
+	purchaseStatus: z.enum(purchaseStatusEnum.enumValues).optional(),
 	completedThisYear: z.boolean().optional(),
 	completedYearStart: z.number().int().optional(),
 	completedYearEnd: z.number().int().optional(),

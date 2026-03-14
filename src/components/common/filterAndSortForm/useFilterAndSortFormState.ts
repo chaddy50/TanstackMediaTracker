@@ -28,11 +28,7 @@ export function useFilterAndSortFormState(
 		initialFilters.statuses ?? [],
 	);
 	const [purchasedFilter, setPurchasedFilter] = useState<PurchasedFilter>(
-		initialFilters.isPurchased === true
-			? "owned"
-			: initialFilters.isPurchased === false
-				? "not-owned"
-				: "all",
+		initialFilters.purchaseStatus ?? "all",
 	);
 	const [completionDateMode, setCompletionDateMode] =
 		useState<CompletionDateMode>(
@@ -112,10 +108,8 @@ export function useFilterAndSortFormState(
 		}
 
 		if (subject === "items") {
-			if (purchasedFilter === "owned") {
-				filters.isPurchased = true;
-			} else if (purchasedFilter === "not-owned") {
-				filters.isPurchased = false;
+			if (purchasedFilter !== "all") {
+				filters.purchaseStatus = purchasedFilter;
 			}
 
 			if (completionDateMode === "this-year") {
