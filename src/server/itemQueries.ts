@@ -276,11 +276,13 @@ export async function querySeriesResults(
 			? [dir(series.updatedAt)]
 			: sortBy === "status"
 				? [dir(series.statusSortOrder), asc(series.sortName)]
-				: sortBy === "rating"
-					? [sql`${series.rating} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
-					: sortBy === "itemCount"
-						? [sql`${itemCountSql} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
-						: [dir(series.sortName)];
+				: sortBy === "nextItemStatus"
+					? [sql`${series.nextItemStatusSortOrder} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+					: sortBy === "rating"
+						? [sql`${series.rating} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+						: sortBy === "itemCount"
+							? [sql`${itemCountSql} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+							: [dir(series.sortName)];
 
 	const rawRows = await db
 		.select({

@@ -105,7 +105,7 @@ export type ItemSortField =
 	| "series"
 	| "status"
 	| "director";
-export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount" | "status";
+export type SeriesSortField = "name" | "updatedAt" | "rating" | "itemCount" | "status" | "nextItemStatus";
 export type SortDirection = "asc" | "desc";
 
 export type FilterAndSortOptions = {
@@ -244,6 +244,14 @@ export const series = pgTable("series", {
 	description: text("description"),
 	isComplete: boolean("is_complete").notNull().default(false),
 	nextItemStatus: nextItemStatusEnum("next_item_status"),
+	nextItemStatusSortOrder: integer("next_item_status_sort_order").generatedAlwaysAs(
+		sql`CASE next_item_status
+			WHEN 'purchased' THEN 0
+			WHEN 'available' THEN 1
+			WHEN 'waiting_for_release' THEN 2
+			ELSE 99
+		END`,
+	),
 	sortName: text("sort_name").generatedAlwaysAs(
 		sql`CASE
 			WHEN LOWER(name) LIKE 'the %' THEN SUBSTRING(name FROM 5)

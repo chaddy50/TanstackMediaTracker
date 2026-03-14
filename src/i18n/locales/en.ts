@@ -298,6 +298,7 @@ export const en = {
 				creator: "Creator",
 				series: "Series",
 				status: "Status",
+				nextItemStatus: "Next item",
 				director: "Director",
 			},
 			sortDirection: "Order",
