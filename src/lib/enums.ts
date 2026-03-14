@@ -8,12 +8,8 @@ export const MediaItemStatus = {
 	DROPPED: "dropped",
 } as const;
 
-export type MediaItemStatus = (typeof MediaItemStatus)[keyof typeof MediaItemStatus];
-
-// Statuses that should only appear on series, not on individual media items
-export const SERIES_ONLY_STATUSES = new Set<string>([
-	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
-]);
+export type MediaItemStatus =
+	(typeof MediaItemStatus)[keyof typeof MediaItemStatus];
 
 export const NextItemStatus = {
 	WAITING_FOR_RELEASE: "waiting_for_release",
@@ -21,7 +17,8 @@ export const NextItemStatus = {
 	AVAILABLE: "available",
 } as const;
 
-export type NextItemStatus = (typeof NextItemStatus)[keyof typeof NextItemStatus];
+export type NextItemStatus =
+	(typeof NextItemStatus)[keyof typeof NextItemStatus];
 
 export const MediaItemType = {
 	BOOK: "book",

@@ -8,7 +8,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { mediaItemStatusEnum, nextItemStatusEnum } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 import {
 	type SeriesDetails,
@@ -45,7 +44,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 		await updateSeriesStatus({
 			data: {
 				seriesId: seriesDetails.id,
-				status: status as (typeof mediaItemStatusEnum.enumValues)[number],
+				status: status as MediaItemStatus,
 			},
 		});
 		router.invalidate();
@@ -58,7 +57,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				nextItemStatus:
 					value === "none"
 						? null
-						: (value as (typeof nextItemStatusEnum.enumValues)[number]),
+						: (value as NextItemStatus),
 			},
 		});
 		router.invalidate();
@@ -87,12 +86,16 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<span className="text-sm text-muted-foreground sm:w-24">
 					{t("series.columns.status")}
 				</span>
-				<Select value={seriesDetails.status} onValueChange={handleStatusChange} disabled={isStatusDerived}>
+				<Select
+					value={seriesDetails.status}
+					onValueChange={handleStatusChange}
+					disabled={isStatusDerived}
+				>
 					<SelectTrigger className="w-full sm:w-56">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						{mediaItemStatusEnum.enumValues.map((status) => (
+						{Object.values(MediaItemStatus).map((status) => (
 							<SelectItem key={status} value={status}>
 								{t(`status.${status}`)}
 							</SelectItem>
@@ -115,7 +118,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="none">—</SelectItem>
-							{nextItemStatusEnum.enumValues.map((status) => (
+							{Object.values(NextItemStatus).map((status) => (
 								<SelectItem key={status} value={status}>
 									{t(`nextItemStatus.${status}`)}
 								</SelectItem>

@@ -15,7 +15,7 @@ import {
 	tags,
 } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
-import { getNextItemInSeries } from "#/server/itemQueries";
+import { getNextItemInSeries, syncSeriesStatus, transitionReleasedItems } from "#/server/itemQueries";
 import { getLoggedInUser } from "#/lib/session";
 
 function inferStatusAfterInstanceEdit(
@@ -39,91 +39,33 @@ function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
 	return MediaItemStatus.BACKLOG;
 }
 
-async function syncSeriesStatus(
-	seriesId: number,
-	userId: string,
-	justCompleted = false,
-) {
-	const items = await db
-		.select({ status: mediaItems.status })
-		.from(mediaItems)
-		.where(
-			and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)),
-		);
 
-	if (items.length === 0) return;
-
-	const statuses = items.map((i) => i.status);
-	const allDone = statuses.every(
-		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
-	);
-
-	let newStatus: MediaItemStatus | null = null;
-	if (statuses.some((s) => s === MediaItemStatus.IN_PROGRESS)) {
-		newStatus = MediaItemStatus.IN_PROGRESS;
-	} else if (allDone) {
-		newStatus = MediaItemStatus.COMPLETED;
-	} else if (justCompleted) {
-		// An item was just completed in a series that still has items remaining —
-		// treat the series as actively in progress.
-		newStatus = MediaItemStatus.IN_PROGRESS;
-	}
-
-	if (newStatus === null) return;
-
-	let newRating: string | null = null;
-	if (newStatus === MediaItemStatus.COMPLETED) {
-		const latestRatings = await db
-			.selectDistinctOn([mediaItemInstances.mediaItemId], {
-				rating: mediaItemInstances.rating,
-			})
-			.from(mediaItemInstances)
-			.innerJoin(
-				mediaItems,
-				eq(mediaItemInstances.mediaItemId, mediaItems.id),
-			)
-			.where(
-				and(
-					eq(mediaItems.seriesId, seriesId),
-					eq(mediaItems.userId, userId),
-					isNotNull(mediaItemInstances.completedAt),
-					isNotNull(mediaItemInstances.rating),
-				),
-			)
-			.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
-
-		const ratings = latestRatings
-			.map((r) => parseFloat(r.rating ?? ""))
-			.filter((r) => !Number.isNaN(r));
-		if (ratings.length > 0) {
-			const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-			newRating = average.toFixed(1);
-		}
-	}
-
-	const seriesUpdates: Partial<typeof series.$inferInsert> = {
-		status: newStatus,
-		rating: newRating,
-	};
-	if (newStatus === MediaItemStatus.COMPLETED) {
-		seriesUpdates.nextItemStatus = null;
-	}
-
-	await db
-		.update(series)
-		.set(seriesUpdates)
-		.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
-}
+export const setMediaItemExpectedReleaseDate = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			mediaItemId: z.number(),
+			expectedReleaseDate: z.string().nullable(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await db
+			.update(mediaItems)
+			.set({ expectedReleaseDate: data.expectedReleaseDate })
+			.where(and(eq(mediaItems.id, data.mediaItemId), eq(mediaItems.userId, user.id)));
+	});
 
 export const getMediaItemDetails = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ id: z.number() }))
 	.handler(async ({ data: { id } }) => {
 		const user = await getLoggedInUser();
+		await transitionReleasedItems(user.id);
 		const [row] = await db
 			.select({
 				id: mediaItems.id,
 				status: mediaItems.status,
 				isPurchased: mediaItems.isPurchased,
+				expectedReleaseDate: mediaItems.expectedReleaseDate,
 				seriesId: mediaItems.seriesId,
 				seriesName: series.name,
 				creatorId: mediaItems.creatorId,

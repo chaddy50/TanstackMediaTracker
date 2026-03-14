@@ -11,7 +11,7 @@ import {
 	type SeriesSortField,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 import {
 	and,
 	asc,
@@ -20,6 +20,7 @@ import {
 	exists,
 	ilike,
 	inArray,
+	isNotNull,
 	or,
 	type SQL,
 	sql,
@@ -199,6 +200,7 @@ export async function queryItemResults(
 			id: mediaItems.id,
 			status: mediaItems.status,
 			isPurchased: mediaItems.isPurchased,
+			expectedReleaseDate: mediaItems.expectedReleaseDate,
 			mediaItemId: mediaItemMetadata.id,
 			title: mediaItemMetadata.title,
 			type: mediaItemMetadata.type,
@@ -348,4 +350,122 @@ export async function getNextItemInSeries(
 	);
 
 	return nextItem ?? null;
+}
+
+export async function syncSeriesStatus(
+	seriesId: number,
+	userId: string,
+	justCompleted = false,
+) {
+	const items = await db
+		.select({ status: mediaItems.status })
+		.from(mediaItems)
+		.where(
+			and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)),
+		);
+
+	if (items.length === 0) return;
+
+	const statuses = items.map((i) => i.status);
+	const allDone = statuses.every(
+		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
+	);
+	const remainingStatuses = statuses.filter(
+		(s) => s !== MediaItemStatus.COMPLETED && s !== MediaItemStatus.DROPPED,
+	);
+	const allRemainingAreWaiting =
+		remainingStatuses.length > 0 &&
+		remainingStatuses.every((s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE);
+
+	let newStatus: MediaItemStatus | null = null;
+	if (statuses.some((s) => s === MediaItemStatus.IN_PROGRESS)) {
+		newStatus = MediaItemStatus.IN_PROGRESS;
+	} else if (allDone) {
+		newStatus = MediaItemStatus.COMPLETED;
+	} else if (allRemainingAreWaiting) {
+		newStatus = MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
+	} else if (justCompleted) {
+		// An item was just completed in a series that still has non-waiting items remaining —
+		// treat the series as actively in progress.
+		newStatus = MediaItemStatus.IN_PROGRESS;
+	}
+
+	if (newStatus === null) return;
+
+	let newRating: string | null = null;
+	if (newStatus === MediaItemStatus.COMPLETED) {
+		const latestRatings = await db
+			.selectDistinctOn([mediaItemInstances.mediaItemId], {
+				rating: mediaItemInstances.rating,
+			})
+			.from(mediaItemInstances)
+			.innerJoin(
+				mediaItems,
+				eq(mediaItemInstances.mediaItemId, mediaItems.id),
+			)
+			.where(
+				and(
+					eq(mediaItems.seriesId, seriesId),
+					eq(mediaItems.userId, userId),
+					isNotNull(mediaItemInstances.completedAt),
+					isNotNull(mediaItemInstances.rating),
+				),
+			)
+			.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
+
+		const ratings = latestRatings
+			.map((r) => parseFloat(r.rating ?? ""))
+			.filter((r) => !Number.isNaN(r));
+		if (ratings.length > 0) {
+			const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+			newRating = average.toFixed(1);
+		}
+	}
+
+	const seriesUpdates: Partial<typeof series.$inferInsert> = {
+		status: newStatus,
+		rating: newRating,
+	};
+	if (newStatus === MediaItemStatus.COMPLETED) {
+		seriesUpdates.nextItemStatus = null;
+	} else if (newStatus === MediaItemStatus.WAITING_FOR_NEXT_RELEASE) {
+		seriesUpdates.nextItemStatus = NextItemStatus.WAITING_FOR_RELEASE;
+	}
+
+	await db
+		.update(series)
+		.set(seriesUpdates)
+		.where(and(eq(series.id, seriesId), eq(series.userId, userId)));
+}
+
+export async function transitionReleasedItems(userId: string) {
+	const today = new Date().toISOString().slice(0, 10);
+	const expiredItems = await db
+		.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
+		.from(mediaItems)
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				eq(mediaItems.status, MediaItemStatus.WAITING_FOR_NEXT_RELEASE),
+				isNotNull(mediaItems.expectedReleaseDate),
+				sql`${mediaItems.expectedReleaseDate} <= ${today}`,
+			),
+		);
+
+	if (expiredItems.length === 0) return;
+
+	const expiredIds = expiredItems.map((i) => i.id);
+	await db
+		.update(mediaItems)
+		.set({ status: MediaItemStatus.BACKLOG, expectedReleaseDate: null })
+		.where(inArray(mediaItems.id, expiredIds));
+
+	const affectedSeriesIds = [
+		...new Set(
+			expiredItems.map((i) => i.seriesId).filter((id): id is number => id !== null),
+		),
+	];
+	for (const seriesId of affectedSeriesIds) {
+		await syncSeriesStatus(seriesId, userId);
+	}
 }

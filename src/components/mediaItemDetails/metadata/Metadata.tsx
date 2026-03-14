@@ -2,6 +2,7 @@ import type { MediaItemDetails } from "#/server/mediaItem";
 import { Artwork } from "./components/Artwork";
 import { Description } from "./components/Description";
 import { EditMetadataDialog } from "./components/EditMetadataDialog";
+import { ExpectedReleaseDateInput } from "./components/ExpectedReleaseDateInput";
 import { MetadataList } from "./components/MetadataList";
 import { PurchasedToggle } from "./components/PurchasedToggle";
 import { StatusSelect } from "./components/StatusSelect";
@@ -30,6 +31,8 @@ export function Metadata(props: MetadataProps) {
 					<StatusSelect mediaItemDetails={mediaItemDetails} />
 					<PurchasedToggle mediaItemDetails={mediaItemDetails} />
 				</div>
+
+				<ExpectedReleaseDateInput mediaItemDetails={mediaItemDetails} />
 
 				<Description mediaItemDetails={mediaItemDetails} />
 

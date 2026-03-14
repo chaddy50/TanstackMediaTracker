@@ -5,8 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { mediaItemStatusEnum } from "#/db/schema";
-import { SERIES_ONLY_STATUSES } from "#/lib/enums";
+import { MediaItemStatus } from "#/lib/enums";
 import {
 	type MediaItemDetails,
 	updateMediaItemStatus,
@@ -27,7 +26,7 @@ export function StatusSelect(props: StatusSelectProps) {
 		await updateMediaItemStatus({
 			data: {
 				mediaItemId: mediaItemDetails.id,
-				status: status as (typeof mediaItemStatusEnum.enumValues)[number],
+				status: status as MediaItemStatus,
 			},
 		});
 		router.invalidate();
@@ -39,13 +38,11 @@ export function StatusSelect(props: StatusSelectProps) {
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
-				{mediaItemStatusEnum.enumValues
-					.filter((status) => !SERIES_ONLY_STATUSES.has(status))
-					.map((status) => (
-						<SelectItem key={status} value={status}>
-							{t(`status.${status}`)}
-						</SelectItem>
-					))}
+				{Object.values(MediaItemStatus).map((status) => (
+					<SelectItem key={status} value={status}>
+						{t(`status.${status}`)}
+					</SelectItem>
+				))}
 			</SelectContent>
 		</Select>
 	);

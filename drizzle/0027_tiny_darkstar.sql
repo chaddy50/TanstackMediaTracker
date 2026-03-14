@@ -1,0 +1,1 @@
+ALTER TABLE "media_items" ADD COLUMN "expected_release_date" date;

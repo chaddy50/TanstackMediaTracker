@@ -46,6 +46,7 @@ export const getCreatorDetails = createServerFn({ method: "GET" })
 				id: mediaItems.id,
 				status: mediaItems.status,
 				isPurchased: mediaItems.isPurchased,
+				expectedReleaseDate: mediaItems.expectedReleaseDate,
 				mediaItemMetadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,
