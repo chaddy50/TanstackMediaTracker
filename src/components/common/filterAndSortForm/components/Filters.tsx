@@ -1,9 +1,10 @@
+import { useTranslation } from "react-i18next";
+
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Toggle } from "#/components/ui/toggle";
 import type { ViewSubject } from "#/db/schema";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import { useTranslation } from "react-i18next";
 
 export type PurchasedFilter = "all" | "owned" | "not-owned";
 export type SeriesCompleteFilter = "all" | "complete" | "incomplete";
@@ -12,14 +13,6 @@ export type CompletionDateMode = "none" | "this-year" | "range";
 const ITEM_STATUSES = [
 	MediaItemStatus.BACKLOG,
 	MediaItemStatus.NEXT_UP,
-	MediaItemStatus.IN_PROGRESS,
-	MediaItemStatus.ON_HOLD,
-	MediaItemStatus.COMPLETED,
-	MediaItemStatus.DROPPED,
-] as const;
-
-const SERIES_STATUSES = [
-	MediaItemStatus.BACKLOG,
 	MediaItemStatus.IN_PROGRESS,
 	MediaItemStatus.ON_HOLD,
 	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
@@ -81,7 +74,6 @@ export function Filters({
 	onCreatorQueryChange,
 }: FiltersProps) {
 	const { t } = useTranslation();
-	const statusOptions = subject === "items" ? ITEM_STATUSES : SERIES_STATUSES;
 
 	return (
 		<div className="border-t border-border pt-4 flex flex-col gap-4">
@@ -108,7 +100,7 @@ export function Filters({
 			<div className="flex flex-col gap-1.5">
 				<Label>{t("views.form.statuses")}</Label>
 				<div className="flex gap-2 flex-wrap">
-					{statusOptions.map((status) => (
+					{ITEM_STATUSES.map((status) => (
 						<Toggle
 							key={status}
 							variant="outline"

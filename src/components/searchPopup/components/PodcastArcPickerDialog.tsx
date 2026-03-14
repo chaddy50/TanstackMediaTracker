@@ -1,6 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -16,11 +13,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { mediaItemStatusEnum } from "#/db/schema";
 import type { PodcastEpisode } from "#/lib/api/itunes";
 import type { ExternalSearchResult } from "#/lib/api/types";
-import { MediaItemStatus, SERIES_ONLY_STATUSES } from "#/lib/enums";
+import { MediaItemStatus } from "#/lib/enums";
 import { addPodcastArc, fetchEpisodesForFeed } from "#/server/search";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FormField } from "../../mediaItemDetails/metadata/components/editMetadata/FormField";
 
 type AddMode = {
@@ -38,7 +37,10 @@ type EditMode = {
 	podcastCoverImageUrl?: string;
 	creator?: string;
 	genres?: string[];
-	onArcUpdated?: (arcTitle: string, updatedMetadata: Record<string, unknown>) => void;
+	onArcUpdated?: (
+		arcTitle: string,
+		updatedMetadata: Record<string, unknown>,
+	) => void;
 };
 
 type PodcastArcPickerDialogProps = (AddMode | EditMode) & {
@@ -50,7 +52,6 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 	const { isOpen, onClose } = props;
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-
 
 	const isEditMode = props.mode === "edit";
 	const feedUrl = isEditMode
@@ -72,7 +73,8 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 
-	const [isSubscriberFeedExpanded, setIsSubscriberFeedExpanded] = useState(false);
+	const [isSubscriberFeedExpanded, setIsSubscriberFeedExpanded] =
+		useState(false);
 	const [subscriberFeedUrl, setSubscriberFeedUrl] = useState("");
 	const [isFewEpisodes, setIsFewEpisodes] = useState(false);
 
@@ -210,7 +212,9 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 
 		setIsLoadingEpisodes(true);
 		try {
-			const fetchedEpisodes = await fetchEpisodesForFeed({ data: { feedUrl: urlToFetch } });
+			const fetchedEpisodes = await fetchEpisodesForFeed({
+				data: { feedUrl: urlToFetch },
+			});
 			setEpisodes(fetchedEpisodes);
 			setIsFewEpisodes(fetchedEpisodes.length <= 1);
 			if (currentEpisodeGuids && currentEpisodeGuids.length > 0) {
@@ -338,7 +342,9 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 								)}
 								<button
 									type="button"
-									onClick={() => setIsSubscriberFeedExpanded(!isSubscriberFeedExpanded)}
+									onClick={() =>
+										setIsSubscriberFeedExpanded(!isSubscriberFeedExpanded)
+									}
 									className={`text-xs underline text-left w-fit ${isFewEpisodes && !isSubscriberFeedExpanded ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
 								>
 									{isSubscriberFeedExpanded
@@ -372,7 +378,10 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 						)}
 
 						{episodes.length > 0 && (
-							<div ref={listRef} className="flex flex-col gap-1 overflow-y-auto max-h-64 border rounded-md p-1">
+							<div
+								ref={listRef}
+								className="flex flex-col gap-1 overflow-y-auto max-h-64 border rounded-md p-1"
+							>
 								{episodes.map((episode, index) => {
 									const isSelected = selectedGuids.has(episode.guid);
 									return (
@@ -442,15 +451,11 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{mediaItemStatusEnum.enumValues
-										.filter(
-											(statusValue) => !SERIES_ONLY_STATUSES.has(statusValue),
-										)
-										.map((statusValue) => (
-											<SelectItem key={statusValue} value={statusValue}>
-												{t(`status.${statusValue}`)}
-											</SelectItem>
-										))}
+									{Object.values(MediaItemStatus).map((statusValue) => (
+										<SelectItem key={statusValue} value={statusValue}>
+											{t(`status.${statusValue}`)}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</FormField>

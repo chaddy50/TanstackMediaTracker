@@ -1,4 +1,10 @@
-import { type MediaItemStatus } from "#/lib/enums";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
+import { MediaItemStatus } from "#/lib/enums";
 import { formatDate } from "#/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -16,41 +22,51 @@ const STATUS_CLASSES: Record<string, string> = {
 interface StatusBadgeProps {
 	status: MediaItemStatus | undefined;
 	completedAt?: string | null;
+	expectedReleaseDate?: string | null;
 	onClick?: () => void;
 	disabled?: boolean;
 }
 
 export function StatusBadge(props: StatusBadgeProps) {
-	const { status, completedAt, onClick, disabled } = props;
+	const { status, completedAt, expectedReleaseDate, onClick, disabled } = props;
 	const { t } = useTranslation();
 	if (!status) return null;
 
 	const commonClasses = `text-xs px-2 py-0.5 rounded-full ${STATUS_CLASSES[status]}`;
 	const formattedCompletedAt = completedAt ? formatDate(completedAt) : null;
+	const isWaiting = status === MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
+	const formattedExpectedReleaseDate =
+		isWaiting && expectedReleaseDate ? formatDate(expectedReleaseDate) : null;
 
-	if (onClick) {
-		return (
-			<>
-				<button
-					type="button"
-					onClick={onClick}
-					className={`${commonClasses}`}
-					disabled={disabled}
-				>
-					{t(`status.${status}`)}
-				</button>
-				{formattedCompletedAt && (
-					<span className="text-xs text-muted-foreground">{formattedCompletedAt}</span>
-				)}
-			</>
-		);
-	}
+	const badgeElement = onClick ? (
+		<button
+			type="button"
+			onClick={onClick}
+			className={`${commonClasses}`}
+			disabled={disabled}
+		>
+			{t(`status.${status}`)}
+		</button>
+	) : (
+		<span className={commonClasses}>{t(`status.${status}`)}</span>
+	);
 
 	return (
 		<>
-			<span className={commonClasses}>{t(`status.${status}`)}</span>
+			{formattedExpectedReleaseDate ? (
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>{badgeElement}</TooltipTrigger>
+						<TooltipContent>{formattedExpectedReleaseDate}</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+			) : (
+				badgeElement
+			)}
 			{formattedCompletedAt && (
-				<span className="text-xs text-muted-foreground">{formattedCompletedAt}</span>
+				<span className="text-xs text-muted-foreground">
+					{formattedCompletedAt}
+				</span>
 			)}
 		</>
 	);

@@ -15,6 +15,7 @@ type MediaCardItem = {
 	coverImageUrl: string | null;
 	rating: number;
 	completedAt?: string | null;
+	expectedReleaseDate?: string | null;
 	seriesId?: number | null | undefined;
 	seriesName?: string | null | undefined;
 };
@@ -74,6 +75,7 @@ export function MediaCard({
 						<StatusBadge
 							status={mediaItem.status}
 							completedAt={mediaItem.completedAt}
+							expectedReleaseDate={mediaItem.expectedReleaseDate}
 						/>
 					)}
 					{mediaItem.status !== MediaItemStatus.IN_PROGRESS &&
