@@ -14,6 +14,7 @@ export const ITEM_SORT_FIELDS = [
 export const SERIES_SORT_FIELDS = [
 	"name",
 	"status",
+	"nextItemStatus",
 	"updatedAt",
 	"rating",
 	"itemCount",
