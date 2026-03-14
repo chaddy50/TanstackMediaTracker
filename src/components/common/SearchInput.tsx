@@ -58,7 +58,7 @@ export function SearchInput({ value, navigateTo, params }: SearchInputProps) {
 					titleQuery: newValue || undefined,
 				}),
 			});
-		}, 300);
+		}, 400);
 	}
 
 	return (
