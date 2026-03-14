@@ -26,6 +26,9 @@
       "WebFetch(domain:webcache.googleusercontent.com)",
       "WebFetch(domain:forum.hardcover.app)",
       "Bash(psql $DATABASE_URL -c \"DELETE FROM creators;\")"
+    ],
+    "additionalDirectories": [
+      "/home/nathan/Development/TanstackStart/media_tracker/src/server"
     ]
   }
 }

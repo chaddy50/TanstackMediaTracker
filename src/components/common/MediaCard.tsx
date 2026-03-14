@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, type PurchaseStatus } from "#/lib/enums";
 import { PurchasedBadge } from "./PurchasedBadge";
 import { RatingStars } from "./rating/RatingStars";
 import { StatusBadge } from "./StatusBadge";
@@ -9,7 +9,7 @@ import { TypeBadge } from "./TypeBadge";
 type MediaCardItem = {
 	id: number;
 	status: MediaItemStatus;
-	isPurchased: boolean;
+	purchaseStatus: PurchaseStatus;
 	title: string;
 	type: MediaItemType;
 	coverImageUrl: string | null;
@@ -82,7 +82,7 @@ export function MediaCard({
 						mediaItem.status !== MediaItemStatus.ON_HOLD &&
 						mediaItem.status !== MediaItemStatus.COMPLETED &&
 						mediaItem.status !== MediaItemStatus.DROPPED && (
-							<PurchasedBadge isPurchased={mediaItem.isPurchased} />
+							<PurchasedBadge purchaseStatus={mediaItem.purchaseStatus} />
 						)}
 				</div>
 

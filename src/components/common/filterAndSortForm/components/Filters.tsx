@@ -6,7 +6,7 @@ import { Toggle } from "#/components/ui/toggle";
 import type { ViewSubject } from "#/db/schema";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 
-export type PurchasedFilter = "all" | "owned" | "not-owned";
+export type PurchasedFilter = "all" | "not_purchased" | "want_to_buy" | "purchased";
 export type SeriesCompleteFilter = "all" | "complete" | "incomplete";
 export type CompletionDateMode = "none" | "this-year" | "range";
 
@@ -118,7 +118,7 @@ export function Filters({
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("views.form.purchased")}</Label>
 						<div className="flex gap-2">
-							{(["all", "owned", "not-owned"] as PurchasedFilter[]).map(
+							{(["all", "not_purchased", "want_to_buy", "purchased"] as PurchasedFilter[]).map(
 								(option) => (
 									<Toggle
 										key={option}

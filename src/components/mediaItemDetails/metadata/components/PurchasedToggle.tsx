@@ -1,26 +1,46 @@
-import { PurchasedBadge } from "#/components/common/PurchasedBadge";
-import { type MediaItemDetails, togglePurchased } from "#/server/mediaItem";
 import { useRouter } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select";
+import { PurchaseStatus } from "#/lib/enums";
+import { type MediaItemDetails, setPurchaseStatus } from "#/server/mediaItem";
 
 interface PurchasedToggleProps {
 	mediaItemDetails: MediaItemDetails;
 }
 
-export function PurchasedToggle(props: PurchasedToggleProps) {
-	const { mediaItemDetails } = props;
+export function PurchasedToggle({ mediaItemDetails }: PurchasedToggleProps) {
 	const router = useRouter();
+	const { t } = useTranslation();
 
-	async function handleToggle() {
-		await togglePurchased({
+	async function handleChange(value: string) {
+		await setPurchaseStatus({
 			data: {
 				mediaItemId: mediaItemDetails.id,
-				isPurchased: !mediaItemDetails.isPurchased,
+				purchaseStatus: value as PurchaseStatus,
 			},
 		});
 		router.invalidate();
 	}
 
 	return (
-		<PurchasedBadge isPurchased={mediaItemDetails.isPurchased} onClick={handleToggle} />
+		<Select value={mediaItemDetails.purchaseStatus} onValueChange={handleChange}>
+			<SelectTrigger className="w-40">
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent>
+				{Object.values(PurchaseStatus).map((status) => (
+					<SelectItem key={status} value={status}>
+						{t(`purchaseStatus.${status}`)}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
 	);
 }

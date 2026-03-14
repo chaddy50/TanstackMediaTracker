@@ -20,6 +20,14 @@ export const NextItemStatus = {
 export type NextItemStatus =
 	(typeof NextItemStatus)[keyof typeof NextItemStatus];
 
+export const PurchaseStatus = {
+	NOT_PURCHASED: "not_purchased",
+	WANT_TO_BUY: "want_to_buy",
+	PURCHASED: "purchased",
+} as const;
+
+export type PurchaseStatus = (typeof PurchaseStatus)[keyof typeof PurchaseStatus];
+
 export const MediaItemType = {
 	BOOK: "book",
 	MOVIE: "movie",
