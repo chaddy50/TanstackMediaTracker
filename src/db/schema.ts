@@ -117,10 +117,10 @@ export type SortDirection = "asc" | "desc";
 export type FilterAndSortOptions = {
 	mediaTypes?: MediaItemType[];
 	statuses?: MediaItemStatus[];
-	purchaseStatus?: PurchaseStatus;
+	purchaseStatuses?: PurchaseStatus[];
 	completedThisYear?: boolean;
-	completedYearStart?: number;
-	completedYearEnd?: number;
+	completedDateStart?: string;
+	completedDateEnd?: string;
 	isSeriesComplete?: boolean;
 	tags?: string[];
 	genres?: string[];

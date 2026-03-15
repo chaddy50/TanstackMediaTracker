@@ -1,16 +1,19 @@
+import { useState } from "react";
 import type {
+	FilterAndSortOptions,
 	ItemSortField,
 	SeriesSortField,
 	SortDirection,
-	FilterAndSortOptions,
 	ViewSubject,
 } from "#/db/schema";
-import type { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import { useState } from "react";
+import type {
+	MediaItemStatus,
+	MediaItemType,
+	PurchaseStatus,
+} from "#/lib/enums";
 import type {
 	CompletionDateMode,
 	FiltersProps,
-	PurchasedFilter,
 	SeriesCompleteFilter,
 } from "./components/Filters";
 import type { SortingOptionsProps } from "./components/SortingOptions";
@@ -28,23 +31,23 @@ export function useFilterAndSortFormState(
 	const [selectedStatuses, setSelectedStatuses] = useState<MediaItemStatus[]>(
 		initialFilters.statuses ?? [],
 	);
-	const [purchasedFilter, setPurchasedFilter] = useState<PurchasedFilter>(
-		initialFilters.purchaseStatus ?? "all",
-	);
+	const [selectedPurchaseStatuses, setSelectedPurchaseStatuses] = useState<
+		PurchaseStatus[]
+	>(initialFilters.purchaseStatuses ?? []);
 	const [completionDateMode, setCompletionDateMode] =
 		useState<CompletionDateMode>(
 			initialFilters.completedThisYear
 				? "this-year"
-				: initialFilters.completedYearStart !== undefined ||
-						initialFilters.completedYearEnd !== undefined
+				: initialFilters.completedDateStart !== undefined ||
+						initialFilters.completedDateEnd !== undefined
 					? "range"
 					: "none",
 		);
-	const [yearStart, setYearStart] = useState(
-		initialFilters.completedYearStart?.toString() ?? "",
+	const [dateStart, setDateStart] = useState(
+		initialFilters.completedDateStart ?? "",
 	);
-	const [yearEnd, setYearEnd] = useState(
-		initialFilters.completedYearEnd?.toString() ?? "",
+	const [dateEnd, setDateEnd] = useState(
+		initialFilters.completedDateEnd ?? "",
 	);
 	const [seriesCompleteFilter, setSeriesCompleteFilter] =
 		useState<SeriesCompleteFilter>(
@@ -86,6 +89,14 @@ export function useFilterAndSortFormState(
 		);
 	}
 
+	function togglePurchaseStatus(status: PurchaseStatus) {
+		setSelectedPurchaseStatuses((previous) =>
+			previous.includes(status)
+				? previous.filter((s) => s !== status)
+				: [...previous, status],
+		);
+	}
+
 	function toggleTag(tag: string) {
 		setSelectedTags((previous) =>
 			previous.includes(tag)
@@ -120,20 +131,18 @@ export function useFilterAndSortFormState(
 		}
 
 		if (subject === "items") {
-			if (purchasedFilter !== "all") {
-				filters.purchaseStatus = purchasedFilter;
+			if (selectedPurchaseStatuses.length > 0) {
+				filters.purchaseStatuses = selectedPurchaseStatuses;
 			}
 
 			if (completionDateMode === "this-year") {
 				filters.completedThisYear = true;
 			} else if (completionDateMode === "range") {
-				const parsedStart = parseInt(yearStart, 10);
-				const parsedEnd = parseInt(yearEnd, 10);
-				if (!Number.isNaN(parsedStart)) {
-					filters.completedYearStart = parsedStart;
+				if (dateStart !== "") {
+					filters.completedDateStart = dateStart;
 				}
-				if (!Number.isNaN(parsedEnd)) {
-					filters.completedYearEnd = parsedEnd;
+				if (dateEnd !== "") {
+					filters.completedDateEnd = dateEnd;
 				}
 			}
 
@@ -170,14 +179,14 @@ export function useFilterAndSortFormState(
 		onToggleMediaType: toggleMediaType,
 		selectedStatuses,
 		onToggleStatus: toggleStatus,
-		purchasedFilter,
-		onPurchasedFilterChange: setPurchasedFilter,
+		selectedPurchaseStatuses,
+		onTogglePurchaseStatus: togglePurchaseStatus,
 		completionDateMode,
 		onCompletionDateModeChange: setCompletionDateMode,
-		yearStart,
-		onYearStartChange: setYearStart,
-		yearEnd,
-		onYearEndChange: setYearEnd,
+		dateStart,
+		onDateStartChange: setDateStart,
+		dateEnd,
+		onDateEndChange: setDateEnd,
 		seriesCompleteFilter,
 		onSeriesCompleteFilterChange: setSeriesCompleteFilter,
 		availableTags,

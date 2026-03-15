@@ -1,4 +1,5 @@
 import { Label } from "#/components/ui/label";
+import { SingleSelectFilter } from "#/components/ui/single-select-filter";
 import { Toggle } from "#/components/ui/toggle";
 import type {
 	ItemSortField,
@@ -34,20 +35,19 @@ export function SortingOptions({
 
 			<div className="flex flex-col gap-1.5">
 				<Label>{t("views.form.sortBy")}</Label>
-				<div className="flex gap-2 flex-wrap">
-					{(subject === "items" ? ITEM_SORT_FIELDS : SERIES_SORT_FIELDS).map(
-						(field) => (
-							<Toggle
-								key={field}
-								variant="outline"
-								pressed={sortBy === field}
-								onPressedChange={() => onSortByChange(field)}
-							>
-								{t(`views.form.sortByOption.${field}`)}
-							</Toggle>
-						),
-					)}
-				</div>
+				<SingleSelectFilter
+					options={(subject === "items"
+						? ITEM_SORT_FIELDS
+						: SERIES_SORT_FIELDS
+					).map((field) => ({
+						value: field,
+						label: t(`views.form.sortByOption.${field}`),
+					}))}
+					selectedValue={sortBy}
+					onSelect={(value) =>
+						onSortByChange(value as ItemSortField | SeriesSortField)
+					}
+				/>
 			</div>
 
 			<div className="flex flex-col gap-1.5">

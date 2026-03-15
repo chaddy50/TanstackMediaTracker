@@ -4,19 +4,16 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import {
+	type FilterAndSortOptions,
 	mediaItemStatusEnum,
 	mediaTypeEnum,
 	purchaseStatusEnum,
-	type FilterAndSortOptions,
 	type ViewSubject,
 	views,
 } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
-import {
-	queryItemResults,
-	querySeriesResults,
-} from "#/server/itemQueries";
+import { queryItemResults, querySeriesResults } from "#/server/itemQueries";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -25,10 +22,10 @@ import {
 export const filterAndSortOptionsSchema = z.object({
 	mediaTypes: z.array(z.enum(mediaTypeEnum.enumValues)).optional(),
 	statuses: z.array(z.enum(mediaItemStatusEnum.enumValues)).optional(),
-	purchaseStatus: z.enum(purchaseStatusEnum.enumValues).optional(),
+	purchaseStatuses: z.array(z.enum(purchaseStatusEnum.enumValues)).optional(),
 	completedThisYear: z.boolean().optional(),
-	completedYearStart: z.number().int().optional(),
-	completedYearEnd: z.number().int().optional(),
+	completedDateStart: z.string().optional(),
+	completedDateEnd: z.string().optional(),
 	isSeriesComplete: z.boolean().optional(),
 	tags: z.array(z.string()).optional(),
 	genres: z.array(z.string()).optional(),
@@ -61,7 +58,13 @@ export const getViews = createServerFn({ method: "GET" }).handler(async () => {
 export type View = Awaited<ReturnType<typeof getViews>>[number];
 
 export const getViewResults = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ viewId: z.number(), titleQuery: z.string().optional(), offset: z.number().default(0) }))
+	.inputValidator(
+		z.object({
+			viewId: z.number(),
+			titleQuery: z.string().optional(),
+			offset: z.number().default(0),
+		}),
+	)
 	.handler(async ({ data: { viewId, titleQuery, offset } }) => {
 		const user = await getLoggedInUser();
 		const [view] = await db
@@ -70,13 +73,22 @@ export const getViewResults = createServerFn({ method: "GET" })
 			.where(and(eq(views.id, viewId), eq(views.userId, user.id)));
 		if (!view) throw new Error(`View ${viewId} not found`);
 
-		const filters = { ...(view.filters ?? {}), titleQuery } as FilterAndSortOptions;
+		const filters = {
+			...(view.filters ?? {}),
+			titleQuery,
+		} as FilterAndSortOptions;
 
 		if (view.subject === "items") {
-			return { view, results: await queryItemResults(filters, user.id, offset) };
+			return {
+				view,
+				results: await queryItemResults(filters, user.id, offset),
+			};
 		}
 
-		return { view, results: await querySeriesResults(filters, user.id, offset) };
+		return {
+			view,
+			results: await querySeriesResults(filters, user.id, offset),
+		};
 	});
 
 export type ViewResults = Awaited<ReturnType<typeof getViewResults>>;

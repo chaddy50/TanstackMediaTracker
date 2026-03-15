@@ -2,11 +2,11 @@ import { useTranslation } from "react-i18next";
 
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { MultiSelectFilter } from "#/components/ui/multi-select-filter";
 import { Toggle } from "#/components/ui/toggle";
 import type { ViewSubject } from "#/db/schema";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
 
-export type PurchasedFilter = "all" | "not_purchased" | "want_to_buy" | "purchased";
 export type SeriesCompleteFilter = "all" | "complete" | "incomplete";
 export type CompletionDateMode = "none" | "this-year" | "range";
 
@@ -28,20 +28,26 @@ const MEDIA_TYPES = [
 	MediaItemType.PODCAST,
 ] as const;
 
+const PURCHASE_STATUSES = [
+	PurchaseStatus.NOT_PURCHASED,
+	PurchaseStatus.WANT_TO_BUY,
+	PurchaseStatus.PURCHASED,
+] as const;
+
 export interface FiltersProps {
 	subject: ViewSubject;
 	selectedMediaTypes: MediaItemType[];
 	onToggleMediaType: (type: MediaItemType) => void;
 	selectedStatuses: MediaItemStatus[];
 	onToggleStatus: (status: MediaItemStatus) => void;
-	purchasedFilter: PurchasedFilter;
-	onPurchasedFilterChange: (filter: PurchasedFilter) => void;
+	selectedPurchaseStatuses: PurchaseStatus[];
+	onTogglePurchaseStatus: (status: PurchaseStatus) => void;
 	completionDateMode: CompletionDateMode;
 	onCompletionDateModeChange: (mode: CompletionDateMode) => void;
-	yearStart: string;
-	onYearStartChange: (year: string) => void;
-	yearEnd: string;
-	onYearEndChange: (year: string) => void;
+	dateStart: string;
+	onDateStartChange: (date: string) => void;
+	dateEnd: string;
+	onDateEndChange: (date: string) => void;
 	seriesCompleteFilter: SeriesCompleteFilter;
 	onSeriesCompleteFilterChange: (filter: SeriesCompleteFilter) => void;
 	availableTags: string[];
@@ -60,14 +66,14 @@ export function Filters({
 	onToggleMediaType,
 	selectedStatuses,
 	onToggleStatus,
-	purchasedFilter,
-	onPurchasedFilterChange,
+	selectedPurchaseStatuses,
+	onTogglePurchaseStatus,
 	completionDateMode,
 	onCompletionDateModeChange,
-	yearStart,
-	onYearStartChange,
-	yearEnd,
-	onYearEndChange,
+	dateStart,
+	onDateStartChange,
+	dateEnd,
+	onDateEndChange,
 	seriesCompleteFilter,
 	onSeriesCompleteFilterChange,
 	availableTags,
@@ -89,126 +95,66 @@ export function Filters({
 
 			<div className="flex flex-col gap-1.5">
 				<Label>{t("views.form.mediaTypes")}</Label>
-				<div className="flex gap-2 flex-wrap">
-					{MEDIA_TYPES.map((type) => (
-						<Toggle
-							key={type}
-							variant="outline"
-							pressed={selectedMediaTypes.includes(type)}
-							onPressedChange={() => onToggleMediaType(type)}
-						>
-							{t(`mediaType.${type}`)}
-						</Toggle>
-					))}
-				</div>
+				<MultiSelectFilter
+					label={t("views.form.mediaTypes")}
+					options={MEDIA_TYPES.map((type) => ({
+						value: type,
+						label: t(`mediaType.${type}`),
+					}))}
+					selectedValues={selectedMediaTypes as string[]}
+					onToggle={(value) => onToggleMediaType(value as MediaItemType)}
+				/>
 			</div>
 
 			<div className="flex flex-col gap-1.5">
 				<Label>{t("views.form.statuses")}</Label>
-				<div className="flex gap-2 flex-wrap">
-					{ITEM_STATUSES.map((status) => (
-						<Toggle
-							key={status}
-							variant="outline"
-							pressed={selectedStatuses.includes(status)}
-							onPressedChange={() => onToggleStatus(status)}
-						>
-							{t(`status.${status}`)}
-						</Toggle>
-					))}
-				</div>
+				<MultiSelectFilter
+					label={t("views.form.statuses")}
+					options={ITEM_STATUSES.map((status) => ({
+						value: status,
+						label: t(`status.${status}`),
+					}))}
+					selectedValues={selectedStatuses as string[]}
+					onToggle={(value) => onToggleStatus(value as MediaItemStatus)}
+				/>
 			</div>
 
 			{subject === "items" && (
 				<>
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("views.form.purchased")}</Label>
-						<div className="flex gap-2">
-							{(["all", "not_purchased", "want_to_buy", "purchased"] as PurchasedFilter[]).map(
-								(option) => (
-									<Toggle
-										key={option}
-										variant="outline"
-										pressed={purchasedFilter === option}
-										onPressedChange={() => onPurchasedFilterChange(option)}
-									>
-										{t(`views.form.purchasedOption.${option}`)}
-									</Toggle>
-								),
-							)}
-						</div>
-					</div>
-
-					<div className="flex flex-col gap-1.5">
-						<Label>{t("views.form.completionDate")}</Label>
-						<div className="flex gap-2 flex-wrap">
-							{(["none", "this-year", "range"] as CompletionDateMode[]).map(
-								(mode) => (
-									<Toggle
-										key={mode}
-										variant="outline"
-										pressed={completionDateMode === mode}
-										onPressedChange={() => onCompletionDateModeChange(mode)}
-									>
-										{t(`views.form.completionDateOption.${mode}`)}
-									</Toggle>
-								),
-							)}
-						</div>
-						{completionDateMode === "range" && (
-							<div className="flex items-center gap-2 mt-2">
-								<Input
-									type="number"
-									placeholder={t("views.form.yearFrom")}
-									value={yearStart}
-									onChange={(e) => onYearStartChange(e.target.value)}
-									className="w-28"
-								/>
-								<span className="text-muted-foreground">—</span>
-								<Input
-									type="number"
-									placeholder={t("views.form.yearTo")}
-									value={yearEnd}
-									onChange={(e) => onYearEndChange(e.target.value)}
-									className="w-28"
-								/>
-							</div>
-						)}
+						<MultiSelectFilter
+							label={t("views.form.purchased")}
+							options={PURCHASE_STATUSES.map((option) => ({
+								value: option,
+								label: t(`views.form.purchasedOption.${option}`),
+							}))}
+							selectedValues={selectedPurchaseStatuses as string[]}
+							onToggle={(value) => onTogglePurchaseStatus(value as PurchaseStatus)}
+						/>
 					</div>
 
 					{availableTags.length > 0 && (
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("views.form.tags")}</Label>
-							<div className="flex gap-2 flex-wrap">
-								{availableTags.map((tag) => (
-									<Toggle
-										key={tag}
-										variant="outline"
-										pressed={selectedTags.includes(tag)}
-										onPressedChange={() => onToggleTag(tag)}
-									>
-										{tag}
-									</Toggle>
-								))}
-							</div>
+							<MultiSelectFilter
+								label={t("views.form.tags")}
+								options={availableTags.map((tag) => ({ value: tag, label: tag }))}
+								selectedValues={selectedTags}
+								onToggle={onToggleTag}
+							/>
 						</div>
 					)}
 
 					{availableGenres.length > 0 && (
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("views.form.genres")}</Label>
-							<div className="flex gap-2 flex-wrap">
-								{availableGenres.map((genre) => (
-									<Toggle
-										key={genre}
-										variant="outline"
-										pressed={selectedGenres.includes(genre)}
-										onPressedChange={() => onToggleGenre(genre)}
-									>
-										{genre}
-									</Toggle>
-								))}
-							</div>
+							<MultiSelectFilter
+								label={t("views.form.genres")}
+								options={availableGenres.map((genre) => ({ value: genre, label: genre }))}
+								selectedValues={selectedGenres}
+								onToggle={onToggleGenre}
+							/>
 						</div>
 					)}
 
@@ -227,19 +173,66 @@ export function Filters({
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("views.form.seriesCompletion")}</Label>
 					<div className="flex gap-2">
-						{(["all", "complete", "incomplete"] as SeriesCompleteFilter[]).map(
-							(option) => (
-								<Toggle
-									key={option}
-									variant="outline"
-									pressed={seriesCompleteFilter === option}
-									onPressedChange={() => onSeriesCompleteFilterChange(option)}
-								>
-									{t(`views.form.seriesCompletionOption.${option}`)}
-								</Toggle>
-							),
-						)}
+						{(["complete", "incomplete"] as const).map((option) => (
+							<Toggle
+								key={option}
+								variant="outline"
+								pressed={seriesCompleteFilter === option}
+								onPressedChange={(pressed) => {
+									if (pressed) {
+										onSeriesCompleteFilterChange(option);
+									} else {
+										onSeriesCompleteFilterChange("all");
+									}
+								}}
+							>
+								{t(`views.form.seriesCompletionOption.${option}`)}
+							</Toggle>
+						))}
 					</div>
+				</div>
+			)}
+
+			{subject === "items" && (
+				<div className="flex flex-col gap-1.5">
+					<Label>{t("views.form.completionDate")}</Label>
+					<div className="flex gap-2 flex-wrap">
+						{(["this-year", "range"] as const).map((mode) => (
+							<Toggle
+								key={mode}
+								variant="outline"
+								pressed={completionDateMode === mode}
+								onPressedChange={(pressed) => {
+									if (pressed) {
+										onCompletionDateModeChange(mode);
+									} else {
+										onCompletionDateModeChange("none");
+									}
+								}}
+							>
+								{t(`views.form.completionDateOption.${mode}`)}
+							</Toggle>
+						))}
+					</div>
+					{completionDateMode === "range" && (
+						<div className="flex items-center gap-2 mt-2">
+							<Input
+								type="date"
+								placeholder={t("views.form.dateFrom")}
+								value={dateStart}
+								onChange={(e) => onDateStartChange(e.target.value)}
+								className="w-40"
+							/>
+							<span className="text-muted-foreground">—</span>
+							<Input
+								type="date"
+								placeholder={t("views.form.dateTo")}
+								value={dateEnd}
+								onChange={(e) => onDateEndChange(e.target.value)}
+								className="w-40"
+							/>
+						</div>
+					)}
 				</div>
 			)}
 		</div>

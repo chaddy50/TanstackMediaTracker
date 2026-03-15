@@ -1,18 +1,3 @@
-import { db } from "#/db/index";
-import {
-	creators,
-	type FilterAndSortOptions,
-	genres,
-	type ItemSortField,
-	mediaItemInstances,
-	mediaItemMetadata,
-	mediaItems,
-	mediaItemTags,
-	series,
-	type SeriesSortField,
-	tags,
-} from "#/db/schema";
-import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 import {
 	and,
 	asc,
@@ -27,34 +12,49 @@ import {
 	sql,
 } from "drizzle-orm";
 
+import { db } from "#/db/index";
+import {
+	creators,
+	type FilterAndSortOptions,
+	genres,
+	type ItemSortField,
+	mediaItemInstances,
+	mediaItemMetadata,
+	mediaItems,
+	mediaItemTags,
+	type SeriesSortField,
+	series,
+	tags,
+} from "#/db/schema";
+import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 
-function buildCompletedYearCondition(filters: FilterAndSortOptions) {
-	let yearStart: number | null = null;
-	let yearEnd: number | null = null;
+function buildCompletedDateCondition(filters: FilterAndSortOptions) {
+	let dateStart: string | null = null;
+	let dateEnd: string | null = null;
 
 	if (filters.completedThisYear) {
 		const currentYear = new Date().getFullYear();
-		yearStart = currentYear;
-		yearEnd = currentYear;
+		dateStart = `${currentYear}-01-01`;
+		dateEnd = `${currentYear}-12-31`;
 	} else {
-		yearStart = filters.completedYearStart ?? null;
-		yearEnd = filters.completedYearEnd ?? null;
+		dateStart = filters.completedDateStart ?? null;
+		dateEnd = filters.completedDateEnd ?? null;
 	}
 
-	if (yearStart === null && yearEnd === null) {
+	if (dateStart === null && dateEnd === null) {
 		return undefined;
 	}
 
 	const startCondition =
-		yearStart !== null
-			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) >= ${yearStart}`
+		dateStart !== null
+			? sql`${mediaItemInstances.completedAt}::date >= ${dateStart}::date`
 			: undefined;
 	const endCondition =
-		yearEnd !== null
-			? sql`EXTRACT(YEAR FROM ${mediaItemInstances.completedAt}::date) <= ${yearEnd}`
+		dateEnd !== null
+			? sql`${mediaItemInstances.completedAt}::date <= ${dateEnd}::date`
 			: undefined;
 
-	const yearConditions = [startCondition, endCondition].filter(
+	const dateConditions = [startCondition, endCondition].filter(
 		(c) => c !== undefined,
 	);
 
@@ -62,7 +62,7 @@ function buildCompletedYearCondition(filters: FilterAndSortOptions) {
 		SELECT 1 FROM ${mediaItemInstances}
 		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
 			AND ${mediaItemInstances.completedAt} IS NOT NULL
-			AND ${and(...yearConditions)}
+			AND ${and(...dateConditions)}
 	)`;
 }
 
@@ -81,10 +81,10 @@ export async function queryItemResults(
 		filters.statuses?.length
 			? inArray(mediaItems.status, filters.statuses)
 			: undefined,
-		filters.purchaseStatus !== undefined
-			? eq(mediaItems.purchaseStatus, filters.purchaseStatus)
+		filters.purchaseStatuses?.length
+			? inArray(mediaItems.purchaseStatus, filters.purchaseStatuses)
 			: undefined,
-		buildCompletedYearCondition(filters),
+		buildCompletedDateCondition(filters),
 		filters.tags?.length
 			? exists(
 					db
@@ -100,9 +100,7 @@ export async function queryItemResults(
 						),
 				)
 			: undefined,
-		filters.genres?.length
-			? inArray(genres.name, filters.genres)
-			: undefined,
+		filters.genres?.length ? inArray(genres.name, filters.genres) : undefined,
 		filters.titleQuery
 			? or(
 					ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
@@ -123,7 +121,8 @@ export async function queryItemResults(
 	].filter((c) => c !== undefined);
 
 	// Handle legacy "author" value from saved views created before rename to "creator"
-	const rawSortBy = (filters.sortBy as string) === "author" ? "creator" : filters.sortBy;
+	const rawSortBy =
+		(filters.sortBy as string) === "author" ? "creator" : filters.sortBy;
 	const sortBy = (rawSortBy as ItemSortField | undefined) ?? "series";
 	const sortDirection = filters.sortDirection ?? "asc";
 	const dir = sortDirection === "asc" ? asc : desc;
@@ -149,15 +148,21 @@ export async function queryItemResults(
 			case "status":
 				return [dir(mediaItems.statusSortOrder), ...bySeriesThenTitle];
 			case "creator":
-			// Fall back to JSONB fields for items not yet linked to a creator entity
-			// biome-ignore format: long SQL expression
-			return sortDirection === "asc"
+				// Fall back to JSONB fields for items not yet linked to a creator entity
+				// biome-ignore format: long SQL expression
+				return sortDirection === "asc"
 				? [sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItemMetadata.metadata}->>'author', ${mediaItemMetadata.metadata}->>'director', ${mediaItemMetadata.metadata}->>'creator', ${mediaItemMetadata.metadata}->>'developer'), '^.* ', '')) ASC NULLS LAST`, ...bySeriesThenTitle]
 				: [sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItemMetadata.metadata}->>'author', ${mediaItemMetadata.metadata}->>'director', ${mediaItemMetadata.metadata}->>'creator', ${mediaItemMetadata.metadata}->>'developer'), '^.* ', '')) DESC NULLS LAST`, ...bySeriesThenTitle];
 			case "director":
 				return sortDirection === "asc"
-					? [sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`, ...bySeriesThenTitle]
-					: [sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`, ...bySeriesThenTitle];
+					? [
+							sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`,
+							...bySeriesThenTitle,
+						]
+					: [
+							sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`,
+							...bySeriesThenTitle,
+						];
 			case "series":
 				return sortDirection === "asc"
 					? [
@@ -174,12 +179,24 @@ export async function queryItemResults(
 						];
 			case "rating":
 				return sortDirection === "asc"
-					? [sql`latest_instance.latest_rating ASC NULLS LAST`, ...bySeriesThenTitle]
-					: [sql`latest_instance.latest_rating DESC NULLS LAST`, ...bySeriesThenTitle];
+					? [
+							sql`latest_instance.latest_rating ASC NULLS LAST`,
+							...bySeriesThenTitle,
+						]
+					: [
+							sql`latest_instance.latest_rating DESC NULLS LAST`,
+							...bySeriesThenTitle,
+						];
 			case "completedAt":
 				return sortDirection === "asc"
-					? [sql`latest_instance.latest_completed_at ASC NULLS LAST`, ...bySeriesThenTitle]
-					: [sql`latest_instance.latest_completed_at DESC NULLS LAST`, ...bySeriesThenTitle];
+					? [
+							sql`latest_instance.latest_completed_at ASC NULLS LAST`,
+							...bySeriesThenTitle,
+						]
+					: [
+							sql`latest_instance.latest_completed_at DESC NULLS LAST`,
+							...bySeriesThenTitle,
+						];
 			default:
 				return [dir(mediaItemMetadata.sortTitle)];
 		}
@@ -284,11 +301,20 @@ export async function querySeriesResults(
 			: sortBy === "status"
 				? [dir(series.statusSortOrder), asc(series.sortName)]
 				: sortBy === "nextItemStatus"
-					? [sql`${series.nextItemStatusSortOrder} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+					? [
+							sql`${series.nextItemStatusSortOrder} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`,
+							asc(series.sortName),
+						]
 					: sortBy === "rating"
-						? [sql`${series.rating} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+						? [
+								sql`${series.rating} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`,
+								asc(series.sortName),
+							]
 						: sortBy === "itemCount"
-							? [sql`${itemCountSql} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`, asc(series.sortName)]
+							? [
+									sql`${itemCountSql} ${sql.raw(sortDirection === "asc" ? "ASC" : "DESC")} NULLS LAST`,
+									asc(series.sortName),
+								]
 							: [dir(series.sortName)];
 
 	const rawRows = await db
@@ -335,8 +361,13 @@ export async function getNextItemInSeries(
 			purchaseStatus: mediaItems.purchaseStatus,
 		})
 		.from(mediaItems)
-		.innerJoin(mediaItemMetadata, eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id))
-		.where(and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)))
+		.innerJoin(
+			mediaItemMetadata,
+			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
+		)
+		.where(
+			and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)),
+		)
 		.orderBy(
 			sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
 			asc(mediaItemMetadata.releaseDate),
@@ -354,9 +385,9 @@ export async function getNextItemInSeries(
 		return null;
 	}
 
-	const nextItem = items.slice(lastEngagedIndex + 1).find(
-		(item) => item.status === MediaItemStatus.BACKLOG,
-	);
+	const nextItem = items
+		.slice(lastEngagedIndex + 1)
+		.find((item) => item.status === MediaItemStatus.BACKLOG);
 
 	return nextItem ?? null;
 }
@@ -384,7 +415,9 @@ export async function syncSeriesStatus(
 	);
 	const allRemainingAreWaiting =
 		remainingStatuses.length > 0 &&
-		remainingStatuses.every((s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE);
+		remainingStatuses.every(
+			(s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		);
 
 	let newStatus: MediaItemStatus | null = null;
 	if (statuses.some((s) => s === MediaItemStatus.IN_PROGRESS)) {
@@ -408,10 +441,7 @@ export async function syncSeriesStatus(
 				rating: mediaItemInstances.rating,
 			})
 			.from(mediaItemInstances)
-			.innerJoin(
-				mediaItems,
-				eq(mediaItemInstances.mediaItemId, mediaItems.id),
-			)
+			.innerJoin(mediaItems, eq(mediaItemInstances.mediaItemId, mediaItems.id))
 			.where(
 				and(
 					eq(mediaItems.seriesId, seriesId),
@@ -471,7 +501,9 @@ export async function transitionReleasedItems(userId: string) {
 
 	const affectedSeriesIds = [
 		...new Set(
-			expiredItems.map((i) => i.seriesId).filter((id): id is number => id !== null),
+			expiredItems
+				.map((i) => i.seriesId)
+				.filter((id): id is number => id !== null),
 		),
 	];
 	for (const seriesId of affectedSeriesIds) {
