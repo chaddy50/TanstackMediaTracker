@@ -391,35 +391,30 @@ export function DashboardReport({ initialReport }: Props) {
 	return (
 		<div className="rounded-xl border border-border bg-card p-4">
 			<div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-				<h2 className="text-base font-semibold text-card-foreground">
-					{activeReport?.name ?? ""}
-				</h2>
-				<div className="flex items-center gap-2">
-					<Select
-						value={activeReport ? String(activeReport.id) : undefined}
-						onValueChange={handleReportSelect}
-						disabled={isLoading}
-					>
-						<SelectTrigger className="w-44">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{customReports.map((report) => (
-								<SelectItem key={report.id} value={String(report.id)}>
-									{report.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						onClick={() => setIsManageOpen(true)}
-						title={t("dashboard.report.manageReports")}
-					>
-						<Settings2Icon />
-					</Button>
-				</div>
+				<Select
+					value={activeReport ? String(activeReport.id) : undefined}
+					onValueChange={handleReportSelect}
+					disabled={isLoading}
+				>
+					<SelectTrigger className="w-auto max-w-xs border-transparent bg-transparent shadow-none px-0 text-base font-semibold text-card-foreground hover:bg-accent hover:text-accent-foreground">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{customReports.map((report) => (
+							<SelectItem key={report.id} value={String(report.id)}>
+								{report.name}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => setIsManageOpen(true)}
+					title={t("dashboard.report.manageReports")}
+				>
+					<Settings2Icon />
+				</Button>
 			</div>
 			{renderChart()}
 			<ManageReportsDialog
