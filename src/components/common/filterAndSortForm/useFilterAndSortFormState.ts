@@ -19,6 +19,7 @@ export function useFilterAndSortFormState(
 	initialSubject: ViewSubject,
 	initialFilters: FilterAndSortOptions = {},
 	availableTags: string[] = [],
+	availableGenres: string[] = [],
 ) {
 	const [subject, setSubject] = useState<ViewSubject>(initialSubject);
 	const [selectedMediaTypes, setSelectedMediaTypes] = useState<MediaItemType[]>(
@@ -56,6 +57,9 @@ export function useFilterAndSortFormState(
 	const [selectedTags, setSelectedTags] = useState<string[]>(
 		initialFilters.tags ?? [],
 	);
+	const [selectedGenres, setSelectedGenres] = useState<string[]>(
+		initialFilters.genres ?? [],
+	);
 	const [creatorQuery, setCreatorQuery] = useState(
 		initialFilters.creatorQuery ?? "",
 	);
@@ -87,6 +91,14 @@ export function useFilterAndSortFormState(
 			previous.includes(tag)
 				? previous.filter((t) => t !== tag)
 				: [...previous, tag],
+		);
+	}
+
+	function toggleGenre(genre: string) {
+		setSelectedGenres((previous) =>
+			previous.includes(genre)
+				? previous.filter((g) => g !== genre)
+				: [...previous, genre],
 		);
 	}
 
@@ -129,6 +141,10 @@ export function useFilterAndSortFormState(
 				filters.tags = selectedTags;
 			}
 
+			if (selectedGenres.length > 0) {
+				filters.genres = selectedGenres;
+			}
+
 			if (creatorQuery.trim() !== "") {
 				filters.creatorQuery = creatorQuery.trim();
 			}
@@ -167,6 +183,9 @@ export function useFilterAndSortFormState(
 		availableTags,
 		selectedTags,
 		onToggleTag: toggleTag,
+		availableGenres,
+		selectedGenres,
+		onToggleGenre: toggleGenre,
 		creatorQuery,
 		onCreatorQueryChange: setCreatorQuery,
 	};

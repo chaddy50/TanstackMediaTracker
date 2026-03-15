@@ -2,6 +2,7 @@ import { db } from "#/db/index";
 import {
 	creators,
 	type FilterAndSortOptions,
+	genres,
 	type ItemSortField,
 	mediaItemInstances,
 	mediaItemMetadata,
@@ -98,6 +99,9 @@ export async function queryItemResults(
 							),
 						),
 				)
+			: undefined,
+		filters.genres?.length
+			? inArray(genres.name, filters.genres)
 			: undefined,
 		filters.titleQuery
 			? or(
@@ -209,6 +213,8 @@ export async function queryItemResults(
 			seriesName: series.name,
 			creatorId: mediaItems.creatorId,
 			creatorName: creators.name,
+			genreId: mediaItems.genreId,
+			genreName: genres.name,
 			latestRating: sql<string | null>`latest_instance.latest_rating`,
 			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
 		})
@@ -219,6 +225,7 @@ export async function queryItemResults(
 		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
+		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
 		.leftJoin(lateralLatestInstance, sql`true`)
 		.where(and(...conditions))
 		.orderBy(...sortClauses)

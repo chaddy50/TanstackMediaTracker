@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 
 import { Input } from "#/components/ui/input";
 import { FormField } from "./FormField";
-import { parseArrayField } from "./parseArrayField";
 
 interface BookFieldsProps {
 	rawMetadata: Record<string, unknown>;
@@ -21,9 +20,6 @@ export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 			typeof rawMetadata.seriesBookNumber === "string"
 				? rawMetadata.seriesBookNumber
 				: "",
-		genres: Array.isArray(rawMetadata.genres)
-			? rawMetadata.genres.join(", ")
-			: "",
 	});
 
 	function updateField(key: keyof typeof fields, value: string) {
@@ -33,7 +29,6 @@ export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 			...rawMetadata,
 			pageCount: updated.pageCount ? parseInt(updated.pageCount, 10) : undefined,
 			seriesBookNumber: updated.seriesBookNumber || undefined,
-			genres: parseArrayField(updated.genres),
 		});
 	}
 
@@ -51,14 +46,6 @@ export function BookFields({ rawMetadata, onChange }: BookFieldsProps) {
 					type="number"
 					value={fields.pageCount}
 					onChange={(e) => updateField("pageCount", e.target.value)}
-				/>
-			</FormField>
-
-			<FormField label={t("metadata.genres")}>
-				<Input
-					value={fields.genres}
-					onChange={(e) => updateField("genres", e.target.value)}
-					placeholder="Fantasy, Adventure, ..."
 				/>
 			</FormField>
 		</>

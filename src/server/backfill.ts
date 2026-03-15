@@ -56,5 +56,12 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 		return runCreatorsBackfillJob(user.id);
 	}
 
+	if (data.jobName === "genres") {
+		const { runGenresBackfill } = await import(
+			"#/server/backfillJobs/genres"
+		);
+		return runGenresBackfill(user.id);
+	}
+
 	throw new Error(`Unknown backfill job: ${data.jobName}`);
 	});

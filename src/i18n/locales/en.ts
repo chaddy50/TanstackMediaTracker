@@ -216,6 +216,11 @@ export const en = {
 			description:
 				"Create creator records from your existing library items and link them together.",
 		},
+		genres: {
+			label: "Backfill Genres",
+			description:
+				"Migrate genre data from your existing library items into the new genre system.",
+		},
 	},
 	settings: {
 		title: "Settings",
@@ -284,6 +289,7 @@ export const en = {
 				incomplete: "Incomplete",
 			},
 			tags: "Tags",
+			genres: "Genre",
 			creatorFilter: "Creator",
 			creatorFilterPlaceholder: "Filter by creator name...",
 			filtersSection: "Filters",
@@ -366,5 +372,12 @@ export const en = {
 		edit: "Edit Creator",
 		delete: "Delete Creator",
 		biography: "Biography",
+	},
+	genreDetails: {
+		items: "Items",
+	},
+	genre: {
+		noGenre: "No genre",
+		createNewGenre: "Create new genre...",
 	},
 } as const;

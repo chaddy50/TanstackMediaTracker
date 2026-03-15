@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
+import { getGenres } from "#/server/genres";
 import { getTags } from "#/server/tags";
 import { useState } from "react";
 import { FilterAndSortActions } from "../common/filterAndSortForm/components/FilterAndSortActions";
@@ -37,14 +38,19 @@ export function ViewFilterAndSortForm({
 		queryKey: ["tags"],
 		queryFn: () => getTags(),
 	});
+	const { data: genresList = [] } = useQuery({
+		queryKey: ["genres"],
+		queryFn: () => getGenres(),
+	});
 	const availableTags = tagsList.map((tag) => tag.name);
+	const availableGenres = genresList.map((genre) => genre.name);
 	const {
 		subject,
 		onSubjectChanged,
 		filtersProps,
 		sortingProps,
 		buildFilters,
-	} = useFilterAndSortFormState(initialSubject, initialFilters, availableTags);
+	} = useFilterAndSortFormState(initialSubject, initialFilters, availableTags, availableGenres);
 
 	async function handleSubmit() {
 		setIsSubmitting(true);

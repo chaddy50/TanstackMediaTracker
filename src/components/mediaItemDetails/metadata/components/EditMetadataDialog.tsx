@@ -19,14 +19,15 @@ import {
 	updateMediaItemMetadata,
 	updateMediaItemSeries,
 } from "#/server/mediaItem";
+import { saveMediaItemGenre } from "#/server/genres";
 import { saveMediaItemTags } from "#/server/tags";
 import { BookFields } from "./editMetadata/BookFields";
 import { FormField } from "./editMetadata/FormField";
 import { GameFields } from "./editMetadata/GameFields";
 import { MovieFields } from "./editMetadata/MovieFields";
-import { PodcastFields } from "./editMetadata/PodcastFields";
 import { SeriesField, type SeriesFieldValue } from "./editMetadata/SeriesField";
 import { CreatorField, type CreatorFieldValue } from "./editMetadata/CreatorField";
+import { GenreField, type GenreFieldValue } from "./editMetadata/GenreField";
 import { TvShowFields } from "./editMetadata/TvShowFields";
 import { TagsEditor } from "./TagsEditor";
 
@@ -82,6 +83,12 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			? { mode: "existing", creatorId: mediaItemDetails.creatorId }
 			: { mode: "none" },
 	);
+	const [genreFieldValue, setGenreFieldValue] = useState<GenreFieldValue>(
+		mediaItemDetails.genreName !== null &&
+			mediaItemDetails.genreName !== undefined
+			? { mode: "set", name: mediaItemDetails.genreName }
+			: { mode: "none" },
+	);
 	const [pendingTags, setPendingTags] = useState<string[]>(
 		mediaItemDetails.tags,
 	);
@@ -89,7 +96,8 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 	const isSaveDisabled =
 		isSaving ||
 		(seriesFieldValue.mode === "new" && seriesFieldValue.name.trim() === "") ||
-		(creatorFieldValue.mode === "new" && creatorFieldValue.name.trim() === "");
+		(creatorFieldValue.mode === "new" && creatorFieldValue.name.trim() === "") ||
+		(genreFieldValue.mode === "set" && genreFieldValue.name.trim() === "");
 
 	async function handleSave() {
 		setIsSaving(true);
@@ -135,6 +143,14 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 						creatorFieldValue.mode === "new"
 							? creatorFieldValue.name.trim()
 							: undefined,
+				},
+			});
+
+			await saveMediaItemGenre({
+				data: {
+					mediaItemId: mediaItemDetails.id,
+					genreName:
+						genreFieldValue.mode === "set" ? genreFieldValue.name.trim() : null,
 				},
 			});
 
@@ -221,6 +237,11 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							onChange={setCreatorFieldValue}
 						/>
 
+						<GenreField
+							initialGenreName={mediaItemDetails.genreName ?? null}
+							onChange={setGenreFieldValue}
+						/>
+
 						{mediaItemDetails.type === MediaItemType.BOOK && (
 							<BookFields
 								rawMetadata={rawMetadata}
@@ -249,12 +270,6 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 							/>
 						)}
 
-						{mediaItemDetails.type === MediaItemType.PODCAST && (
-							<PodcastFields
-								rawMetadata={rawMetadata}
-								onChange={setTypeMetadata}
-							/>
-						)}
 
 						{mediaItemDetails.type === MediaItemType.PODCAST && feedUrl && (
 							<FormField label={t("podcast.episodes")}>

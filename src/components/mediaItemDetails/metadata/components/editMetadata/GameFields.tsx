@@ -16,9 +16,6 @@ export function GameFields({ rawMetadata, onChange }: GameFieldsProps) {
 		platforms: Array.isArray(rawMetadata.platforms)
 			? rawMetadata.platforms.join(", ")
 			: "",
-		genres: Array.isArray(rawMetadata.genres)
-			? rawMetadata.genres.join(", ")
-			: "",
 	});
 
 	function updateField(key: keyof typeof fields, value: string) {
@@ -27,27 +24,16 @@ export function GameFields({ rawMetadata, onChange }: GameFieldsProps) {
 		onChange({
 			...rawMetadata,
 			platforms: parseArrayField(updated.platforms),
-			genres: parseArrayField(updated.genres),
 		});
 	}
 
 	return (
-		<>
-			<FormField label={t("metadata.platforms")}>
-				<Input
-					value={fields.platforms}
-					onChange={(e) => updateField("platforms", e.target.value)}
-					placeholder="PC, PlayStation 5, ..."
-				/>
-			</FormField>
-
-			<FormField label={t("metadata.genres")}>
-				<Input
-					value={fields.genres}
-					onChange={(e) => updateField("genres", e.target.value)}
-					placeholder="RPG, Action, ..."
-				/>
-			</FormField>
-		</>
+		<FormField label={t("metadata.platforms")}>
+			<Input
+				value={fields.platforms}
+				onChange={(e) => updateField("platforms", e.target.value)}
+				placeholder="PC, PlayStation 5, ..."
+			/>
+		</FormField>
 	);
 }

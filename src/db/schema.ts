@@ -123,6 +123,7 @@ export type FilterAndSortOptions = {
 	completedYearEnd?: number;
 	isSeriesComplete?: boolean;
 	tags?: string[];
+	genres?: string[];
 	sortBy?: ItemSortField | SeriesSortField;
 	sortDirection?: SortDirection;
 	titleQuery?: string;
@@ -300,6 +301,25 @@ export const creators = pgTable(
 );
 
 /**
+ * User-defined genres for categorizing media items.
+ * Each genre is unique per user (name is case-sensitive).
+ */
+export const genres = pgTable(
+	"genres",
+	{
+		id: serial("id").primaryKey(),
+		userId: text("user_id").notNull(),
+		name: text("name").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("genres_userId_name_unique").on(table.userId, table.name),
+	],
+);
+
+export type Genre = typeof genres.$inferSelect;
+
+/**
  * Stores media data fetched from external APIs (TMDB, IGDB, Open Library).
  * Acts as a local cache — once fetched, never fetched again.
  */
@@ -360,6 +380,9 @@ export const mediaItems = pgTable(
 			onDelete: "set null",
 		}),
 		creatorId: integer("creator_id").references(() => creators.id, {
+			onDelete: "set null",
+		}),
+		genreId: integer("genre_id").references(() => genres.id, {
 			onDelete: "set null",
 		}),
 		status: mediaItemStatusEnum("status").notNull().default("backlog"),

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "#/db/index";
 import {
 	creators,
+	genres,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItemStatusEnum,
@@ -70,6 +71,8 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				seriesName: series.name,
 				creatorId: mediaItems.creatorId,
 				creatorName: creators.name,
+				genreId: mediaItems.genreId,
+				genreName: genres.name,
 				metadataId: mediaItemMetadata.id,
 				title: mediaItemMetadata.title,
 				type: mediaItemMetadata.type,
@@ -85,6 +88,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 			)
 			.leftJoin(series, eq(mediaItems.seriesId, series.id))
 			.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
+			.leftJoin(genres, eq(mediaItems.genreId, genres.id))
 			.where(and(eq(mediaItems.id, id), eq(mediaItems.userId, user.id)));
 
 		if (!row) throw new Error(`Entry ${id} not found`);

@@ -18,4 +18,5 @@ export const BACKFILL_JOBS: BackfillJobInfo[] = [
 	{ name: "seriesRatings" },
 	{ name: "nextItemStatus" },
 	{ name: "creators" },
+	{ name: "genres" },
 ];

@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 
 import { Input } from "#/components/ui/input";
 import { FormField } from "./FormField";
-import { parseArrayField } from "./parseArrayField";
 
 interface TvShowFieldsProps {
 	rawMetadata: Record<string, unknown>;
@@ -17,9 +16,6 @@ export function TvShowFields({ rawMetadata, onChange }: TvShowFieldsProps) {
 			typeof rawMetadata.seasons === "number"
 				? String(rawMetadata.seasons)
 				: "",
-		genres: Array.isArray(rawMetadata.genres)
-			? rawMetadata.genres.join(", ")
-			: "",
 	});
 
 	function updateField(key: keyof typeof fields, value: string) {
@@ -28,27 +24,16 @@ export function TvShowFields({ rawMetadata, onChange }: TvShowFieldsProps) {
 		onChange({
 			...rawMetadata,
 			seasons: updated.seasons ? parseInt(updated.seasons, 10) : undefined,
-			genres: parseArrayField(updated.genres),
 		});
 	}
 
 	return (
-		<>
-			<FormField label={t("metadata.seasons")}>
-				<Input
-					type="number"
-					value={fields.seasons}
-					onChange={(e) => updateField("seasons", e.target.value)}
-				/>
-			</FormField>
-
-			<FormField label={t("metadata.genres")}>
-				<Input
-					value={fields.genres}
-					onChange={(e) => updateField("genres", e.target.value)}
-					placeholder="Drama, Comedy, ..."
-				/>
-			</FormField>
-		</>
+		<FormField label={t("metadata.seasons")}>
+			<Input
+				type="number"
+				value={fields.seasons}
+				onChange={(e) => updateField("seasons", e.target.value)}
+			/>
+		</FormField>
 	);
 }

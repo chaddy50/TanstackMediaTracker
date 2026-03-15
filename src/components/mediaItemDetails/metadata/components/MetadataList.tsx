@@ -1,10 +1,11 @@
 import { Fragment } from "react";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { MediaItemType } from "#/lib/enums";
-import { formatHours, formatMinutes } from "#/lib/utils";
 import { CreatorLink } from "#/components/common/CreatorLink";
 import { SeriesLink } from "#/components/common/SeriesLink";
+import { MediaItemType } from "#/lib/enums";
+import { formatHours, formatMinutes } from "#/lib/utils";
 import type { MediaItemDetails } from "#/server/mediaItem";
 
 export function MetadataList({
@@ -15,6 +16,8 @@ export function MetadataList({
 	seriesName,
 	creatorId,
 	creatorName,
+	genreId,
+	genreName,
 	tags = [],
 }: {
 	type: MediaItemDetails["type"];
@@ -24,6 +27,8 @@ export function MetadataList({
 	seriesName?: string | null;
 	creatorId?: number | null;
 	creatorName?: string | null;
+	genreId?: number | null;
+	genreName?: string | null;
 	tags?: string[];
 }) {
 	const { t } = useTranslation();
@@ -72,11 +77,6 @@ export function MetadataList({
 						});
 					}
 				}
-				if (Array.isArray(m.genres) && m.genres.length)
-					fields.push({
-						label: t("metadata.genres"),
-						value: m.genres.join(", "),
-					});
 				break;
 			case MediaItemType.MOVIE:
 				if (seriesName)
@@ -91,11 +91,6 @@ export function MetadataList({
 					fields.push({
 						label: t("metadata.runtime"),
 						value: formatMinutes(m.runtime as number, t),
-					});
-				if (Array.isArray(m.genres) && m.genres.length)
-					fields.push({
-						label: t("metadata.genres"),
-						value: m.genres.join(", "),
 					});
 				break;
 			case MediaItemType.TV_SHOW:
@@ -123,11 +118,6 @@ export function MetadataList({
 						});
 					}
 				}
-				if (Array.isArray(m.genres) && m.genres.length)
-					fields.push({
-						label: t("metadata.genres"),
-						value: m.genres.join(", "),
-					});
 				break;
 			case MediaItemType.VIDEO_GAME:
 				if (seriesName)
@@ -142,11 +132,6 @@ export function MetadataList({
 					fields.push({
 						label: t("metadata.platforms"),
 						value: m.platforms.join(", "),
-					});
-				if (Array.isArray(m.genres) && m.genres.length)
-					fields.push({
-						label: t("metadata.genres"),
-						value: m.genres.join(", "),
 					});
 				if (typeof m.timeToBeatHastily === "number")
 					fields.push({
@@ -187,16 +172,12 @@ export function MetadataList({
 						label: t("metadata.runtime"),
 						value: formatMinutes(m.totalDuration as number, t),
 					});
-				if (Array.isArray(m.genres) && m.genres.length)
-					fields.push({
-						label: t("metadata.genres"),
-						value: m.genres.join(", "),
-					});
 				break;
 		}
 	}
 
-	if (fields.length === 0 && tags.length === 0) return null;
+	const hasContent = fields.length > 0 || !!genreName || tags.length > 0;
+	if (!hasContent) return null;
 
 	return (
 		<div className="flex flex-col gap-1.5 text-sm">
@@ -216,6 +197,20 @@ export function MetadataList({
 					</div>
 				</Fragment>
 			))}
+			{genreName && genreId && (
+				<div className="flex gap-3">
+					<span className="text-muted-foreground w-28 shrink-0">
+						{t("metadata.genres")}
+					</span>
+					<Link
+						to="/genre/$genreId"
+						params={{ genreId: String(genreId) }}
+						className="text-foreground hover:underline"
+					>
+						{genreName}
+					</Link>
+				</div>
+			)}
 			{tags.length > 0 && (
 				<div className="flex gap-3">
 					<span className="text-muted-foreground w-28 shrink-0">

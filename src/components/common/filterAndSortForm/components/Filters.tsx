@@ -47,6 +47,9 @@ export interface FiltersProps {
 	availableTags: string[];
 	selectedTags: string[];
 	onToggleTag: (tag: string) => void;
+	availableGenres: string[];
+	selectedGenres: string[];
+	onToggleGenre: (genre: string) => void;
 	creatorQuery: string;
 	onCreatorQueryChange: (query: string) => void;
 }
@@ -70,6 +73,9 @@ export function Filters({
 	availableTags,
 	selectedTags,
 	onToggleTag,
+	availableGenres,
+	selectedGenres,
+	onToggleGenre,
 	creatorQuery,
 	onCreatorQueryChange,
 }: FiltersProps) {
@@ -182,6 +188,24 @@ export function Filters({
 										onPressedChange={() => onToggleTag(tag)}
 									>
 										{tag}
+									</Toggle>
+								))}
+							</div>
+						</div>
+					)}
+
+					{availableGenres.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("views.form.genres")}</Label>
+							<div className="flex gap-2 flex-wrap">
+								{availableGenres.map((genre) => (
+									<Toggle
+										key={genre}
+										variant="outline"
+										pressed={selectedGenres.includes(genre)}
+										onPressedChange={() => onToggleGenre(genre)}
+									>
+										{genre}
 									</Toggle>
 								))}
 							</div>
