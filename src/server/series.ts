@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import {
+	creators,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItemStatusEnum,
@@ -48,12 +49,15 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 				type: mediaItemMetadata.type,
 				coverImageUrl: mediaItemMetadata.coverImageUrl,
 				metadata: mediaItemMetadata.metadata,
+				creatorId: mediaItems.creatorId,
+				creatorName: creators.name,
 			})
 			.from(mediaItems)
 			.innerJoin(
 				mediaItemMetadata,
 				eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
 			)
+			.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 			.where(and(eq(mediaItems.seriesId, id), eq(mediaItems.userId, user.id)))
 			.orderBy(
 				sql`

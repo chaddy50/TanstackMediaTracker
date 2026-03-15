@@ -1,4 +1,4 @@
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -9,6 +9,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
+import { formatDate } from "#/lib/utils";
 import {
 	type SeriesDetails,
 	updateNextItemStatus,
@@ -39,6 +40,26 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	);
 	const shouldShowNextItemStatus =
 		!hasUserCompletedAllItems || !seriesDetails.isComplete;
+
+	const firstItem = seriesDetails.items[0];
+	const allItemsSameCreator =
+		seriesDetails.items.length > 0 &&
+		seriesDetails.items.every(
+			(item) => item.creatorId !== null && item.creatorId === firstItem?.creatorId,
+		);
+	const sharedCreator =
+		allItemsSameCreator && firstItem?.creatorId != null && firstItem?.creatorName
+			? { id: firstItem.creatorId, name: firstItem.creatorName }
+			: null;
+
+	const allItemsCompleted =
+		seriesDetails.items.length > 0 &&
+		seriesDetails.items.every((item) => item.status === MediaItemStatus.COMPLETED);
+	const seriesCompletedAt =
+		allItemsCompleted &&
+		seriesDetails.status !== MediaItemStatus.WAITING_FOR_NEXT_RELEASE
+			? (seriesDetails.items[seriesDetails.items.length - 1].completedAt ?? null)
+			: null;
 
 	async function handleStatusChange(status: string) {
 		await updateSeriesStatus({
@@ -80,6 +101,21 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 
 			{seriesDetails.description && (
 				<ExpandableTextBlock text={seriesDetails.description} />
+			)}
+
+			{sharedCreator && (
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+					<span className="text-sm text-muted-foreground sm:w-24">
+						{t("metadata.creator")}
+					</span>
+					<Link
+						to="/creator/$creatorId"
+						params={{ creatorId: String(sharedCreator.id) }}
+						className="text-sm hover:underline"
+					>
+						{sharedCreator.name}
+					</Link>
+				</div>
 			)}
 
 			<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -137,6 +173,15 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 					shouldShowIfNoRating={true}
 				/>
 			</div>
+
+			{seriesCompletedAt && (
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+					<span className="text-sm text-muted-foreground sm:w-24">
+						{t("mediaItemDetails.completed")}
+					</span>
+					<span className="text-sm">{formatDate(seriesCompletedAt)}</span>
+				</div>
+			)}
 		</div>
 	);
 }
