@@ -23,6 +23,7 @@ import { Route as AuthenticatedCreatorCreatorIdRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/_app/settings'
 import { Route as AuthenticatedAppSeriesRouteImport } from './routes/_authenticated/_app/series'
 import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/_app/library'
+import { Route as AuthenticatedReportsReportIdDrilldownRouteImport } from './routes/_authenticated/reports.$reportId.drilldown'
 import { Route as AuthenticatedAppViewsViewIdRouteImport } from './routes/_authenticated/_app/views.$viewId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -98,6 +99,12 @@ const AuthenticatedAppLibraryRoute = AuthenticatedAppLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedReportsReportIdDrilldownRoute =
+  AuthenticatedReportsReportIdDrilldownRouteImport.update({
+    id: '/reports/$reportId/drilldown',
+    path: '/reports/$reportId/drilldown',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppViewsViewIdRoute =
   AuthenticatedAppViewsViewIdRouteImport.update({
     id: '/views/$viewId',
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
+  '/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedAppIndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
+  '/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/_app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/_app/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
+  '/_authenticated/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/series/$seriesId'
     | '/api/auth/$'
     | '/views/$viewId'
+    | '/reports/$reportId/drilldown'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/series/$seriesId'
     | '/api/auth/$'
     | '/views/$viewId'
+    | '/reports/$reportId/drilldown'
   id:
     | '__root__'
     | '/_authenticated'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/_authenticated/_app/'
     | '/_authenticated/_app/views/$viewId'
+    | '/_authenticated/reports/$reportId/drilldown'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppLibraryRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/reports/$reportId/drilldown': {
+      id: '/_authenticated/reports/$reportId/drilldown'
+      path: '/reports/$reportId/drilldown'
+      fullPath: '/reports/$reportId/drilldown'
+      preLoaderRoute: typeof AuthenticatedReportsReportIdDrilldownRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/_app/views/$viewId': {
       id: '/_authenticated/_app/views/$viewId'
       path: '/views/$viewId'
@@ -346,6 +366,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedGenreGenreIdRoute: typeof AuthenticatedGenreGenreIdRoute
   AuthenticatedMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
   AuthenticatedSeriesSeriesIdRoute: typeof AuthenticatedSeriesSeriesIdRoute
+  AuthenticatedReportsReportIdDrilldownRoute: typeof AuthenticatedReportsReportIdDrilldownRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -355,6 +376,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMediaItemDetailsMediaItemIdRoute:
     AuthenticatedMediaItemDetailsMediaItemIdRoute,
   AuthenticatedSeriesSeriesIdRoute: AuthenticatedSeriesSeriesIdRoute,
+  AuthenticatedReportsReportIdDrilldownRoute:
+    AuthenticatedReportsReportIdDrilldownRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

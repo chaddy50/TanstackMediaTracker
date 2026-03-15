@@ -489,16 +489,36 @@ export const mediaItemTags = pgTable(
  * either media items or series.
  */
 /**
+ * User-created custom dashboard reports.
+ */
+export const customReports = pgTable("custom_reports", {
+	id: serial("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	name: text("name").notNull(),
+	reportType: text("report_type").notNull(),
+	mediaTypes: text("media_types").array(),
+	monthCount: integer("month_count").notNull().default(12),
+	displayOrder: integer("display_order").notNull().default(0),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.notNull()
+		.$onUpdateFn(() => new Date()),
+});
+
+/**
  * One row per user — stores user-level application preferences.
  */
 export const userSettings = pgTable("user_settings", {
 	userId: text("user_id")
 		.primaryKey()
 		.references(() => user.id, { onDelete: "cascade" }),
-	dashboardReport: text("dashboard_report")
-		.notNull()
-		.default("pages_read_by_month"),
-	dashboardReportMonths: integer("dashboard_report_months").notNull().default(12),
+	activeCustomReportId: integer("active_custom_report_id").references(
+		() => customReports.id,
+		{ onDelete: "set null" },
+	),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

@@ -218,6 +218,20 @@
       "when": 1773586317084,
       "tag": "0030_serious_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1773604742162,
+      "tag": "0031_chilly_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1773604755332,
+      "tag": "0032_icy_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

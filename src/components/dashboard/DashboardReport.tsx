@@ -1,3 +1,5 @@
+import { useNavigate } from "@tanstack/react-router";
+import { Settings2Icon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,6 +18,7 @@ import {
 	YAxis,
 } from "recharts";
 
+import { Button } from "#/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -23,16 +26,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
+import { MediaItemType } from "#/lib/enums";
 import {
+	type CustomReport,
 	type DashboardReport as DashboardReportData,
-	type DashboardReportType,
 	type GenreDataPoint,
 	getDashboardReport,
-	REPORT_MONTH_OPTIONS,
 	type ReportDataPoint,
-	type ReportMonthOption,
-	setDashboardReport,
+	setActiveCustomReport,
 } from "#/server/reports";
+import { ManageReportsDialog } from "./ManageReportsDialog";
 
 const PIE_COLORS = [
 	"#69359c",
@@ -73,17 +76,18 @@ type Props = {
 
 export function DashboardReport({ initialReport }: Props) {
 	const { t } = useTranslation();
-	const [reportType, setReportType] = useState<DashboardReportType>(
-		initialReport.reportType,
+	const navigate = useNavigate();
+	const [customReports, setCustomReports] = useState<CustomReport[]>(
+		initialReport.customReports,
 	);
-	const [reportMonths, setReportMonths] = useState<ReportMonthOption>(
-		initialReport.reportMonths,
+	const [activeReport, setActiveReport] = useState<CustomReport | null>(
+		initialReport.activeReport,
 	);
 	const [data, setData] = useState<ReportDataPoint[] | GenreDataPoint[]>(
 		initialReport.data,
 	);
 	const [isLoading, setIsLoading] = useState(false);
-
+	const [isManageOpen, setIsManageOpen] = useState(false);
 
 	function getMonthAbbr(yearMonth: string): string {
 		const [year, month] = yearMonth.split("-");
@@ -104,57 +108,79 @@ export function DashboardReport({ initialReport }: Props) {
 		return `${getMonthAbbr(yearMonth)} ${getYear(yearMonth)}`;
 	}
 
-	async function applyChange(
-		newType?: DashboardReportType,
-		newMonths?: ReportMonthOption,
-	) {
+	function getProgressLabel(): string {
+		const mediaType = activeReport?.mediaTypes?.[0];
+		if (mediaType === MediaItemType.BOOK) {
+			return t("dashboard.report.progressLabels.pages");
+		} else if (mediaType === MediaItemType.TV_SHOW) {
+			return t("dashboard.report.progressLabels.episodes");
+		} else if (
+			mediaType === MediaItemType.MOVIE ||
+			mediaType === MediaItemType.PODCAST ||
+			mediaType === MediaItemType.VIDEO_GAME
+		) {
+			return t("dashboard.report.progressLabels.hours");
+		}
+		return t("dashboard.report.progressLabels.items");
+	}
+
+	async function handleReportSelect(reportId: string) {
+		const selectedId = parseInt(reportId, 10);
 		setIsLoading(true);
 		try {
-			await setDashboardReport({
-				data: {
-					...(newType !== undefined && { reportType: newType }),
-					...(newMonths !== undefined && { reportMonths: newMonths }),
-				},
-			});
+			await setActiveCustomReport({ data: { id: selectedId } });
 			const updated = await getDashboardReport();
-			setReportType(updated.reportType);
-			setReportMonths(updated.reportMonths);
+			setCustomReports(updated.customReports);
+			setActiveReport(updated.activeReport);
 			setData(updated.data);
 		} finally {
 			setIsLoading(false);
 		}
 	}
 
-	function handleReportChange(newType: string) {
-		applyChange(newType as DashboardReportType, undefined);
+	function handleReportsChanged(updatedReports: CustomReport[]) {
+		setCustomReports(updatedReports);
+		if (activeReport && !updatedReports.find((r) => r.id === activeReport.id)) {
+			// Active report was deleted — pick the first remaining one
+			if (updatedReports.length > 0) {
+				handleReportSelect(String(updatedReports[0].id));
+			} else {
+				setActiveReport(null);
+				setData([]);
+			}
+		} else if (activeReport) {
+			const updatedVersion = updatedReports.find((r) => r.id === activeReport.id);
+			const wasEdited =
+				updatedVersion &&
+				JSON.stringify(updatedVersion) !== JSON.stringify(activeReport);
+			if (wasEdited) {
+				// Config changed — re-select to refresh chart data
+				setActiveReport(updatedVersion);
+				handleReportSelect(String(activeReport.id));
+			}
+		} else if (!activeReport && updatedReports.length > 0) {
+			// First report just created — select it
+			handleReportSelect(String(updatedReports[updatedReports.length - 1].id));
+		}
 	}
 
-	function handleMonthsChange(newMonths: string) {
-		applyChange(undefined, parseInt(newMonths, 10) as ReportMonthOption);
+	function navigateToDrillDown(key: string) {
+		if (!activeReport) {
+			return;
+		}
+		navigate({
+			to: "/reports/$reportId/drilldown",
+			params: { reportId: String(activeReport.id) },
+			search: { key },
+		});
 	}
-
-	const rangeLabelByMonths: Record<ReportMonthOption, string> = {
-		3: t("dashboard.report.months.last3"),
-		6: t("dashboard.report.months.last6"),
-		12: t("dashboard.report.months.last12"),
-		24: t("dashboard.report.months.last2Years"),
-		60: t("dashboard.report.months.last5Years"),
-	};
-
-	const reportLabel: Record<DashboardReportType, string> = {
-		pages_read_by_month: t("dashboard.report.pagesReadByMonth"),
-		items_completed_by_month: t("dashboard.report.itemsCompletedByMonth"),
-		books_completed_by_genre: t("dashboard.report.booksCompletedByGenre"),
-		avg_score_by_genre: t("dashboard.report.avgScoreByGenre"),
-	};
-
-	const tooltipValueLabel =
-		reportType === "pages_read_by_month"
-			? t("dashboard.report.pagesRead")
-			: t("dashboard.report.itemsCompleted");
 
 	function renderChart() {
-		if (reportType === "books_completed_by_genre") {
+		if (!activeReport) {
+			return null;
+		}
+
+		if (activeReport.reportType === "items_completed_by_genre") {
 			const genreData = data as GenreDataPoint[];
 			const total = genreData.reduce((sum, d) => sum + d.value, 0);
 			return (
@@ -168,6 +194,7 @@ export function DashboardReport({ initialReport }: Props) {
 							outerRadius={90}
 							dataKey="value"
 							nameKey="genre"
+							style={{ cursor: "pointer" }}
 						>
 							<Label
 								content={({ viewBox }) => {
@@ -189,7 +216,7 @@ export function DashboardReport({ initialReport }: Props) {
 												fontSize={12}
 												fill="var(--muted-foreground)"
 											>
-												{t("dashboard.report.books")}
+												{t("dashboard.report.progressLabels.items")}
 											</tspan>
 										</text>
 									);
@@ -199,6 +226,7 @@ export function DashboardReport({ initialReport }: Props) {
 								<Cell
 									key={entry.genre}
 									fill={PIE_COLORS[index % PIE_COLORS.length]}
+									onClick={() => navigateToDrillDown(entry.genre)}
 								/>
 							))}
 						</Pie>
@@ -212,7 +240,7 @@ export function DashboardReport({ initialReport }: Props) {
 			);
 		}
 
-		if (reportType === "avg_score_by_genre") {
+		if (activeReport.reportType === "avg_score_by_genre") {
 			const genreData = data as GenreDataPoint[];
 			const chartHeight = Math.max(220, genreData.length * 36);
 			return (
@@ -221,6 +249,7 @@ export function DashboardReport({ initialReport }: Props) {
 						data={genreData}
 						layout="vertical"
 						margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+						style={{ cursor: "pointer" }}
 					>
 						<CartesianGrid
 							strokeDasharray="3 3"
@@ -259,7 +288,13 @@ export function DashboardReport({ initialReport }: Props) {
 							}}
 							cursor={{ fill: "var(--border)", opacity: 0.4 }}
 						/>
-						<Bar dataKey="value" radius={[0, 4, 4, 0]}>
+						<Bar
+							dataKey="value"
+							radius={[0, 4, 4, 0]}
+							onClick={(barData: unknown) =>
+								navigateToDrillDown((barData as GenreDataPoint).genre)
+							}
+						>
 							{genreData.map((entry, index) => (
 								<Cell
 									key={entry.genre}
@@ -272,7 +307,13 @@ export function DashboardReport({ initialReport }: Props) {
 			);
 		}
 
+		// progress_by_month and items_completed_by_month
 		const timeData = data as ReportDataPoint[];
+		const progressLabel =
+			activeReport.reportType === "progress_by_month"
+				? getProgressLabel()
+				: t("dashboard.report.progressLabels.items");
+
 		return (
 			<ResponsiveContainer width="100%" height={220}>
 				<LineChart
@@ -299,7 +340,7 @@ export function DashboardReport({ initialReport }: Props) {
 						width={36}
 					/>
 					<Tooltip
-						formatter={(value) => [value, tooltipValueLabel]}
+						formatter={(value) => [value, progressLabel]}
 						labelFormatter={(label) => formatTooltipLabel(String(label))}
 						contentStyle={TOOLTIP_CONTENT_STYLE}
 						itemStyle={{ color: "var(--card-foreground)" }}
@@ -311,10 +352,39 @@ export function DashboardReport({ initialReport }: Props) {
 						stroke="#69359c"
 						strokeWidth={2}
 						dot={{ r: 4, fill: "#69359c", strokeWidth: 0 }}
-						activeDot={{ r: 6, fill: "#69359c", strokeWidth: 0 }}
+						activeDot={{
+							r: 6,
+							fill: "#69359c",
+							strokeWidth: 0,
+							style: { cursor: "pointer" },
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							onClick: (_event: any, payload: any) =>
+								navigateToDrillDown(
+									(payload as { payload: ReportDataPoint }).payload.month,
+								),
+						}}
 					/>
 				</LineChart>
 			</ResponsiveContainer>
+		);
+	}
+
+	if (customReports.length === 0) {
+		return (
+			<div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center justify-center gap-3 min-h-40">
+				<p className="text-sm text-muted-foreground">
+					{t("dashboard.report.noReports")}
+				</p>
+				<Button variant="outline" size="sm" onClick={() => setIsManageOpen(true)}>
+					{t("dashboard.report.createFirstReport")}
+				</Button>
+				<ManageReportsDialog
+					isOpen={isManageOpen}
+					reports={customReports}
+					onClose={() => setIsManageOpen(false)}
+					onReportsChanged={handleReportsChanged}
+				/>
+			</div>
 		);
 	}
 
@@ -322,51 +392,42 @@ export function DashboardReport({ initialReport }: Props) {
 		<div className="rounded-xl border border-border bg-card p-4">
 			<div className="flex flex-wrap items-center justify-between gap-2 mb-4">
 				<h2 className="text-base font-semibold text-card-foreground">
-					{reportLabel[reportType]}
+					{activeReport?.name ?? ""}
 				</h2>
 				<div className="flex items-center gap-2">
 					<Select
-							value={String(reportMonths)}
-							onValueChange={handleMonthsChange}
-							disabled={isLoading}
-						>
-							<SelectTrigger className="w-36">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{REPORT_MONTH_OPTIONS.map((months) => (
-									<SelectItem key={months} value={String(months)}>
-										{rangeLabelByMonths[months]}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					<Select
-						value={reportType}
-						onValueChange={handleReportChange}
+						value={activeReport ? String(activeReport.id) : undefined}
+						onValueChange={handleReportSelect}
 						disabled={isLoading}
 					>
-						<SelectTrigger className="w-52">
+						<SelectTrigger className="w-44">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="pages_read_by_month">
-								{t("dashboard.report.pagesReadByMonth")}
-							</SelectItem>
-							<SelectItem value="items_completed_by_month">
-								{t("dashboard.report.itemsCompletedByMonth")}
-							</SelectItem>
-							<SelectItem value="books_completed_by_genre">
-								{t("dashboard.report.booksCompletedByGenre")}
-							</SelectItem>
-							<SelectItem value="avg_score_by_genre">
-								{t("dashboard.report.avgScoreByGenre")}
-							</SelectItem>
+							{customReports.map((report) => (
+								<SelectItem key={report.id} value={String(report.id)}>
+									{report.name}
+								</SelectItem>
+							))}
 						</SelectContent>
 					</Select>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={() => setIsManageOpen(true)}
+						title={t("dashboard.report.manageReports")}
+					>
+						<Settings2Icon />
+					</Button>
 				</div>
 			</div>
 			{renderChart()}
+			<ManageReportsDialog
+				isOpen={isManageOpen}
+				reports={customReports}
+				onClose={() => setIsManageOpen(false)}
+				onReportsChanged={handleReportsChanged}
+			/>
 		</div>
 	);
 }
