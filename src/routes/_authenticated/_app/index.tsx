@@ -20,7 +20,7 @@ function DashboardPage() {
 	const { t } = useTranslation();
 
 	return (
-		<div className="h-full flex flex-col bg-background text-foreground">
+		<div className="flex flex-col bg-background text-foreground">
 			<PageHeader title={t("dashboard.title")} />
 			<main className="px-4 md:px-6 py-2 flex-1 min-h-0 flex flex-col gap-2">
 				<div className="flex flex-col md:flex-row gap-4 md:gap-10 shrink-0">
