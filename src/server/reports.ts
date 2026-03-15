@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import {
+	genres,
 	mediaItemInstances,
 	mediaItemMetadata,
 	mediaItems,
@@ -14,13 +15,20 @@ import { getLoggedInUser } from "#/lib/session";
 
 export type DashboardReportType =
 	| "pages_read_by_month"
-	| "items_completed_by_month";
+	| "items_completed_by_month"
+	| "books_completed_by_genre"
+	| "avg_score_by_genre";
 
 export const REPORT_MONTH_OPTIONS = [3, 6, 12, 24, 60] as const;
 export type ReportMonthOption = (typeof REPORT_MONTH_OPTIONS)[number];
 
 export type ReportDataPoint = {
 	month: string; // "YYYY-MM"
+	value: number;
+};
+
+export type GenreDataPoint = {
+	genre: string;
 	value: number;
 };
 
@@ -131,6 +139,72 @@ async function fetchItemsCompletedByMonth(
 	return mergeWithRange(rows, monthCount);
 }
 
+async function fetchBooksCompletedByGenre(
+	userId: string,
+	monthCount: number,
+): Promise<GenreDataPoint[]> {
+	const startDate = new Date();
+	startDate.setMonth(startDate.getMonth() - (monthCount - 1));
+	startDate.setDate(1);
+	const cutoffDate = startDate.toISOString().slice(0, 10);
+
+	const rows = await db
+		.select({
+			genre: genres.name,
+			value: sql<number>`COUNT(*)`,
+		})
+		.from(mediaItemInstances)
+		.innerJoin(mediaItems, eq(mediaItemInstances.mediaItemId, mediaItems.id))
+		.innerJoin(
+			mediaItemMetadata,
+			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
+		)
+		.innerJoin(genres, eq(mediaItems.genreId, genres.id))
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				eq(mediaItemMetadata.type, MediaItemType.BOOK),
+				isNotNull(mediaItemInstances.completedAt),
+				sql`${mediaItemInstances.completedAt} >= ${cutoffDate}`,
+			),
+		)
+		.groupBy(genres.name)
+		.orderBy(sql`COUNT(*) DESC`);
+
+	return rows.map((row) => ({ genre: row.genre, value: Number(row.value) }));
+}
+
+async function fetchAvgScoreByGenre(
+	userId: string,
+	monthCount: number,
+): Promise<GenreDataPoint[]> {
+	const startDate = new Date();
+	startDate.setMonth(startDate.getMonth() - (monthCount - 1));
+	startDate.setDate(1);
+	const cutoffDate = startDate.toISOString().slice(0, 10);
+
+	const rows = await db
+		.select({
+			genre: genres.name,
+			value: sql<number>`ROUND(AVG(${mediaItemInstances.rating}::float)::numeric, 1)`,
+		})
+		.from(mediaItemInstances)
+		.innerJoin(mediaItems, eq(mediaItemInstances.mediaItemId, mediaItems.id))
+		.innerJoin(genres, eq(mediaItems.genreId, genres.id))
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				isNotNull(mediaItemInstances.rating),
+				isNotNull(mediaItemInstances.completedAt),
+				sql`${mediaItemInstances.completedAt} >= ${cutoffDate}`,
+			),
+		)
+		.groupBy(genres.name)
+		.orderBy(sql`AVG(${mediaItemInstances.rating}::float) DESC`);
+
+	return rows.map((row) => ({ genre: row.genre, value: Number(row.value) }));
+}
+
 /**
  * Fills in any missing months with a value of 0 so the chart always
  * shows the full selected range.
@@ -153,17 +227,23 @@ export const getDashboardReport = createServerFn({ method: "GET" }).handler(
 
 		const { reportType, reportMonths } = await ensureUserSettings(userId);
 
-		const data =
-			reportType === "pages_read_by_month"
-				? await fetchPagesReadByMonth(userId, reportMonths)
-				: await fetchItemsCompletedByMonth(userId, reportMonths);
+		let data: ReportDataPoint[] | GenreDataPoint[];
+		if (reportType === "pages_read_by_month") {
+			data = await fetchPagesReadByMonth(userId, reportMonths);
+		} else if (reportType === "items_completed_by_month") {
+			data = await fetchItemsCompletedByMonth(userId, reportMonths);
+		} else if (reportType === "books_completed_by_genre") {
+			data = await fetchBooksCompletedByGenre(userId, reportMonths);
+		} else {
+			data = await fetchAvgScoreByGenre(userId, reportMonths);
+		}
 
 		return { reportType, reportMonths, data };
 	},
 );
 
 const setDashboardReportSchema = z.object({
-	reportType: z.enum(["pages_read_by_month", "items_completed_by_month"]).optional(),
+	reportType: z.enum(["pages_read_by_month", "items_completed_by_month", "books_completed_by_genre", "avg_score_by_genre"]).optional(),
 	reportMonths: z.number().int().positive().optional(),
 });
 

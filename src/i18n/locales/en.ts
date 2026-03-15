@@ -151,8 +151,12 @@ export const en = {
 		report: {
 			pagesReadByMonth: "Pages Read by Month",
 			itemsCompletedByMonth: "Items Completed by Month",
+			booksCompletedByGenre: "Books Completed by Genre",
+			avgScoreByGenre: "Avg Score by Genre",
 			pagesRead: "Pages Read",
 			itemsCompleted: "Items Completed",
+			books: "Books",
+			avgScore: "Avg Score",
 			months: {
 				last3: "Last 3 months",
 				last6: "Last 6 months",

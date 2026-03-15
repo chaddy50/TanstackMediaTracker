@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+	Bar,
+	BarChart,
 	CartesianGrid,
+	Cell,
+	Label,
 	Line,
 	LineChart,
+	Pie,
+	PieChart,
 	ResponsiveContainer,
 	Tooltip,
 	XAxis,
@@ -20,12 +26,34 @@ import {
 import {
 	type DashboardReport as DashboardReportData,
 	type DashboardReportType,
+	type GenreDataPoint,
 	getDashboardReport,
 	REPORT_MONTH_OPTIONS,
 	type ReportDataPoint,
 	type ReportMonthOption,
 	setDashboardReport,
 } from "#/server/reports";
+
+const PIE_COLORS = [
+	"#69359c",
+	"#a855f7",
+	"#3b82f6",
+	"#10b981",
+	"#f59e0b",
+	"#ef4444",
+	"#8b5cf6",
+	"#06b6d4",
+	"#ec4899",
+	"#14b8a6",
+];
+
+const TOOLTIP_CONTENT_STYLE = {
+	backgroundColor: "var(--card)",
+	border: "1px solid var(--border)",
+	borderRadius: "var(--radius)",
+	fontSize: "12px",
+	color: "var(--card-foreground)",
+};
 
 function getYear(yearMonth: string): string {
 	return yearMonth.split("-")[0] ?? "";
@@ -51,8 +79,11 @@ export function DashboardReport({ initialReport }: Props) {
 	const [reportMonths, setReportMonths] = useState<ReportMonthOption>(
 		initialReport.reportMonths,
 	);
-	const [data, setData] = useState(initialReport.data);
+	const [data, setData] = useState<ReportDataPoint[] | GenreDataPoint[]>(
+		initialReport.data,
+	);
 	const [isLoading, setIsLoading] = useState(false);
+
 
 	function getMonthAbbr(yearMonth: string): string {
 		const [year, month] = yearMonth.split("-");
@@ -61,10 +92,11 @@ export function DashboardReport({ initialReport }: Props) {
 	}
 
 	function formatTick(yearMonth: string): string {
-		if (!spansMultipleYears(data)) {
+		const timeData = data as ReportDataPoint[];
+		if (!spansMultipleYears(timeData)) {
 			return getMonthAbbr(yearMonth);
 		}
-		const year = getYear(yearMonth).slice(2); // e.g. "25"
+		const year = getYear(yearMonth).slice(2);
 		return `${getMonthAbbr(yearMonth)} '${year}`;
 	}
 
@@ -109,61 +141,142 @@ export function DashboardReport({ initialReport }: Props) {
 		60: t("dashboard.report.months.last5Years"),
 	};
 
-	const reportLabel =
-		reportType === "pages_read_by_month"
-			? t("dashboard.report.pagesReadByMonth")
-			: t("dashboard.report.itemsCompletedByMonth");
+	const reportLabel: Record<DashboardReportType, string> = {
+		pages_read_by_month: t("dashboard.report.pagesReadByMonth"),
+		items_completed_by_month: t("dashboard.report.itemsCompletedByMonth"),
+		books_completed_by_genre: t("dashboard.report.booksCompletedByGenre"),
+		avg_score_by_genre: t("dashboard.report.avgScoreByGenre"),
+	};
 
-	const tooltipLabel =
+	const tooltipValueLabel =
 		reportType === "pages_read_by_month"
 			? t("dashboard.report.pagesRead")
 			: t("dashboard.report.itemsCompleted");
 
-	return (
-		<div className="rounded-xl border border-border bg-card p-4">
-			<div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-				<h2 className="text-base font-semibold text-card-foreground">
-					{reportLabel}
-				</h2>
-				<div className="flex items-center gap-2">
-					<Select
-						value={String(reportMonths)}
-						onValueChange={handleMonthsChange}
-						disabled={isLoading}
-					>
-						<SelectTrigger className="w-36">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{REPORT_MONTH_OPTIONS.map((months) => (
-								<SelectItem key={months} value={String(months)}>
-									{rangeLabelByMonths[months]}
-								</SelectItem>
+	function renderChart() {
+		if (reportType === "books_completed_by_genre") {
+			const genreData = data as GenreDataPoint[];
+			const total = genreData.reduce((sum, d) => sum + d.value, 0);
+			return (
+				<ResponsiveContainer width="100%" height={220}>
+					<PieChart>
+						<Pie
+							data={genreData}
+							cx="50%"
+							cy="50%"
+							innerRadius={65}
+							outerRadius={90}
+							dataKey="value"
+							nameKey="genre"
+						>
+							<Label
+								content={({ viewBox }) => {
+									const { cx, cy } = viewBox as { cx: number; cy: number };
+									return (
+										<text textAnchor="middle">
+											<tspan
+												x={cx}
+												y={cy - 6}
+												fontSize={24}
+												fontWeight="bold"
+												fill="var(--card-foreground)"
+											>
+												{total}
+											</tspan>
+											<tspan
+												x={cx}
+												y={cy + 16}
+												fontSize={12}
+												fill="var(--muted-foreground)"
+											>
+												{t("dashboard.report.books")}
+											</tspan>
+										</text>
+									);
+								}}
+							/>
+							{genreData.map((entry, index) => (
+								<Cell
+									key={entry.genre}
+									fill={PIE_COLORS[index % PIE_COLORS.length]}
+								/>
 							))}
-						</SelectContent>
-					</Select>
-					<Select
-						value={reportType}
-						onValueChange={handleReportChange}
-						disabled={isLoading}
+						</Pie>
+						<Tooltip
+							formatter={(value, name) => [value, name]}
+							contentStyle={TOOLTIP_CONTENT_STYLE}
+							itemStyle={{ color: "var(--card-foreground)" }}
+						/>
+					</PieChart>
+				</ResponsiveContainer>
+			);
+		}
+
+		if (reportType === "avg_score_by_genre") {
+			const genreData = data as GenreDataPoint[];
+			const chartHeight = Math.max(220, genreData.length * 36);
+			return (
+				<ResponsiveContainer width="100%" height={chartHeight}>
+					<BarChart
+						data={genreData}
+						layout="vertical"
+						margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
 					>
-						<SelectTrigger className="w-52">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="pages_read_by_month">
-								{t("dashboard.report.pagesReadByMonth")}
-							</SelectItem>
-							<SelectItem value="items_completed_by_month">
-								{t("dashboard.report.itemsCompletedByMonth")}
-							</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-			</div>
+						<CartesianGrid
+							strokeDasharray="3 3"
+							stroke="var(--border)"
+							horizontal={false}
+						/>
+						<XAxis
+							type="number"
+							domain={[0, 5]}
+							tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+							axisLine={false}
+							tickLine={false}
+						/>
+						<YAxis
+							type="category"
+							dataKey="genre"
+							tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+							axisLine={false}
+							tickLine={false}
+							width={90}
+						/>
+						<Tooltip
+							content={({ active, payload, label }) => {
+								if (!active || !payload || payload.length === 0) {
+									return null;
+								}
+								return (
+									<div style={{ ...TOOLTIP_CONTENT_STYLE, padding: "6px 10px" }}>
+										<p style={{ marginBottom: 2 }}>{label}</p>
+										<p>
+											{t("dashboard.report.avgScore")}:{" "}
+											{Number(payload[0]?.value).toFixed(1)}
+										</p>
+									</div>
+								);
+							}}
+							cursor={{ fill: "var(--border)", opacity: 0.4 }}
+						/>
+						<Bar dataKey="value" radius={[0, 4, 4, 0]}>
+							{genreData.map((entry, index) => (
+								<Cell
+									key={entry.genre}
+									fill={PIE_COLORS[index % PIE_COLORS.length]}
+								/>
+							))}
+						</Bar>
+					</BarChart>
+				</ResponsiveContainer>
+			);
+		}
+
+		const timeData = data as ReportDataPoint[];
+		return (
 			<ResponsiveContainer width="100%" height={220}>
 				<LineChart
-					data={data}
+					data={timeData}
 					margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
 				>
 					<CartesianGrid
@@ -186,15 +299,10 @@ export function DashboardReport({ initialReport }: Props) {
 						width={36}
 					/>
 					<Tooltip
-						formatter={(value) => [value, tooltipLabel]}
+						formatter={(value) => [value, tooltipValueLabel]}
 						labelFormatter={(label) => formatTooltipLabel(String(label))}
-						contentStyle={{
-							backgroundColor: "var(--card)",
-							border: "1px solid var(--border)",
-							borderRadius: "var(--radius)",
-							fontSize: "12px",
-							color: "var(--card-foreground)",
-						}}
+						contentStyle={TOOLTIP_CONTENT_STYLE}
+						itemStyle={{ color: "var(--card-foreground)" }}
 						cursor={{ stroke: "var(--border)" }}
 					/>
 					<Line
@@ -207,6 +315,58 @@ export function DashboardReport({ initialReport }: Props) {
 					/>
 				</LineChart>
 			</ResponsiveContainer>
+		);
+	}
+
+	return (
+		<div className="rounded-xl border border-border bg-card p-4">
+			<div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+				<h2 className="text-base font-semibold text-card-foreground">
+					{reportLabel[reportType]}
+				</h2>
+				<div className="flex items-center gap-2">
+					<Select
+							value={String(reportMonths)}
+							onValueChange={handleMonthsChange}
+							disabled={isLoading}
+						>
+							<SelectTrigger className="w-36">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{REPORT_MONTH_OPTIONS.map((months) => (
+									<SelectItem key={months} value={String(months)}>
+										{rangeLabelByMonths[months]}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					<Select
+						value={reportType}
+						onValueChange={handleReportChange}
+						disabled={isLoading}
+					>
+						<SelectTrigger className="w-52">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="pages_read_by_month">
+								{t("dashboard.report.pagesReadByMonth")}
+							</SelectItem>
+							<SelectItem value="items_completed_by_month">
+								{t("dashboard.report.itemsCompletedByMonth")}
+							</SelectItem>
+							<SelectItem value="books_completed_by_genre">
+								{t("dashboard.report.booksCompletedByGenre")}
+							</SelectItem>
+							<SelectItem value="avg_score_by_genre">
+								{t("dashboard.report.avgScoreByGenre")}
+							</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+			{renderChart()}
 		</div>
 	);
 }
