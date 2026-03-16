@@ -25,6 +25,57 @@ export type SearchResultWithStatus = ExternalSearchResult & {
 	status?: MediaItemStatus;
 };
 
+/**
+ * Flattens settled API call results, silently dropping any that rejected.
+ * This ensures a single failing external API does not suppress results from
+ * the others.
+ */
+export function collectApiResults(
+	settled: PromiseSettledResult<ExternalSearchResult[]>[],
+): ExternalSearchResult[] {
+	return settled.flatMap((result) =>
+		result.status === "fulfilled" ? result.value : [],
+	);
+}
+
+/**
+ * Enriches external search results with the user's library status. Results
+ * that exist in the user's library receive `mediaItemId` and `status`;
+ * unrecognized results are returned unchanged.
+ */
+export function attachLibraryStatus(
+	results: ExternalSearchResult[],
+	existingMetadata: Array<{
+		id: number;
+		externalId: string;
+		externalSource: string;
+	}>,
+	existingItems: Array<{
+		id: number;
+		mediaItemMetadataId: number;
+		status: MediaItemStatus;
+	}>,
+): SearchResultWithStatus[] {
+	const metadataByExternalKey = new Map(
+		existingMetadata.map((m) => [`${m.externalId}:${m.externalSource}`, m]),
+	);
+	const itemByMetadataId = new Map(
+		existingItems.map((item) => [item.mediaItemMetadataId, item]),
+	);
+
+	return results.map((result): SearchResultWithStatus => {
+		const meta = metadataByExternalKey.get(
+			`${result.externalId}:${result.externalSource}`,
+		);
+		if (!meta) return result;
+
+		const item = itemByMetadataId.get(meta.id);
+		if (!item) return result;
+
+		return { ...result, mediaItemId: item.id, status: item.status };
+	});
+}
+
 export const searchMedia = createServerFn({ method: "GET" })
 	.inputValidator(
 		z.object({
@@ -56,9 +107,7 @@ export const searchMedia = createServerFn({ method: "GET" })
 		}
 
 		const resultArrays = await Promise.allSettled(apiCalls);
-		const externalResults: ExternalSearchResult[] = resultArrays.flatMap((r) =>
-			r.status === "fulfilled" ? r.value : [],
-		);
+		const externalResults = collectApiResults(resultArrays);
 
 		if (externalResults.length === 0) return [];
 
@@ -91,25 +140,7 @@ export const searchMedia = createServerFn({ method: "GET" })
 						)
 				: [];
 
-		// Build lookup maps
-		const metadataByExternalKey = new Map(
-			existingMetadata.map((m) => [`${m.externalId}:${m.externalSource}`, m]),
-		);
-		const itemByMetadataId = new Map(
-			existingItems.map((i) => [i.mediaItemMetadataId, i]),
-		);
-
-		return externalResults.map((result): SearchResultWithStatus => {
-			const meta = metadataByExternalKey.get(
-				`${result.externalId}:${result.externalSource}`,
-			);
-			if (!meta) return result;
-
-			const item = itemByMetadataId.get(meta.id);
-			if (!item) return result;
-
-			return { ...result, mediaItemId: item.id, status: item.status };
-		});
+		return attachLibraryStatus(externalResults, existingMetadata, existingItems);
 	});
 
 export const createCustomItem = createServerFn({ method: "POST" })
