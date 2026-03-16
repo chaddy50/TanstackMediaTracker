@@ -19,7 +19,7 @@ import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/lib/enums";
 import { getNextItemInSeries, syncSeriesStatus, transitionReleasedItems } from "#/server/itemQueries";
 import { getLoggedInUser } from "#/lib/session";
 
-function inferStatusAfterInstanceEdit(
+export function inferStatusAfterInstanceEdit(
 	startedAt?: string | null,
 	completedAt?: string | null,
 ) {
@@ -30,7 +30,7 @@ function inferStatusAfterInstanceEdit(
 
 type InstanceDateRow = { startedAt: string | null; completedAt: string | null };
 
-function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
+export function inferStatusAfterInstanceDelete(remainingInstances: InstanceDateRow[]) {
 	if (remainingInstances.some((i) => i.startedAt && !i.completedAt)) {
 		return MediaItemStatus.IN_PROGRESS;
 	}

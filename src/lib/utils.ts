@@ -56,7 +56,7 @@ export function formatDateRange(
 	} else if (start) {
 		return `${start} – Present`;
 	} else if (end) {
-		return `Completed ${end}`;
+		return end;
 	} else {
 		return null;
 	}

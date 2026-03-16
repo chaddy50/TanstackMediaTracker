@@ -60,18 +60,6 @@ export type DrillDownItem = {
 /**
  * Returns the last `monthCount` months as "YYYY-MM" strings in ascending order.
  */
-function buildMonthRange(monthCount: number): string[] {
-	const months: string[] = [];
-	const now = new Date();
-	for (let offset = monthCount - 1; offset >= 0; offset--) {
-		const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		months.push(`${year}-${month}`);
-	}
-	return months;
-}
-
 function cutoffDateFromMonthCount(monthCount: number): string {
 	const startDate = new Date();
 	startDate.setMonth(startDate.getMonth() - (monthCount - 1));
@@ -80,18 +68,24 @@ function cutoffDateFromMonthCount(monthCount: number): string {
 }
 
 /**
- * Fills in any missing months with a value of 0 so the chart always
- * shows the full selected range.
+ * Builds an ascending array of the last N calendar months, pairing each with
+ * its value from the provided rows. Months not present in rows default to 0.
  */
-function mergeWithRange(
+export function buildLastNMonths(
 	rows: { month: string; value: number }[],
 	monthCount: number,
 ): ReportDataPoint[] {
 	const valueByMonth = new Map(rows.map((r) => [r.month, Number(r.value)]));
-	return buildMonthRange(monthCount).map((month) => ({
-		month,
-		value: valueByMonth.get(month) ?? 0,
-	}));
+	const months: ReportDataPoint[] = [];
+	const now = new Date();
+	for (let offset = monthCount - 1; offset >= 0; offset--) {
+		const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const key = `${year}-${month}`;
+		months.push({ month: key, value: valueByMonth.get(key) ?? 0 });
+	}
+	return months;
 }
 
 function rowToCustomReport(row: typeof customReports.$inferSelect): CustomReport {
@@ -169,7 +163,7 @@ async function fetchProgressByMonth(
 		ORDER BY month
 	`);
 
-	return mergeWithRange(rows.rows, monthCount);
+	return buildLastNMonths(rows.rows, monthCount);
 }
 
 async function fetchItemsCompletedByMonth(
@@ -203,7 +197,7 @@ async function fetchItemsCompletedByMonth(
 		.groupBy(sql`to_char(${mediaItemInstances.completedAt}, 'YYYY-MM')`)
 		.orderBy(sql`to_char(${mediaItemInstances.completedAt}, 'YYYY-MM')`);
 
-	return mergeWithRange(rows, monthCount);
+	return buildLastNMonths(rows, monthCount);
 }
 
 async function fetchItemsCompletedByGenre(
