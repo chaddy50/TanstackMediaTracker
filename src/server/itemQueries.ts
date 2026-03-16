@@ -27,6 +27,7 @@ import {
 	tags,
 } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
+import { inferSeriesStatus } from "#/lib/seriesStatus";
 
 function buildCompletedDateCondition(filters: FilterAndSortOptions) {
 	let dateStart: string | null = null;
@@ -414,61 +415,7 @@ export async function getNextItemInSeries(
 	return findNextSeriesItem(items);
 }
 
-/**
- * Derive the new series status from its items' statuses.
- * Returns null when no status update is warranted (e.g. series has mixed
- * BACKLOG items and no item was just completed).
- */
-export function inferSeriesStatus(
-	statuses: MediaItemStatus[],
-	wasItemInSeriesJustCompleted = false,
-): MediaItemStatus | null {
-	if (statuses.length === 0) {
-		return null;
-	}
-
-	const isAtLeastOneItemInProgress = statuses.some(
-		(s) => s === MediaItemStatus.IN_PROGRESS,
-	);
-
-	const areAllItemsDone = statuses.every(
-		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
-	);
-	const unfinishedStatuses = statuses.filter(
-		(s) => s !== MediaItemStatus.COMPLETED && s !== MediaItemStatus.DROPPED,
-	);
-	const areAllRemainingItemsWaiting =
-		unfinishedStatuses.length > 0 &&
-		unfinishedStatuses.every(
-			(s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
-		);
-
-	const doesSeriesHaveAnyDroppedItem = statuses.some(
-		(s) => s === MediaItemStatus.DROPPED,
-	);
-
-	if (isAtLeastOneItemInProgress) {
-		return MediaItemStatus.IN_PROGRESS;
-	} else if (areAllItemsDone) {
-		return doesSeriesHaveAnyDroppedItem
-			? MediaItemStatus.DROPPED
-			: MediaItemStatus.COMPLETED;
-	} else if (areAllRemainingItemsWaiting) {
-		return MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
-	} else if (wasItemInSeriesJustCompleted) {
-		// An item was just completed in a series that still has non-waiting items remaining —
-		// treat the series as actively in progress.
-		return MediaItemStatus.IN_PROGRESS;
-	}
-
-	return null;
-}
-
-export async function syncSeriesStatus(
-	seriesId: number,
-	userId: string,
-	wasItemInSeriesJustCompleted = false,
-) {
+export async function syncSeriesStatus(seriesId: number, userId: string) {
 	const items = await db
 		.select({ status: mediaItems.status })
 		.from(mediaItems)
@@ -479,7 +426,7 @@ export async function syncSeriesStatus(
 	if (items.length === 0) return;
 
 	const statuses = items.map((i) => i.status);
-	const newStatus = inferSeriesStatus(statuses, wasItemInSeriesJustCompleted);
+	const newStatus = inferSeriesStatus(statuses);
 
 	if (newStatus === null) return;
 
@@ -512,7 +459,7 @@ export async function syncSeriesStatus(
 
 	const seriesUpdates: Partial<typeof series.$inferInsert> = {
 		status: newStatus,
-		rating: newRating,
+		rating: newStatus === MediaItemStatus.COMPLETED ? newRating : null,
 	};
 	if (newStatus === MediaItemStatus.COMPLETED) {
 		seriesUpdates.nextItemStatus = null;

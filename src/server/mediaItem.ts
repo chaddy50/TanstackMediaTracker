@@ -186,11 +186,7 @@ export const updateMediaItemStatus = createServerFn({ method: "POST" })
 			);
 
 		if (item?.seriesId) {
-			await syncSeriesStatus(
-				item.seriesId,
-				user.id,
-				status === MediaItemStatus.COMPLETED,
-			);
+			await syncSeriesStatus(item.seriesId, user.id);
 		}
 	});
 
@@ -277,11 +273,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 			}
 
 			if (item?.seriesId) {
-				await syncSeriesStatus(
-					item.seriesId,
-					user.id,
-					newStatus === MediaItemStatus.COMPLETED,
-				);
+				await syncSeriesStatus(item.seriesId, user.id);
 			}
 		},
 	);

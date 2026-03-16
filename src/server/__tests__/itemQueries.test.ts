@@ -1,91 +1,10 @@
-import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import {
 	findNextSeriesItem,
-	inferSeriesStatus,
 	transitionReleasedItems,
 } from "../itemQueries";
-
-// ---------------------------------------------------------------------------
-// inferSeriesStatus
-// ---------------------------------------------------------------------------
-
-describe("inferSeriesStatus", () => {
-	it("returns null for an empty statuses array", () => {
-		expect(inferSeriesStatus([])).toBeNull();
-	});
-
-	it("returns IN_PROGRESS when any item is in progress", () => {
-		expect(
-			inferSeriesStatus([
-				MediaItemStatus.IN_PROGRESS,
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.BACKLOG,
-			]),
-		).toBe(MediaItemStatus.IN_PROGRESS);
-	});
-
-	it("IN_PROGRESS takes priority over all other conditions", () => {
-		// Even if all others are done, an in-progress item wins
-		expect(
-			inferSeriesStatus([
-				MediaItemStatus.IN_PROGRESS,
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.DROPPED,
-			]),
-		).toBe(MediaItemStatus.IN_PROGRESS);
-	});
-
-	it("returns COMPLETED when every item is COMPLETED", () => {
-		expect(
-			inferSeriesStatus([MediaItemStatus.COMPLETED, MediaItemStatus.COMPLETED]),
-		).toBe(MediaItemStatus.COMPLETED);
-	});
-
-	it("returns DROPPED when every item is DROPPED", () => {
-		expect(
-			inferSeriesStatus([MediaItemStatus.DROPPED, MediaItemStatus.DROPPED]),
-		).toBe(MediaItemStatus.DROPPED);
-	});
-
-	it("returns DROPPED when remaining items are all DROPPED (some completed, rest dropped)", () => {
-		expect(
-			inferSeriesStatus([
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.DROPPED,
-				MediaItemStatus.DROPPED,
-			]),
-		).toBe(MediaItemStatus.DROPPED);
-	});
-
-	it("returns WAITING_FOR_NEXT_RELEASE when all non-done items are waiting", () => {
-		expect(
-			inferSeriesStatus([
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
-				MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
-			]),
-		).toBe(MediaItemStatus.WAITING_FOR_NEXT_RELEASE);
-	});
-
-	it("returns IN_PROGRESS when justCompleted and remaining items are BACKLOG", () => {
-		expect(
-			inferSeriesStatus(
-				[MediaItemStatus.COMPLETED, MediaItemStatus.BACKLOG],
-				true,
-			),
-		).toBe(MediaItemStatus.IN_PROGRESS);
-	});
-
-	it("returns null when not justCompleted and remaining items are BACKLOG", () => {
-		expect(
-			inferSeriesStatus(
-				[MediaItemStatus.COMPLETED, MediaItemStatus.BACKLOG],
-				false,
-			),
-		).toBeNull();
-	});
-});
 
 // ---------------------------------------------------------------------------
 // findNextSeriesItem

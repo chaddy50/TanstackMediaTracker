@@ -9,6 +9,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
+import { shouldSeriesStatusBeLocked } from "#/lib/seriesStatus";
 import { formatDate } from "#/lib/utils";
 import {
 	type SeriesDetails,
@@ -29,8 +30,8 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	const router = useRouter();
 	const { t } = useTranslation();
 
-	const isStatusDerived = seriesDetails.items.some(
-		(item) => item.status === MediaItemStatus.IN_PROGRESS,
+	const isStatusDerived = shouldSeriesStatusBeLocked(
+		seriesDetails.items.map((item) => item.status),
 	);
 
 	const hasUserCompletedAllItems = seriesDetails.items.every(
@@ -164,15 +165,17 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				</div>
 			)}
 
-			<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-				<span className="text-sm text-muted-foreground sm:w-24">
-					{t("mediaItemDetails.rating")}
-				</span>
-				<RatingStars
-					rating={seriesDetails.rating}
-					shouldShowIfNoRating={true}
-				/>
-			</div>
+			{seriesDetails.status !== MediaItemStatus.DROPPED && (
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+					<span className="text-sm text-muted-foreground sm:w-24">
+						{t("mediaItemDetails.rating")}
+					</span>
+					<RatingStars
+						rating={seriesDetails.rating}
+						shouldShowIfNoRating={true}
+					/>
+				</div>
+			)}
 
 			{seriesCompletedAt && (
 				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">

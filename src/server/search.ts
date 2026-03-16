@@ -17,6 +17,7 @@ import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
 import { findOrCreateCreator } from "#/server/creatorsInternal";
+import { syncSeriesStatus } from "#/server/itemQueries";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
@@ -291,6 +292,7 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 			.returning({ id: mediaItems.id });
 
 		if (!newItem) throw new Error("Failed to create library entry");
+		await syncSeriesStatus(seriesId, user.id);
 		return { mediaItemId: newItem.id };
 	});
 
@@ -511,5 +513,8 @@ export const addToLibrary = createServerFn({ method: "POST" })
 			.returning({ id: mediaItems.id });
 
 		if (!newItem) throw new Error("Failed to create library entry");
+		if (seriesId) {
+			await syncSeriesStatus(seriesId, user.id);
+		}
 		return { mediaItemId: newItem.id };
 	});

@@ -124,6 +124,10 @@ export const updateSeriesStatus = createServerFn({ method: "POST" })
 
 		const updates: Partial<typeof series.$inferInsert> = { status };
 
+		if (status === MediaItemStatus.DROPPED) {
+			updates.rating = null;
+		}
+
 		if (status === MediaItemStatus.WAITING_FOR_NEXT_RELEASE) {
 			updates.nextItemStatus = NextItemStatus.WAITING_FOR_RELEASE;
 		} else {
