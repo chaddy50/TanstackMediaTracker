@@ -52,6 +52,10 @@ export function InstanceEditForm({
 		new Set(),
 	);
 	const [saving, setSaving] = useState(false);
+	const dateError =
+		startedAt && completedAt && completedAt < startedAt
+			? t("mediaItemDetails.completedDateBeforeStartDateError")
+			: null;
 	const startedAtId = useId();
 	const completedAtId = useId();
 	const reviewTextId = useId();
@@ -114,6 +118,9 @@ export function InstanceEditForm({
 	}
 
 	async function onSaveInstance() {
+		if (dateError) {
+			return;
+		}
 		setSaving(true);
 		try {
 			await saveInstance({
@@ -199,6 +206,9 @@ export function InstanceEditForm({
 					/>
 				</div>
 			</div>
+			{dateError && (
+				<p className="text-sm text-destructive" data-testid="date-error">{dateError}</p>
+			)}
 
 			<RatingEditor
 				rating={rating}

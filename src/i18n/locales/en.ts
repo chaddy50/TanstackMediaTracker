@@ -86,6 +86,7 @@ export const en = {
 		seasonN: "Season {{season}}",
 		collapse: "Collapse",
 		removeSeason: "Remove Season",
+		completedDateBeforeStartDateError: "Completed date cannot be before started date.",
 	},
 	search: {
 		addButton: "Add Item",
