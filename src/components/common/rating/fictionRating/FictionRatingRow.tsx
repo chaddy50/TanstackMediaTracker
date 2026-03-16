@@ -43,56 +43,56 @@ export function FictionRatingRow({
 	}
 
 	return (
-		<div className="flex flex-row items-center gap-2">
-			<span className="text-sm text-muted-foreground w-32">{title}</span>
-			<RatingStars
-				rating={rating}
-				updateRating={updateRating}
-				shouldShowIfNoRating={true}
-			/>
-			<Dialog open={open} onOpenChange={handleOpenChange}>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground w-32">{title}</span>
+					<RatingStars
+						rating={rating}
+						updateRating={updateRating}
+						shouldShowIfNoRating={true}
+					/>
+				</div>
 				{comment ? (
-					<div className="flex-1 min-w-0 ml-3">
-						<div className="group/comment flex items-center min-w-0 overflow-hidden w-fit max-w-full">
-							<span className="min-w-0 truncate text-sm text-muted-foreground">
-								{comment}
-							</span>
-							<DialogTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon-sm"
-									className="shrink-0 overflow-hidden w-0 opacity-0 text-muted-foreground bg-card hover:bg-accent group-hover/comment:w-8 group-hover/comment:opacity-100 transition-all duration-200"
-								>
-									<Pencil />
-								</Button>
-							</DialogTrigger>
-						</div>
+					<div className="group/comment flex items-center min-w-0 overflow-hidden sm:w-fit sm:max-w-full">
+						<span className="min-w-0 truncate text-sm text-muted-foreground">
+							{comment}
+						</span>
+						<DialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								className="shrink-0 overflow-hidden w-8 opacity-100 sm:w-0 sm:opacity-0 text-muted-foreground bg-card hover:bg-accent sm:group-hover/comment:w-8 sm:group-hover/comment:opacity-100 transition-all duration-200"
+							>
+								<Pencil />
+							</Button>
+						</DialogTrigger>
 					</div>
 				) : (
 					<DialogTrigger asChild>
-						<Button variant="ghost" size="sm" className="text-muted-foreground">
+						<Button variant="ghost" size="sm" className="text-muted-foreground self-start sm:self-auto">
 							{t("fictionRating.addComment")}
 						</Button>
 					</DialogTrigger>
 				)}
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{title}</DialogTitle>
-					</DialogHeader>
-					<Textarea
-						value={draft}
-						onChange={(e) => setDraft(e.target.value)}
-						rows={3}
-						autoFocus
-					/>
-					<DialogFooter>
-						<Button onClick={handleSave}>{t("mediaItemDetails.save")}</Button>
-						<Button variant="outline" onClick={() => setOpen(false)}>
-							{t("mediaItemDetails.cancel")}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</div>
+			</div>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{title}</DialogTitle>
+				</DialogHeader>
+				<Textarea
+					value={draft}
+					onChange={(e) => setDraft(e.target.value)}
+					rows={3}
+					autoFocus
+				/>
+				<DialogFooter>
+					<Button onClick={handleSave}>{t("mediaItemDetails.save")}</Button>
+					<Button variant="outline" onClick={() => setOpen(false)}>
+						{t("mediaItemDetails.cancel")}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }
