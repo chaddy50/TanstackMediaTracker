@@ -16,7 +16,7 @@ export function RatingStars({
 	}
 	const roundedRating = Math.round(rating);
 	return (
-		<p className="flex flex-row">
+		<p className="flex flex-row" data-testid="rating-stars">
 			<RatingStar starNumber={1} rating={roundedRating} updateRating={updateRating} />
 			<RatingStar starNumber={2} rating={roundedRating} updateRating={updateRating} />
 			<RatingStar starNumber={3} rating={roundedRating} updateRating={updateRating} />

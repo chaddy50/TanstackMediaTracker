@@ -27,7 +27,7 @@ export function TypeBadge({ type }: TypeBadgeProps) {
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<span className="inline-flex items-center justify-center p-1.5 rounded-full bg-secondary text-secondary-foreground">
+				<span className="inline-flex items-center justify-center p-1.5 rounded-full bg-secondary text-secondary-foreground" data-testid="type-badge">
 					<Icon className="size-3.5" />
 				</span>
 			</TooltipTrigger>

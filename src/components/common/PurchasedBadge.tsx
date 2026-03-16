@@ -28,11 +28,11 @@ export function PurchasedBadge({ purchaseStatus, onClick }: PurchasedBadgeProps)
 		<Tooltip>
 			<TooltipTrigger asChild>
 				{onClick ? (
-					<button type="button" onClick={onClick} className={commonClasses}>
+					<button type="button" onClick={onClick} className={commonClasses} data-testid="purchased-badge">
 						<DollarSign size={12} />
 					</button>
 				) : (
-					<span className={commonClasses}>
+					<span className={commonClasses} data-testid="purchased-badge">
 						<DollarSign size={12} />
 					</span>
 				)}

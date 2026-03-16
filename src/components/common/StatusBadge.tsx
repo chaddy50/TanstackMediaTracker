@@ -44,11 +44,14 @@ export function StatusBadge(props: StatusBadgeProps) {
 			onClick={onClick}
 			className={`${commonClasses}`}
 			disabled={disabled}
+			data-testid="status-badge"
 		>
 			{t(`status.${status}`)}
 		</button>
 	) : (
-		<span className={commonClasses}>{t(`status.${status}`)}</span>
+		<span className={commonClasses} data-testid="status-badge">
+			{t(`status.${status}`)}
+		</span>
 	);
 
 	return (
@@ -63,7 +66,7 @@ export function StatusBadge(props: StatusBadgeProps) {
 			) : (
 				badgeElement
 			)}
-			{formattedCompletedAt && (
+			{formattedCompletedAt && status === MediaItemStatus.COMPLETED && (
 				<span className="text-xs text-muted-foreground">
 					{formattedCompletedAt}
 				</span>
