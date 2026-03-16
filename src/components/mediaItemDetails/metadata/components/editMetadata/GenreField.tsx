@@ -56,7 +56,7 @@ export function GenreField({ initialGenreName, onChange }: GenreFieldProps) {
 	}
 
 	return (
-		<FormField label={t("metadata.genres")}>
+		<FormField label={t("metadata.genre")}>
 			<SearchableCombobox
 				items={items}
 				triggerLabel={triggerLabel}

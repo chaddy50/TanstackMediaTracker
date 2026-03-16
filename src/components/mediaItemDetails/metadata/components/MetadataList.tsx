@@ -200,7 +200,7 @@ export function MetadataList({
 			{genreName && genreId && (
 				<div className="flex gap-3">
 					<span className="text-muted-foreground w-28 shrink-0">
-						{t("metadata.genres")}
+						{t("metadata.genre")}
 					</span>
 					<Link
 						to="/genre/$genreId"

@@ -374,7 +374,7 @@ export const en = {
 		seasons: "Seasons",
 		developer: "Developer",
 		platforms: "Platforms",
-		genres: "Genres",
+		genre: "Genre",
 		series: "Series",
 		readingTime: "Reading Time",
 		totalRuntime: "Total Runtime",
