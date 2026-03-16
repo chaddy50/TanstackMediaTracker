@@ -22,8 +22,8 @@ import {
 	mediaItemMetadata,
 	mediaItems,
 	mediaItemTags,
-	type SeriesSortField,
 	series,
+	type SeriesSortField,
 	tags,
 } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
@@ -350,6 +350,43 @@ export async function querySeriesResults(
  * the last item the user has engaged with (anything other than backlog).
  * Returns null if there is no such item.
  */
+/**
+ * Pure function: given an already-sorted list of series items, return the next
+ * item the user should pick up. "Next" means the first BACKLOG item after the
+ * last item the user has engaged with (any status other than BACKLOG).
+ *
+ * If no item has been engaged with yet (all are BACKLOG), returns the first
+ * item in the list — the logical starting point for a new series.
+ *
+ * Returns null when the list is empty or no BACKLOG items remain after the
+ * last engaged item.
+ */
+export function findNextSeriesItem(
+	items: Array<{ id: number; status: MediaItemStatus; purchaseStatus: string }>,
+): { id: number; purchaseStatus: string } | null {
+	if (items.length === 0) {
+		return null;
+	}
+
+	let lastEngagedIndex = -1;
+	for (let index = 0; index < items.length; index++) {
+		if (items[index].status !== MediaItemStatus.BACKLOG) {
+			lastEngagedIndex = index;
+		}
+	}
+
+	if (lastEngagedIndex === -1) {
+		// No item has been engaged with — return the first item as the starting point.
+		return items[0] ?? null;
+	}
+
+	const nextItem = items
+		.slice(lastEngagedIndex + 1)
+		.find((item) => item.status === MediaItemStatus.BACKLOG);
+
+	return nextItem ?? null;
+}
+
 export async function getNextItemInSeries(
 	seriesId: number,
 	userId: string,
@@ -374,28 +411,63 @@ export async function getNextItemInSeries(
 			asc(mediaItemMetadata.sortTitle),
 		);
 
-	let lastEngagedIndex = -1;
-	for (let index = 0; index < items.length; index++) {
-		if (items[index].status !== MediaItemStatus.BACKLOG) {
-			lastEngagedIndex = index;
-		}
-	}
+	return findNextSeriesItem(items);
+}
 
-	if (lastEngagedIndex === -1) {
+/**
+ * Derive the new series status from its items' statuses.
+ * Returns null when no status update is warranted (e.g. series has mixed
+ * BACKLOG items and no item was just completed).
+ */
+export function inferSeriesStatus(
+	statuses: MediaItemStatus[],
+	wasItemInSeriesJustCompleted = false,
+): MediaItemStatus | null {
+	if (statuses.length === 0) {
 		return null;
 	}
 
-	const nextItem = items
-		.slice(lastEngagedIndex + 1)
-		.find((item) => item.status === MediaItemStatus.BACKLOG);
+	const isAtLeastOneItemInProgress = statuses.some(
+		(s) => s === MediaItemStatus.IN_PROGRESS,
+	);
 
-	return nextItem ?? null;
+	const areAllItemsDone = statuses.every(
+		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
+	);
+	const unfinishedStatuses = statuses.filter(
+		(s) => s !== MediaItemStatus.COMPLETED && s !== MediaItemStatus.DROPPED,
+	);
+	const areAllRemainingItemsWaiting =
+		unfinishedStatuses.length > 0 &&
+		unfinishedStatuses.every(
+			(s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		);
+
+	const doesSeriesHaveAnyDroppedItem = statuses.some(
+		(s) => s === MediaItemStatus.DROPPED,
+	);
+
+	if (isAtLeastOneItemInProgress) {
+		return MediaItemStatus.IN_PROGRESS;
+	} else if (areAllItemsDone) {
+		return doesSeriesHaveAnyDroppedItem
+			? MediaItemStatus.DROPPED
+			: MediaItemStatus.COMPLETED;
+	} else if (areAllRemainingItemsWaiting) {
+		return MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
+	} else if (wasItemInSeriesJustCompleted) {
+		// An item was just completed in a series that still has non-waiting items remaining —
+		// treat the series as actively in progress.
+		return MediaItemStatus.IN_PROGRESS;
+	}
+
+	return null;
 }
 
 export async function syncSeriesStatus(
 	seriesId: number,
 	userId: string,
-	justCompleted = false,
+	wasItemInSeriesJustCompleted = false,
 ) {
 	const items = await db
 		.select({ status: mediaItems.status })
@@ -407,30 +479,7 @@ export async function syncSeriesStatus(
 	if (items.length === 0) return;
 
 	const statuses = items.map((i) => i.status);
-	const allDone = statuses.every(
-		(s) => s === MediaItemStatus.COMPLETED || s === MediaItemStatus.DROPPED,
-	);
-	const remainingStatuses = statuses.filter(
-		(s) => s !== MediaItemStatus.COMPLETED && s !== MediaItemStatus.DROPPED,
-	);
-	const allRemainingAreWaiting =
-		remainingStatuses.length > 0 &&
-		remainingStatuses.every(
-			(s) => s === MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
-		);
-
-	let newStatus: MediaItemStatus | null = null;
-	if (statuses.some((s) => s === MediaItemStatus.IN_PROGRESS)) {
-		newStatus = MediaItemStatus.IN_PROGRESS;
-	} else if (allDone) {
-		newStatus = MediaItemStatus.COMPLETED;
-	} else if (allRemainingAreWaiting) {
-		newStatus = MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
-	} else if (justCompleted) {
-		// An item was just completed in a series that still has non-waiting items remaining —
-		// treat the series as actively in progress.
-		newStatus = MediaItemStatus.IN_PROGRESS;
-	}
+	const newStatus = inferSeriesStatus(statuses, wasItemInSeriesJustCompleted);
 
 	if (newStatus === null) return;
 
