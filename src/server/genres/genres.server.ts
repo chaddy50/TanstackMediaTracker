@@ -3,13 +3,13 @@ import { and, eq } from "drizzle-orm";
 import { db } from "#/db/index";
 import { genres } from "#/db/schema";
 
-// ---------------------------------------------------------------------------
-// Internal helpers — not server functions, never imported from client code
-// ---------------------------------------------------------------------------
-
 /**
  * Find an existing genre row for (userId, name), or create one.
  * Returns the genreId.
+ *
+ * This file uses the .server.ts convention — it must never be statically
+ * imported by client-side code. Import it only from server function handler
+ * bodies or other server-only modules.
  */
 export async function findOrCreateGenre(
 	userId: string,

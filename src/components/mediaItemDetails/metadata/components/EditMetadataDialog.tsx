@@ -18,8 +18,8 @@ import {
 	updateMediaItemCreator,
 	updateMediaItemMetadata,
 	updateMediaItemSeries,
-} from "#/server/mediaItem";
-import { saveMediaItemGenre } from "#/server/genres";
+} from "#/server/mediaItems/mediaItem";
+import { saveMediaItemGenre } from "#/server/genres/genres";
 import { saveMediaItemTags } from "#/server/tags";
 import { BookFields } from "./editMetadata/BookFields";
 import { FormField } from "./editMetadata/FormField";

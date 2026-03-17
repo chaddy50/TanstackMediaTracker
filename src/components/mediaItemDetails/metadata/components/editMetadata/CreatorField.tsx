@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SearchableCombobox } from "#/components/ui/combobox";
-import { getCreatorListForUser } from "#/server/creators";
+import { getCreatorListForUser } from "#/server/creators/creators";
 
 import { FormField } from "./FormField";
 

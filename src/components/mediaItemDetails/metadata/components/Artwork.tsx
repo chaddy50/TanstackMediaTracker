@@ -1,5 +1,5 @@
 import { MediaItemType } from "#/lib/enums";
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 interface ArtworkProps {
 	mediaItemDetails: MediaItemDetails;

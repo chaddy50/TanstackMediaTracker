@@ -1,4 +1,4 @@
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 import { TypeBadge } from "#/components/common/TypeBadge";
 

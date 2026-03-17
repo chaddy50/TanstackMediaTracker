@@ -9,7 +9,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { PurchaseStatus } from "#/lib/enums";
-import { type MediaItemDetails, setPurchaseStatus } from "#/server/mediaItem";
+import { type MediaItemDetails, setPurchaseStatus } from "#/server/mediaItems/mediaItem";
 
 interface PurchasedToggleProps {
 	mediaItemDetails: MediaItemDetails;

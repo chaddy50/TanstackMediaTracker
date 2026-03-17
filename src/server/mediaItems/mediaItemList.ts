@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { getLoggedInUser } from "#/lib/session";
-import { runItemQuery, transitionReleasedItems } from "#/server/mediaItemQueries";
+import {
+	runItemQuery,
+	transitionReleasedItems,
+} from "#/server/mediaItems/mediaItemList.server";
 import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const getLibrary = createServerFn({ method: "GET" })

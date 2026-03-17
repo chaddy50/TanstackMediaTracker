@@ -3,7 +3,7 @@ import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
 import { PageHeader } from "#/components/common/PageHeader";
 import { SearchInput } from "#/components/common/SearchInput";
 import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
-import { getLibrary, type LibraryItem } from "#/server/library";
+import { getLibrary, type LibraryItem } from "#/server/mediaItems/mediaItemList";
 import { filterAndSortOptionsSchema } from "#/server/views";
 import { MediaItemList } from "@/components/common/MediaItemList";
 import { createFileRoute } from "@tanstack/react-router";

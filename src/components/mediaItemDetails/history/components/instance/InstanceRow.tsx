@@ -3,7 +3,7 @@ import { formatDateRange } from "#/lib/utils";
 import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
 import { FictionRatingComments } from "#/components/common/rating/FictionRatingComments";
 import { RatingStars } from "#/components/common/rating/RatingStars";
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 import { useTranslation } from "react-i18next";
 
 export function InstanceRow({

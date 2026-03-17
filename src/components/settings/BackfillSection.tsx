@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BACKFILL_JOBS } from "#/lib/backfillJobs";
-import { runBackfillJob } from "#/server/backfill";
+import { runBackfillJob } from "#/server/backfill/backfill";
 import { Button } from "../ui/button";
 
 export function BackfillSection() {

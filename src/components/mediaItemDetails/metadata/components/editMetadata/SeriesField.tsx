@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { SearchableCombobox } from "#/components/ui/combobox";
 import type { MediaItemType } from "#/lib/enums";
-import { getSeriesListByType } from "#/server/series";
+import { getSeriesListByType } from "#/server/series/series";
 
 import { FormField } from "./FormField";
 

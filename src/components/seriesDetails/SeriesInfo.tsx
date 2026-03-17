@@ -15,7 +15,7 @@ import {
 	type SeriesDetails,
 	updateNextItemStatus,
 	updateSeriesStatus,
-} from "#/server/series";
+} from "#/server/series/series";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
 import { RatingStars } from "../common/rating/RatingStars";
 import { TypeBadge } from "../common/TypeBadge";

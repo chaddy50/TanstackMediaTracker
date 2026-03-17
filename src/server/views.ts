@@ -13,8 +13,8 @@ import {
 } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
-import { runItemQuery } from "#/server/mediaItemQueries";
-import { runSeriesQuery } from "#/server/seriesQueries";
+import { runItemQuery } from "#/server/mediaItems/mediaItemList.server";
+import { runSeriesQuery } from "#/server/series/seriesList.server";
 
 // ---------------------------------------------------------------------------
 // Zod schemas

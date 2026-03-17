@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
-import type { CreatorDetails } from "#/server/creators";
+import type { CreatorDetails } from "#/server/creators/creators";
 import { EditCreatorDialog } from "./EditCreatorDialog";
 
 interface CreatorInfoProps {

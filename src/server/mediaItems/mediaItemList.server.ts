@@ -26,7 +26,7 @@ import {
 	tags,
 } from "#/db/schema";
 import { MediaItemStatus, type MediaItemType, type PurchaseStatus } from "#/lib/enums";
-import { syncSeriesStatus } from "#/server/seriesQueries";
+import { syncSeriesStatus } from "#/server/series/seriesList.server";
 
 // ---------------------------------------------------------------------------
 // buildCompletedDateCondition
@@ -150,12 +150,6 @@ function buildItemSortClauses(
 ): SQL[] {
 	const dir = sortDirection === "asc" ? asc : desc;
 
-	// Secondary tiebreakers applied after most primary sort fields.
-	// COALESCE falls back to sortTitle for standalone items so they sort
-	// alongside series items by name rather than being pushed to a separate group.
-	// firstPublishedAt (from JSONB) provides full timestamp precision as a
-	// tiebreaker when releaseDate values are equal (e.g. podcast arcs with
-	// year-only dates).
 	const seriesKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
 	const bySeriesThenTitle: SQL[] = [
 		sql`${seriesKey} ASC`,
@@ -196,10 +190,6 @@ function buildItemSortClauses(
 			];
 
 		case "series":
-			// Note: intentionally omits the trailing sortTitle tiebreaker from
-			// bySeriesThenTitle — within a series, book number and release date
-			// are sufficient, and adding sortTitle would re-sort items that
-			// share a release date by title rather than insertion order.
 			return sortDirection === "asc"
 				? [
 						sql`${seriesKey} ASC`,
@@ -270,8 +260,6 @@ export async function runItemQuery(
 	const sortDirection = filters.sortDirection ?? "asc";
 	const sortClauses = buildItemSortClauses(sortBy, sortDirection);
 
-	// LATERAL join to get the most recent completed instance per item in a
-	// single pass. Enables SQL-level sorting by rating and completedAt.
 	const lateralLatestInstance = sql`LATERAL (
 		SELECT
 			${mediaItemInstances.rating} AS latest_rating,

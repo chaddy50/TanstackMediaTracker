@@ -2,7 +2,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import { mediaItemMetadata, mediaItems } from "#/db/schema";
-import { findOrCreateGenre } from "#/server/genresInternal";
+import { findOrCreateGenre } from "#/server/genres/genres.server";
 
 export async function runGenresBackfill(
 	userId: string,

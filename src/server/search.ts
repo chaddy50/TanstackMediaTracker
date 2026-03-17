@@ -16,8 +16,8 @@ import * as tmdb from "#/lib/api/tmdb";
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
-import { findOrCreateCreator } from "#/server/creatorsInternal";
-import { syncSeriesStatus } from "#/server/seriesQueries";
+import { findOrCreateCreator } from "#/server/creators/creators.server";
+import { syncSeriesStatus } from "#/server/series/seriesList.server";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SearchableCombobox } from "#/components/ui/combobox";
-import { getGenres } from "#/server/genres";
+import { getGenres } from "#/server/genres/genres";
 
 import { FormField } from "./FormField";
 

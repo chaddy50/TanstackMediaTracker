@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
-import { getGenres } from "#/server/genres";
+import { getGenres } from "#/server/genres/genres";
 import { getTags } from "#/server/tags";
 import { useState } from "react";
 import { FilterAndSortActions } from "./components/FilterAndSortActions";

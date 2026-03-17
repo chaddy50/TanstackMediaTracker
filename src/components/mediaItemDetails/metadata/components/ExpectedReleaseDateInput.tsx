@@ -3,7 +3,7 @@ import { MediaItemStatus } from "#/lib/enums";
 import {
 	type MediaItemDetails,
 	setMediaItemExpectedReleaseDate,
-} from "#/server/mediaItem";
+} from "#/server/mediaItems/mediaItem";
 import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 

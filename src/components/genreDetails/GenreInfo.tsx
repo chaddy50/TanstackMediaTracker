@@ -1,4 +1,4 @@
-import type { GenreDetails } from "#/server/genres";
+import type { GenreDetails } from "#/server/genres/genres";
 
 interface GenreInfoProps {
 	genreDetails: GenreDetails;

@@ -24,7 +24,7 @@ import {
 	linkTag,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { runItemQuery } from "../mediaItemQueries";
+import { runItemQuery } from "../mediaItems/mediaItemList.server";
 
 const USER = "test-user";
 

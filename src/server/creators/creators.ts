@@ -205,4 +205,3 @@ export const deleteCreator = createServerFn({ method: "POST" })
 			.delete(creators)
 			.where(and(eq(creators.id, creatorId), eq(creators.userId, user.id)));
 	});
-

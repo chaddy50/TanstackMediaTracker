@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { MediaCard } from "#/components/common/MediaCard";
-import type { CreatorItem } from "#/server/creators";
+import type { CreatorItem } from "#/server/creators/creators";
 
 interface CreatorItemsProps {
 	items: CreatorItem[];

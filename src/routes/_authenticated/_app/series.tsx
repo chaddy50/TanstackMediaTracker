@@ -7,7 +7,7 @@ import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
 import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
 import { SeriesList } from "#/components/common/SeriesList";
 import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
-import { getSeriesList, type SeriesListItem } from "#/server/seriesList";
+import { getSeriesList, type SeriesListItem } from "#/server/series/seriesList";
 import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const Route = createFileRoute("/_authenticated/_app/series")({

@@ -5,7 +5,7 @@ import {
 	normalizeSortField,
 	runItemQuery,
 	transitionReleasedItems,
-} from "../mediaItemQueries";
+} from "../mediaItems/mediaItemList.server";
 
 vi.mock("#/db/index", () => ({ db: {} }));
 vi.mock("#/lib/auth", () => ({ auth: {} }));

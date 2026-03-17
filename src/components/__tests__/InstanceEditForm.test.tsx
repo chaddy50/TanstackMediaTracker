@@ -6,7 +6,7 @@ vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("#/server/mediaItem", () => ({
+vi.mock("#/server/mediaItems/mediaItem", () => ({
 	saveInstance: vi.fn().mockResolvedValue(undefined),
 	deleteInstance: vi.fn().mockResolvedValue(undefined),
 }));
@@ -22,7 +22,7 @@ afterEach(cleanup);
 
 describe("InstanceEditForm", () => {
 	it("shows a date error and does not submit when completedAt is before startedAt", async () => {
-		const { saveInstance } = await import("#/server/mediaItem");
+		const { saveInstance } = await import("#/server/mediaItems/mediaItem");
 		render(<InstanceEditForm {...baseProps} />);
 
 		fireEvent.change(screen.getByLabelText("mediaItemDetails.started"), {
@@ -38,7 +38,7 @@ describe("InstanceEditForm", () => {
 	});
 
 	it("submits with no dates without showing an error", async () => {
-		const { saveInstance } = await import("#/server/mediaItem");
+		const { saveInstance } = await import("#/server/mediaItems/mediaItem");
 		vi.mocked(saveInstance).mockClear();
 		render(<InstanceEditForm {...baseProps} instance={undefined} />);
 

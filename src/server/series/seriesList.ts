@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { getLoggedInUser } from "#/lib/session";
-import { runSeriesQuery } from "#/server/seriesQueries";
+import { runSeriesQuery } from "#/server/series/seriesList.server";
 import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const getSeriesList = createServerFn({ method: "GET" })

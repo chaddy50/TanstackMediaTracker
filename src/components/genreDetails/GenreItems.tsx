@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { MediaCard } from "#/components/common/MediaCard";
-import type { GenreItem } from "#/server/genres";
+import type { GenreItem } from "#/server/genres/genres";
 
 interface GenreItemsProps {
 	items: GenreItem[];

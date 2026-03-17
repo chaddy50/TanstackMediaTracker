@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "#/components/common/PageHeader";
 import { GenreInfo } from "#/components/genreDetails/GenreInfo";
 import { GenreItems } from "#/components/genreDetails/GenreItems";
-import { getGenreDetails } from "#/server/genres";
+import { getGenreDetails } from "#/server/genres/genres";
 
 export const Route = createFileRoute("/_authenticated/genre/$genreId")({
 	loader: ({ params }) =>

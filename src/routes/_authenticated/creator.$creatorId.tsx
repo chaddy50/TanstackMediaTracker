@@ -6,7 +6,7 @@ import { DeleteButton } from "#/components/common/DeleteButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { CreatorInfo } from "#/components/creatorDetails/CreatorInfo";
 import { CreatorItems } from "#/components/creatorDetails/CreatorItems";
-import { deleteCreator, getCreatorDetails } from "#/server/creators";
+import { deleteCreator, getCreatorDetails } from "#/server/creators/creators";
 
 export const Route = createFileRoute("/_authenticated/creator/$creatorId")({
 	loader: ({ params }) =>

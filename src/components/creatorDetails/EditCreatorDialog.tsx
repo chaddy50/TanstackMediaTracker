@@ -12,7 +12,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import { type CreatorDetails, updateCreatorMetadata } from "#/server/creators";
+import { type CreatorDetails, updateCreatorMetadata } from "#/server/creators/creators";
 import { FormField } from "../mediaItemDetails/metadata/components/editMetadata/FormField";
 
 interface EditCreatorDialogProps {

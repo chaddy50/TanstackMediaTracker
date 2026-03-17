@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { MediaCard } from "#/components/common/MediaCard";
-import type { SeriesItem } from "#/server/series";
+import type { SeriesItem } from "#/server/series/series";
 
 interface SeriesItemsProps {
 	items: SeriesItem[];

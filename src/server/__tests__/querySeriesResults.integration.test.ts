@@ -21,7 +21,7 @@ import {
 	insertSeries,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { runSeriesQuery } from "../seriesQueries";
+import { runSeriesQuery } from "../series/seriesList.server";
 
 const USER = "test-user";
 

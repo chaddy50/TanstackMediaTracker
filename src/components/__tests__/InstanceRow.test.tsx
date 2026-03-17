@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { InstanceRow } from "#/components/mediaItemDetails/history/components/instance/InstanceRow";
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),

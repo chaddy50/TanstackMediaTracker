@@ -6,7 +6,7 @@ import { DeleteButton } from "#/components/common/DeleteButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { History } from "#/components/mediaItemDetails/history/History";
 import { Metadata } from "#/components/mediaItemDetails/metadata/Metadata";
-import { getMediaItemDetails, removeFromLibrary } from "#/server/mediaItem";
+import { getMediaItemDetails, removeFromLibrary } from "#/server/mediaItems/mediaItem";
 
 export const Route = createFileRoute("/_authenticated/mediaItemDetails/$mediaItemId")({
 	loader: ({ params }) =>

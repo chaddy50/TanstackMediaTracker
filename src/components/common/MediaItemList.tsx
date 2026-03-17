@@ -1,4 +1,4 @@
-import type { LibraryItem } from "@/server/library";
+import type { LibraryItem } from "#/server/mediaItems/mediaItemList";
 import { MediaCard } from "./MediaCard";
 
 interface MediaItemListProps {

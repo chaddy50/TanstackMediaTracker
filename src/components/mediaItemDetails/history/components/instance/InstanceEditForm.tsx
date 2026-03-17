@@ -9,7 +9,7 @@ import {
 	deleteInstance,
 	type MediaItemDetails,
 	saveInstance,
-} from "#/server/mediaItem";
+} from "#/server/mediaItems/mediaItem";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 

@@ -6,7 +6,7 @@ import { CreatorLink } from "#/components/common/CreatorLink";
 import { SeriesLink } from "#/components/common/SeriesLink";
 import { MediaItemType } from "#/lib/enums";
 import { formatHours, formatMinutes } from "#/lib/utils";
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 export function MetadataList({
 	type,

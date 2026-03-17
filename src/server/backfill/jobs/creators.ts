@@ -1,57 +1,15 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
-import { creators, mediaItemMetadata, mediaItems } from "#/db/schema";
+import { mediaItemMetadata, mediaItems } from "#/db/schema";
 import * as hardcover from "#/lib/api/hardcover";
 import * as igdb from "#/lib/api/igdb";
 import * as itunes from "#/lib/api/itunes";
 import * as tmdb from "#/lib/api/tmdb";
 import { MediaItemType } from "#/lib/enums";
-
-// ---------------------------------------------------------------------------
-// Internal helpers — not server functions, never imported from client code
-// ---------------------------------------------------------------------------
+import { findOrCreateCreator } from "#/server/creators/creators.server";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Find an existing creator row for (userId, name), or create one with the
- * provided biography. Returns the creatorId.
- *
- * If the creator already exists with a null biography and a non-null biography
- * is provided, the row is updated so repeated backfill runs can fill in bios.
- */
-export async function findOrCreateCreator(
-	name: string,
-	userId: string,
-	biography: string | null,
-): Promise<number> {
-	const [existing] = await db
-		.select({ id: creators.id, biography: creators.biography })
-		.from(creators)
-		.where(and(eq(creators.userId, userId), eq(creators.name, name)));
-
-	if (existing) {
-		if (biography && !existing.biography) {
-			await db
-				.update(creators)
-				.set({ biography })
-				.where(eq(creators.id, existing.id));
-		}
-		return existing.id;
-	}
-
-	const [inserted] = await db
-		.insert(creators)
-		.values({ userId, name, biography })
-		.returning({ id: creators.id });
-
-	if (!inserted) {
-		throw new Error(`Failed to create creator: ${name}`);
-	}
-
-	return inserted.id;
-}
 
 type UnlinkedItem = {
 	id: number;
@@ -64,7 +22,7 @@ type UnlinkedItem = {
 // API rate limits and HTTP request timeouts.
 const BACKFILL_BATCH_SIZE = 20;
 
-export async function runCreatorsBackfill(
+export async function runCreatorsBackfillJob(
 	userId: string,
 ): Promise<{ processedCount: number; remaining: number }> {
 	// Fetch all items that don't yet have a creatorId

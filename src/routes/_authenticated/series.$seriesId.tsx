@@ -6,7 +6,7 @@ import { DeleteButton } from "#/components/common/DeleteButton";
 import { PageHeader } from "#/components/common/PageHeader";
 import { SeriesInfo } from "#/components/seriesDetails/SeriesInfo";
 import { SeriesItems } from "#/components/seriesDetails/SeriesItems";
-import { deleteSeries, getSeriesDetails } from "#/server/series";
+import { deleteSeries, getSeriesDetails } from "#/server/series/series";
 
 export const Route = createFileRoute("/_authenticated/series/$seriesId")({
 	loader: ({ params }) =>

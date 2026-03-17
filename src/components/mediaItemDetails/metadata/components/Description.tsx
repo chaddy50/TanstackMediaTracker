@@ -1,5 +1,5 @@
 import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 interface DescriptionProps {
 	mediaItemDetails: MediaItemDetails;

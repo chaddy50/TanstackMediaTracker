@@ -10,7 +10,7 @@ import {
 	mediaItems,
 } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
-import { findOrCreateGenre } from "#/server/genresInternal";
+import { findOrCreateGenre } from "#/server/genres/genres.server";
 
 // ---------------------------------------------------------------------------
 // Server functions

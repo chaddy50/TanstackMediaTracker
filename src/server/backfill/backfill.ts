@@ -11,7 +11,7 @@ import { getLoggedInUser } from "#/lib/session";
  * they are stripped from the client bundle by TanStack Start's transform.
  *
  * To add a new backfill job:
- *   1. Create src/server/backfillJobs/<jobName>.ts with a run<JobName>Backfill export
+ *   1. Create src/server/backfill/jobs/<jobName>.ts with a run<JobName>Backfill export
  *   2. Add a dispatch branch below
  *   3. Add { name: "<jobName>" } to BACKFILL_JOBS in src/lib/backfillJobs.ts
  *   4. Add backfill.<jobName>.label and backfill.<jobName>.description to en.ts
@@ -23,42 +23,42 @@ export const runBackfillJob = createServerFn({ method: "POST" })
 
 		if (data.jobName === "timeToComplete") {
 			const { runTimeToCompleteBackfill } = await import(
-				"#/server/backfillJobs/timeToComplete"
+				"#/server/backfill/jobs/timeToComplete"
 			);
 			return runTimeToCompleteBackfill(user.id);
 		}
 
 		if (data.jobName === "renameEmotionalImpact") {
 			const { runRenameEmotionalImpactBackfill } = await import(
-				"#/server/backfillJobs/renameEmotionalImpact"
+				"#/server/backfill/jobs/renameEmotionalImpact"
 			);
 			return runRenameEmotionalImpactBackfill(user.id);
 		}
 
 		if (data.jobName === "seriesRatings") {
 			const { runSeriesRatingsBackfill } = await import(
-				"#/server/backfillJobs/seriesRatings"
+				"#/server/backfill/jobs/seriesRatings"
 			);
 			return runSeriesRatingsBackfill(user.id);
 		}
 
 		if (data.jobName === "nextItemStatus") {
 			const { runNextItemStatusBackfill } = await import(
-				"#/server/backfillJobs/nextItemStatus"
+				"#/server/backfill/jobs/nextItemStatus"
 			);
 			return runNextItemStatusBackfill(user.id);
 		}
 
 		if (data.jobName === "creators") {
 		const { runCreatorsBackfillJob } = await import(
-			"#/server/backfillJobs/creators"
+			"#/server/backfill/jobs/creators"
 		);
 		return runCreatorsBackfillJob(user.id);
 	}
 
 	if (data.jobName === "genres") {
 		const { runGenresBackfill } = await import(
-			"#/server/backfillJobs/genres"
+			"#/server/backfill/jobs/genres"
 		);
 		return runGenresBackfill(user.id);
 	}

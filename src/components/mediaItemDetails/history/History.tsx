@@ -1,4 +1,4 @@
-import type { MediaItemDetails } from "#/server/mediaItem";
+import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 import { useState } from "react";
 import { InstanceList } from "./components/instance/InstanceList";
 import { TopBar } from "./components/TopBar";
