@@ -17,7 +17,7 @@ import {
 	type PurchaseStatus,
 } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
-import { buildLastNMonths, cutoffDateFromMonthCount, fetchProgressByMonth } from "./reports.server";
+import { buildLastNMonths, cutoffDateFromMonthCount, fetchItemsCompletedByGenre, fetchProgressByMonth } from "./reports.server";
 
 export type DashboardReportType =
 	| "progress_by_month"
@@ -116,41 +116,6 @@ async function fetchItemsCompletedByMonth(
 		.orderBy(sql`to_char(${mediaItemInstances.completedAt}, 'YYYY-MM')`);
 
 	return buildLastNMonths(rows, monthCount);
-}
-
-async function fetchItemsCompletedByGenre(
-	userId: string,
-	monthCount: number,
-	mediaTypes?: MediaItemType[] | null,
-): Promise<GenreDataPoint[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
-
-	const hasTypeFilter = mediaTypes && mediaTypes.length > 0;
-
-	const rows = await db
-		.select({
-			genre: genres.name,
-			value: sql<number>`COUNT(DISTINCT ${mediaItems.id})`,
-		})
-		.from(mediaItemInstances)
-		.innerJoin(mediaItems, eq(mediaItemInstances.mediaItemId, mediaItems.id))
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
-		.innerJoin(genres, eq(mediaItems.genreId, genres.id))
-		.where(
-			and(
-				eq(mediaItems.userId, userId),
-				isNotNull(mediaItemInstances.completedAt),
-				sql`${mediaItemInstances.completedAt} >= ${cutoffDate}`,
-				hasTypeFilter ? inArray(mediaItemMetadata.type, mediaTypes) : undefined,
-			),
-		)
-		.groupBy(genres.name)
-		.orderBy(sql`COUNT(DISTINCT ${mediaItems.id}) DESC`);
-
-	return rows.map((row) => ({ genre: row.genre, value: Number(row.value) }));
 }
 
 async function fetchAvgScoreByGenre(
