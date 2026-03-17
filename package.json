@@ -10,6 +10,7 @@
     "build": "vite build && cp instrument.server.mjs .output/server",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integration": "dotenv -e .env.test -- vitest run --config vitest.config.integration.ts",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",

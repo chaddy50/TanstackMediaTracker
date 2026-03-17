@@ -16,7 +16,8 @@ import {
 	tags,
 } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/lib/enums";
-import { getNextItemInSeries, syncSeriesStatus, transitionReleasedItems } from "#/server/itemQueries";
+import { transitionReleasedItems } from "#/server/mediaItemQueries";
+import { getNextItemInSeries, syncSeriesStatus } from "#/server/seriesQueries";
 import { getLoggedInUser } from "#/lib/session";
 
 export function inferStatusAfterInstanceEdit(

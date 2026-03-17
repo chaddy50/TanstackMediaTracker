@@ -13,7 +13,8 @@ import {
 } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
-import { queryItemResults, querySeriesResults } from "#/server/itemQueries";
+import { runItemQuery } from "#/server/mediaItemQueries";
+import { runSeriesQuery } from "#/server/seriesQueries";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -81,13 +82,13 @@ export const getViewResults = createServerFn({ method: "GET" })
 		if (view.subject === "items") {
 			return {
 				view,
-				results: await queryItemResults(filters, user.id, offset),
+				results: await runItemQuery(filters, user.id, offset),
 			};
 		}
 
 		return {
 			view,
-			results: await querySeriesResults(filters, user.id, offset),
+			results: await runSeriesQuery(filters, user.id, offset),
 		};
 	});
 

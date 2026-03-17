@@ -19,3 +19,34 @@ jobs:
       - run: npm run test
         env:
           BETTER_AUTH_BASE_URL: http://localhost:3000
+
+  test-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: media_tracker
+          POSTGRES_PASSWORD: media_tracker
+          POSTGRES_DB: media_tracker_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 23
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create .env.test
+        run: echo "DATABASE_URL_TEST=postgresql://media_tracker:media_tracker@localhost:5432/media_tracker_test" > .env.test
+
+      - run: npm run test:integration

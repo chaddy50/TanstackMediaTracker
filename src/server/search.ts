@@ -17,7 +17,7 @@ import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
 import { findOrCreateCreator } from "#/server/creatorsInternal";
-import { syncSeriesStatus } from "#/server/itemQueries";
+import { syncSeriesStatus } from "#/server/seriesQueries";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
