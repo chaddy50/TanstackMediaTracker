@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildLastNMonths } from "../reports";
+
+vi.mock("#/db/index", () => ({ db: {} }));
+vi.mock("#/lib/auth", () => ({ auth: {} }));
+vi.mock("#/lib/session", () => ({
+	getLoggedInUser: vi.fn(),
+	getRequiredUser: vi.fn(),
+}));
+
+import { buildLastNMonths } from "../reports.server";
 
 describe("buildLastNMonths", () => {
 	beforeEach(() => {

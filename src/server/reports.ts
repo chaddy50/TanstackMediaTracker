@@ -11,8 +11,13 @@ import {
 	mediaItems,
 	userSettings,
 } from "#/db/schema";
-import { type MediaItemStatus, MediaItemType, type PurchaseStatus } from "#/lib/enums";
+import {
+	type MediaItemStatus,
+	MediaItemType,
+	type PurchaseStatus,
+} from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
+import { buildLastNMonths, cutoffDateFromMonthCount, fetchProgressByMonth } from "./reports.server";
 
 export type DashboardReportType =
 	| "progress_by_month"
@@ -57,114 +62,27 @@ export type DrillDownItem = {
 
 // ---- Helpers ----------------------------------------------------------------
 
-/**
- * Returns the last `monthCount` months as "YYYY-MM" strings in ascending order.
- */
-function cutoffDateFromMonthCount(monthCount: number): string {
-	const startDate = new Date();
-	startDate.setMonth(startDate.getMonth() - (monthCount - 1));
-	startDate.setDate(1);
-	return startDate.toISOString().slice(0, 10);
-}
-
-/**
- * Builds an ascending array of the last N calendar months, pairing each with
- * its value from the provided rows. Months not present in rows default to 0.
- */
-export function buildLastNMonths(
-	rows: { month: string; value: number }[],
-	monthCount: number,
-): ReportDataPoint[] {
-	const valueByMonth = new Map(rows.map((r) => [r.month, Number(r.value)]));
-	const months: ReportDataPoint[] = [];
-	const now = new Date();
-	for (let offset = monthCount - 1; offset >= 0; offset--) {
-		const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const key = `${year}-${month}`;
-		months.push({ month: key, value: valueByMonth.get(key) ?? 0 });
-	}
-	return months;
-}
-
-function rowToCustomReport(row: typeof customReports.$inferSelect): CustomReport {
+function rowToCustomReport(
+	row: typeof customReports.$inferSelect,
+): CustomReport {
 	return {
 		id: row.id,
 		name: row.name,
 		reportType: row.reportType as DashboardReportType,
 		mediaTypes: (row.mediaTypes as MediaItemType[] | null) ?? null,
-		monthCount: (REPORT_MONTH_OPTIONS.includes(row.monthCount as ReportMonthOption)
+		monthCount: (REPORT_MONTH_OPTIONS.includes(
+			row.monthCount as ReportMonthOption,
+		)
 			? row.monthCount
 			: 12) as ReportMonthOption,
 	};
 }
 
 async function ensureUserSettings(userId: string): Promise<void> {
-	await db
-		.insert(userSettings)
-		.values({ userId })
-		.onConflictDoNothing();
+	await db.insert(userSettings).values({ userId }).onConflictDoNothing();
 }
 
 // ---- Aggregation queries ----------------------------------------------------
-
-/**
- * Progress by month — metric adapts to the single media type:
- *   book      → pages read
- *   tv_show   → episodes watched
- *   movie     → hours watched (runtime / 60)
- *   podcast   → hours listened (totalDuration / 60)
- *   video_game → hours played (timeToBeatNormally, fallback to timeToBeatHastily)
- */
-async function fetchProgressByMonth(
-	userId: string,
-	mediaType: MediaItemType,
-	monthCount: number,
-): Promise<ReportDataPoint[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
-
-	// Per-item metric expression (no aggregation — used in the dedup subquery).
-	// Each expression reads from `mim.metadata` using the raw column alias.
-	let perItemMetric: ReturnType<typeof sql>;
-	if (mediaType === MediaItemType.BOOK) {
-		perItemMetric = sql`(mim.metadata->>'pageCount')::float`;
-	} else if (mediaType === MediaItemType.TV_SHOW) {
-		perItemMetric = sql`(mim.metadata->>'numberOfEpisodes')::float`;
-	} else if (mediaType === MediaItemType.MOVIE) {
-		perItemMetric = sql`((mim.metadata->>'runtime')::float / 60.0)`;
-	} else if (mediaType === MediaItemType.PODCAST) {
-		perItemMetric = sql`((mim.metadata->>'totalDuration')::float / 60.0)`;
-	} else {
-		// video_game — time-to-beat estimate
-		perItemMetric = sql`COALESCE((mim.metadata->>'timeToBeatNormally')::float, (mim.metadata->>'timeToBeatHastily')::float, 0)`;
-	}
-
-	// Deduplicate per (mediaItemId, month) before summing so that re-completing
-	// the same item within a month doesn't double-count its metric — consistent
-	// with the drill-down which shows unique items.
-	const rows = await db.execute<{ month: string; value: number }>(sql`
-		SELECT month, COALESCE(ROUND(SUM(metric)), 0) AS value
-		FROM (
-			SELECT DISTINCT ON (mi.id, to_char(inst.completed_at, 'YYYY-MM'))
-				to_char(inst.completed_at, 'YYYY-MM') AS month,
-				${perItemMetric} AS metric
-			FROM media_item_instances inst
-			JOIN media_items mi ON inst.media_item_id = mi.id
-			JOIN media_metadata mim ON mi.media_item_metadata_id = mim.id
-			WHERE
-				mi.user_id = ${userId}
-				AND mim.type = ${mediaType}
-				AND inst.completed_at IS NOT NULL
-				AND inst.completed_at >= ${cutoffDate}
-			ORDER BY mi.id, to_char(inst.completed_at, 'YYYY-MM'), inst.completed_at DESC
-		) sub
-		GROUP BY month
-		ORDER BY month
-	`);
-
-	return buildLastNMonths(rows.rows, monthCount);
-}
 
 async function fetchItemsCompletedByMonth(
 	userId: string,
@@ -315,7 +233,14 @@ async function fetchDrillDownItemsForMonth(
 				mi.user_id = ${userId}
 				AND inst.completed_at IS NOT NULL
 				AND to_char(inst.completed_at, 'YYYY-MM') = ${month}
-				${hasTypeFilter ? sql`AND mim.type::text = ANY(ARRAY[${sql.join(filteredTypes.map((t) => sql`${t}`), sql`, `)}]::text[])` : sql``}
+				${
+					hasTypeFilter
+						? sql`AND mim.type::text = ANY(ARRAY[${sql.join(
+								filteredTypes.map((t) => sql`${t}`),
+								sql`, `,
+							)}]::text[])`
+						: sql``
+				}
 			ORDER BY mi.id, inst.completed_at DESC
 		) sub
 		ORDER BY sub.completed_at DESC
@@ -382,7 +307,14 @@ async function fetchDrillDownItemsForGenre(
 				AND inst.completed_at IS NOT NULL
 				AND inst.completed_at >= ${cutoffDate}
 				AND g.name = ${genre}
-				${hasTypeFilter ? sql`AND mim.type::text = ANY(ARRAY[${sql.join(filteredTypes.map((t) => sql`${t}`), sql`, `)}]::text[])` : sql``}
+				${
+					hasTypeFilter
+						? sql`AND mim.type::text = ANY(ARRAY[${sql.join(
+								filteredTypes.map((t) => sql`${t}`),
+								sql`, `,
+							)}]::text[])`
+						: sql``
+				}
 			ORDER BY mi.id, inst.completed_at DESC
 		) sub
 		ORDER BY sub.completed_at DESC
@@ -458,7 +390,9 @@ export const updateCustomReport = createServerFn({ method: "POST" })
 				mediaTypes: data.mediaTypes,
 				monthCount: data.monthCount,
 			})
-			.where(and(eq(customReports.id, data.id), eq(customReports.userId, user.id)))
+			.where(
+				and(eq(customReports.id, data.id), eq(customReports.userId, user.id)),
+			)
 			.returning();
 		if (!row) {
 			throw new Error("Report not found");
@@ -472,7 +406,9 @@ export const deleteCustomReport = createServerFn({ method: "POST" })
 		const user = await getLoggedInUser();
 		await db
 			.delete(customReports)
-			.where(and(eq(customReports.id, data.id), eq(customReports.userId, user.id)));
+			.where(
+				and(eq(customReports.id, data.id), eq(customReports.userId, user.id)),
+			);
 	});
 
 export const setActiveCustomReport = createServerFn({ method: "POST" })
@@ -508,7 +444,8 @@ export const getDashboardReport = createServerFn({ method: "GET" }).handler(
 		let activeReport: CustomReport | null = null;
 		if (settings?.activeCustomReportId) {
 			activeReport =
-				allCustomReports.find((r) => r.id === settings.activeCustomReportId) ?? null;
+				allCustomReports.find((r) => r.id === settings.activeCustomReportId) ??
+				null;
 		}
 		if (!activeReport && allCustomReports.length > 0) {
 			activeReport = allCustomReports[0];
@@ -518,7 +455,11 @@ export const getDashboardReport = createServerFn({ method: "GET" }).handler(
 		if (activeReport) {
 			if (activeReport.reportType === "progress_by_month") {
 				const mediaType = activeReport.mediaTypes?.[0] ?? MediaItemType.BOOK;
-				data = await fetchProgressByMonth(user.id, mediaType, activeReport.monthCount);
+				data = await fetchProgressByMonth(
+					user.id,
+					mediaType,
+					activeReport.monthCount,
+				);
 			} else if (activeReport.reportType === "items_completed_by_month") {
 				data = await fetchItemsCompletedByMonth(
 					user.id,
@@ -582,4 +523,6 @@ export const getDrillDownItems = createServerFn({ method: "GET" })
 	});
 
 export type DashboardReport = Awaited<ReturnType<typeof getDashboardReport>>;
-export type DrillDownItemsResult = Awaited<ReturnType<typeof getDrillDownItems>>;
+export type DrillDownItemsResult = Awaited<
+	ReturnType<typeof getDrillDownItems>
+>;
