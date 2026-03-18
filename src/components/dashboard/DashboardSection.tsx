@@ -7,6 +7,7 @@ interface DashboardSectionProps {
 	emptyMessage: string;
 	variant?: "grid" | "scroll";
 	cardWidth?: string;
+	shouldShowRating?: boolean;
 }
 
 export function DashboardSection({
@@ -15,6 +16,7 @@ export function DashboardSection({
 	emptyMessage,
 	variant = "grid",
 	cardWidth = "w-28",
+	shouldShowRating,
 }: DashboardSectionProps) {
 	return (
 		<section className="flex flex-col gap-2 w-full">
@@ -25,7 +27,7 @@ export function DashboardSection({
 				<div className="flex flex-row gap-4 overflow-x-auto">
 					{items.map((item) => (
 						<div key={item.id} className={`${cardWidth} shrink-0`}>
-							<MediaCard mediaItem={item} shouldShowStatus={false} />
+							<MediaCard mediaItem={item} shouldShowStatus={false} shouldShowRating={shouldShowRating} />
 						</div>
 					))}
 				</div>

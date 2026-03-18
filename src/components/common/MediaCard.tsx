@@ -28,12 +28,14 @@ interface MediaCardProps {
 	mediaItem: MediaCardItem;
 	shouldShowStatus?: boolean;
 	shouldShowType?: boolean;
+	shouldShowRating?: boolean;
 }
 
 export function MediaCard({
 	mediaItem,
 	shouldShowStatus = true,
 	shouldShowType = true,
+	shouldShowRating = true,
 }: MediaCardProps) {
 	return (
 		<Link
@@ -70,12 +72,6 @@ export function MediaCard({
 					{mediaItem.title}
 				</p>
 
-				{mediaItem.seriesName && (
-					<p className="text-sm font-medium text-card-foreground leading-snug line-clamp-2">
-						{mediaItem.seriesName}
-					</p>
-				)}
-
 				<div className="flex items-center gap-1.5 flex-wrap">
 					{shouldShowStatus && (
 						<StatusBadge
@@ -92,7 +88,7 @@ export function MediaCard({
 						)}
 				</div>
 
-				{mediaItem.status === MediaItemStatus.COMPLETED && (
+				{shouldShowRating && mediaItem.status === MediaItemStatus.COMPLETED && (
 					<RatingStars rating={mediaItem.rating} />
 				)}
 			</div>

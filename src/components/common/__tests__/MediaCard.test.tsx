@@ -37,14 +37,21 @@ const baseItem: BaseItem = {
 	expectedReleaseDate: null,
 };
 
-function renderMediaCard(overrides: Partial<BaseItem> & { shouldShowStatus?: boolean; shouldShowType?: boolean } = {}) {
-	const { shouldShowStatus, shouldShowType, ...itemOverrides } = overrides;
+function renderMediaCard(
+	overrides: Partial<BaseItem & { seriesName: string }> & {
+		shouldShowStatus?: boolean;
+		shouldShowType?: boolean;
+		shouldShowRating?: boolean;
+	} = {},
+) {
+	const { shouldShowStatus, shouldShowType, shouldShowRating, ...itemOverrides } = overrides;
 	return render(
 		<TooltipProvider>
 			<MediaCard
 				mediaItem={{ ...baseItem, ...itemOverrides }}
 				shouldShowStatus={shouldShowStatus}
 				shouldShowType={shouldShowType}
+				shouldShowRating={shouldShowRating}
 			/>
 		</TooltipProvider>,
 	);
@@ -81,5 +88,15 @@ describe("MediaCard", () => {
 	it("does not show type badge when shouldShowType is false", () => {
 		renderMediaCard({ shouldShowType: false });
 		expect(screen.queryByTestId("type-badge")).not.toBeInTheDocument();
+	});
+
+	it("does not show rating stars when shouldShowRating is false, even when status is COMPLETED", () => {
+		renderMediaCard({ status: MediaItemStatus.COMPLETED, shouldShowRating: false });
+		expect(screen.queryByTestId("rating-stars")).not.toBeInTheDocument();
+	});
+
+	it("does not show series name even when seriesName is provided", () => {
+		renderMediaCard({ seriesName: "The Expanse" });
+		expect(screen.queryByText("The Expanse")).not.toBeInTheDocument();
 	});
 });
