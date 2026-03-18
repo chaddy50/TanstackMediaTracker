@@ -1,4 +1,4 @@
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 
 /**
  * Derive the series status from its items' statuses.

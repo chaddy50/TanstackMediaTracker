@@ -1,6 +1,6 @@
 import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
 import { Button } from "#/components/ui/button";
-import { formatDateRange } from "#/lib/utils";
+import { formatDateRange } from "#/server/utils";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 import { FictionRatingComments } from "@/components/common/rating/fictionRating/FictionRatingComments";
 import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";

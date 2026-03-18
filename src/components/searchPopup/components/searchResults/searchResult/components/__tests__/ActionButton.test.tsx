@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ActionButton } from "#/components/searchPopup/components/searchResults/searchResult/components/ActionButton";
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType } from "#/server/enums";
 import type { SearchResultWithStatus } from "@/server/search/search.server";
 
 vi.mock("react-i18next", () => ({

@@ -4,8 +4,8 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import { customReports, userSettings } from "#/db/schema";
-import { MediaItemType } from "#/lib/enums";
-import { getLoggedInUser } from "#/lib/session";
+import { MediaItemType } from "#/server/enums";
+import { getLoggedInUser } from "#/server/auth/session";
 import { getDrillDownItems } from "./drilldown/drilldown";
 import { fetchAverageScoreByGenre } from "./reportTypes/averageScoreByGenre.server";
 import { fetchItemsCompletedByGenre } from "./reportTypes/itemsCompletedByGenre.server";

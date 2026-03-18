@@ -10,7 +10,7 @@ import type {
 	MediaItemStatus,
 	MediaItemType,
 	PurchaseStatus,
-} from "#/lib/enums";
+} from "#/server/enums";
 import type {
 	CompletionDateMode,
 	FiltersProps,

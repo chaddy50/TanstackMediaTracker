@@ -11,8 +11,8 @@ import {
 	type ViewSubject,
 	views,
 } from "#/db/schema";
-import { getLoggedInUser } from "#/lib/session";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
+import { getLoggedInUser } from "#/server/auth/session";
+import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/server/sortFields";
 import { runItemQuery } from "#/server/mediaItems/mediaItemList.server";
 import { runSeriesQuery } from "#/server/series/seriesList.server";
 

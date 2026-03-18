@@ -1,4 +1,4 @@
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 import { useRouter } from "@tanstack/react-router";
 import type { SetStateAction } from "react";

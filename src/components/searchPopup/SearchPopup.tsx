@@ -5,7 +5,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { MediaItemType } from "#/lib/enums";
+import type { MediaItemType } from "#/server/enums";
 import { searchMedia } from "@/server/search/search";
 import type { SearchResultWithStatus } from "@/server/search/search.server";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";

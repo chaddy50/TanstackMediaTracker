@@ -9,11 +9,11 @@ import {
 	mediaTypeEnum,
 	series,
 } from "#/db/schema";
-import * as hardcover from "#/lib/api/hardcover";
-import * as itunes from "#/lib/api/itunes";
-import * as tmdb from "#/lib/api/tmdb";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import { getLoggedInUser } from "#/lib/session";
+import * as hardcover from "#/server/api/hardcover";
+import * as itunes from "#/server/api/itunes";
+import * as tmdb from "#/server/api/tmdb";
+import { MediaItemStatus, MediaItemType } from "#/server/enums";
+import { getLoggedInUser } from "#/server/auth/session";
 import { findOrCreateCreator } from "#/server/creators/creators.server";
 import { syncSeriesStatus } from "#/server/series/seriesList.server";
 import { performMediaSearch, typeSchema } from "@/server/search/search.server";

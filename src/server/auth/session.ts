@@ -1,4 +1,4 @@
-import { auth } from "#/lib/auth";
+import { auth } from "#/server/auth/auth";
 import { getRequest } from "@tanstack/react-start/server";
 
 export async function getLoggedInUser() {

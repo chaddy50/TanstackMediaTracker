@@ -7,7 +7,7 @@ import {
 	mediaItemMetadata,
 	mediaItems,
 } from "#/db/schema";
-import type { MediaItemType } from "#/lib/enums";
+import type { MediaItemType } from "#/server/enums";
 import type { GenreDataPoint } from "../types";
 
 export async function fetchItemsCompletedByGenre(

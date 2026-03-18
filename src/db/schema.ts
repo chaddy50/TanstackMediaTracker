@@ -15,7 +15,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { MediaItemStatus, MediaItemType, NextItemStatus, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, NextItemStatus, PurchaseStatus } from "#/server/enums";
 
 // --- Enums ---
 

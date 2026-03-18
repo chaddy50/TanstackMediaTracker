@@ -13,9 +13,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import type { PodcastEpisode } from "#/lib/api/itunes";
-import type { ExternalSearchResult } from "#/lib/api/types";
-import { MediaItemStatus } from "#/lib/enums";
+import type { PodcastEpisode } from "#/server/api/itunes";
+import type { ExternalSearchResult } from "#/server/api/types";
+import { MediaItemStatus } from "#/server/enums";
 import { addPodcastArc, fetchEpisodesForFeed } from "@/server/search/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";

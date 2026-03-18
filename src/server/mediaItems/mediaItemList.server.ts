@@ -25,7 +25,7 @@ import {
 	series,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus, type MediaItemType, type PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, type MediaItemType, type PurchaseStatus } from "#/server/enums";
 import { syncSeriesStatus } from "#/server/series/seriesList.server";
 
 // ---------------------------------------------------------------------------

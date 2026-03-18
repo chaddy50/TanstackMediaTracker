@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { MediaItemStatus } from "#/lib/enums";
-import { inferSeriesStatus, shouldSeriesStatusBeLocked } from "#/lib/seriesStatus";
+import { MediaItemStatus } from "#/server/enums";
+import { inferSeriesStatus, shouldSeriesStatusBeLocked } from "#/server/series/seriesStatus";
 
 // ---------------------------------------------------------------------------
 // inferSeriesStatus

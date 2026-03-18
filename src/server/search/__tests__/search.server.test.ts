@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ExternalSearchResult } from "#/lib/api/types";
-import { MediaItemStatus } from "#/lib/enums";
+import type { ExternalSearchResult } from "#/server/api/types";
+import { MediaItemStatus } from "#/server/enums";
 
 vi.mock("#/db/index", () => ({
 	db: {
@@ -12,20 +12,20 @@ vi.mock("#/db/index", () => ({
 		})),
 	},
 }));
-vi.mock("#/lib/auth", () => ({ auth: {} }));
-vi.mock("#/lib/session", () => ({
+vi.mock("#/server/auth", () => ({ auth: {} }));
+vi.mock("#/server/auth/session", () => ({
 	getLoggedInUser: vi.fn(),
 	getRequiredUser: vi.fn(),
 }));
-vi.mock("#/lib/api/hardcover", () => ({ search: vi.fn() }));
-vi.mock("#/lib/api/igdb", () => ({ search: vi.fn() }));
-vi.mock("#/lib/api/itunes", () => ({ searchPodcasts: vi.fn() }));
-vi.mock("#/lib/api/tmdb", () => ({ search: vi.fn() }));
+vi.mock("#/server/api/hardcover", () => ({ search: vi.fn() }));
+vi.mock("#/server/api/igdb", () => ({ search: vi.fn() }));
+vi.mock("#/server/api/itunes", () => ({ searchPodcasts: vi.fn() }));
+vi.mock("#/server/api/tmdb", () => ({ search: vi.fn() }));
 
-import * as hardcover from "#/lib/api/hardcover";
-import * as igdb from "#/lib/api/igdb";
-import * as itunes from "#/lib/api/itunes";
-import * as tmdb from "#/lib/api/tmdb";
+import * as hardcover from "#/server/api/hardcover";
+import * as igdb from "#/server/api/igdb";
+import * as itunes from "#/server/api/itunes";
+import * as tmdb from "#/server/api/tmdb";
 import {
 	attachLibraryStatus,
 	collectApiResults,

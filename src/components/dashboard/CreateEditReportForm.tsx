@@ -12,7 +12,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import {
 	type CustomReport,
 	type DashboardReportType,

@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import { mediaItemInstances, mediaItems, series } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 
 export async function runSeriesRatingsBackfill(
 	userId: string,

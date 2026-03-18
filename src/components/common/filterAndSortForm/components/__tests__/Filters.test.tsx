@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Filters } from "#/components/common/filterAndSortForm/components/Filters";
-import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 import type { FiltersProps } from "#/components/common/filterAndSortForm/components/Filters";
 
 vi.mock("react-i18next", () => ({

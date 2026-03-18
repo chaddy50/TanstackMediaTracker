@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
-import type { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import type { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 import type { DrillDownItem } from "../types";
 
 export async function fetchDrillDownItemsForMonth(

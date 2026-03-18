@@ -11,7 +11,7 @@ import {
 	views,
 	type ViewSubject,
 } from "#/db/schema";
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 
 // ---------------------------------------------------------------------------
 // Export

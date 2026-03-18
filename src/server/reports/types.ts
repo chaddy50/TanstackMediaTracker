@@ -1,4 +1,4 @@
-import type { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import type { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 
 export type DashboardReportType =
 	| "progress_by_month"

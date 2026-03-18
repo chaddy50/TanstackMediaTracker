@@ -12,7 +12,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import {
 	type MediaItemDetails,
 	updateMediaItemCreator,

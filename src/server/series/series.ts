@@ -13,8 +13,8 @@ import {
 	nextItemStatusEnum,
 	series,
 } from "#/db/schema";
-import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
-import { getLoggedInUser } from "#/lib/session";
+import { MediaItemStatus, NextItemStatus } from "#/server/enums";
+import { getLoggedInUser } from "#/server/auth/session";
 
 export const getSeriesListByType = createServerFn({ method: "GET" })
 	.inputValidator(z.object({ type: z.enum(mediaTypeEnum.enumValues) }))

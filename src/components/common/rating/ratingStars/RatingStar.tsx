@@ -1,4 +1,4 @@
-import { cn } from "#/lib/utils";
+import { cn } from "#/server/utils";
 import { Star } from "lucide-react";
 
 interface RatingStarProps {

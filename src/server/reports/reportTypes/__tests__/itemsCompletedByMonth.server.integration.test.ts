@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 
 vi.mock("#/db/index", async () => {
 	const { testDb } = await import("#/tests/integration/db");
 	return { db: testDb };
 });
-vi.mock("#/lib/auth", () => ({ auth: {} }));
-vi.mock("#/lib/session", () => ({
+vi.mock("#/server/auth", () => ({ auth: {} }));
+vi.mock("#/server/auth/session", () => ({
 	getLoggedInUser: vi.fn(),
 	getRequiredUser: vi.fn(),
 }));

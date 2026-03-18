@@ -8,14 +8,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
-import { shouldSeriesStatusBeLocked } from "#/lib/seriesStatus";
-import { formatDate } from "#/lib/utils";
+import { MediaItemStatus, NextItemStatus } from "#/server/enums";
 import {
 	type SeriesDetails,
 	updateNextItemStatus,
 	updateSeriesStatus,
 } from "#/server/series/series";
+import { shouldSeriesStatusBeLocked } from "#/server/series/seriesStatus";
+import { formatDate } from "#/server/utils";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
 import { RatingStars } from "../common/rating/ratingStars/RatingStars";
 import { TypeBadge } from "../common/TypeBadge";

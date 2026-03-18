@@ -1,6 +1,6 @@
 import { StatusBadge } from "#/components/common/StatusBadge";
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

@@ -4,8 +4,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
-import { MediaItemStatus } from "#/lib/enums";
-import { formatDate } from "#/lib/utils";
+import { MediaItemStatus } from "#/server/enums";
+import { formatDate } from "#/server/utils";
 import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {

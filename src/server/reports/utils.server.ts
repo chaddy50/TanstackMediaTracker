@@ -1,5 +1,5 @@
 import type { customReports } from "#/db/schema";
-import type { MediaItemType } from "#/lib/enums";
+import type { MediaItemType } from "#/server/enums";
 import {
 	type CustomReport,
 	type DashboardReportType,

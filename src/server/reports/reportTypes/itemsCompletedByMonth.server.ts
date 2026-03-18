@@ -2,7 +2,7 @@ import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import { mediaItemInstances, mediaItemMetadata, mediaItems } from "#/db/schema";
-import type { MediaItemType } from "#/lib/enums";
+import type { MediaItemType } from "#/server/enums";
 import type { ReportDataPoint } from "../types";
 import { buildMonthRange } from "../utils.server";
 

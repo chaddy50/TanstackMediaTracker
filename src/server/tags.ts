@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import { mediaItemTags, tags } from "#/db/schema";
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 
 export const getTags = createServerFn({ method: "GET" }).handler(async () => {
 	const user = await getLoggedInUser();

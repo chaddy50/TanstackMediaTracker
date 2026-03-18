@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 
 /**
  * Generic backfill server function.
@@ -13,7 +13,7 @@ import { getLoggedInUser } from "#/lib/session";
  * To add a new backfill job:
  *   1. Create src/server/backfill/jobs/<jobName>.ts with a run<JobName>Backfill export
  *   2. Add a dispatch branch below
- *   3. Add { name: "<jobName>" } to BACKFILL_JOBS in src/lib/backfillJobs.ts
+ *   3. Add { name: "<jobName>" } to BACKFILL_JOBS in src/server/backfill/backfillJobs.ts
  *   4. Add backfill.<jobName>.label and backfill.<jobName>.description to en.ts
  */
 export const runBackfillJob = createServerFn({ method: "POST" })

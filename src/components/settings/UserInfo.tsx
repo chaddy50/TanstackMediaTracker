@@ -1,7 +1,8 @@
-import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import { authClient } from "@/server/auth/auth-client";
 import { Button } from "../ui/button";
 
 export function UserInfo() {

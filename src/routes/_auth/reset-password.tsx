@@ -1,7 +1,7 @@
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { authClient } from "#/lib/auth-client";
+import { authClient } from "#/server/auth/auth-client";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";

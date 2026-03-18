@@ -4,7 +4,7 @@ import {
 	type MediaItemType,
 	type MediaItemStatus,
 	type PurchaseStatus,
-} from "#/lib/enums";
+} from "#/server/enums";
 import {
 	genres,
 	mediaItemInstances,

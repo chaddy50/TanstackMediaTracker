@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("#/db/index", () => ({ db: {} }));
-vi.mock("#/lib/auth", () => ({ auth: {} }));
-vi.mock("#/lib/session", () => ({
+vi.mock("#/server/auth", () => ({ auth: {} }));
+vi.mock("#/server/auth/session", () => ({
 	getLoggedInUser: vi.fn(),
 	getRequiredUser: vi.fn(),
 }));

@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import { Toggle } from "#/components/ui/toggle";
 import type { SearchType } from "../SearchPopup";
 

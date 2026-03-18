@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import { mediaItemMetadata, mediaItems } from "#/db/schema";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 
 const TMDB_DELAY_MS = 100;
 const IGDB_BATCH_SIZE = 50;
@@ -34,7 +34,7 @@ export async function runTimeToCompleteBackfill(
 		);
 
 	if (movieRows.length > 0) {
-		const { fetchMovieDetails } = await import("#/lib/api/tmdb");
+		const { fetchMovieDetails } = await import("#/server/api/tmdb");
 		for (let index = 0; index < movieRows.length; index++) {
 			const row = movieRows[index];
 			if (!row) continue;
@@ -78,7 +78,7 @@ export async function runTimeToCompleteBackfill(
 		);
 
 	if (tvRows.length > 0) {
-		const { fetchTvShowDetails } = await import("#/lib/api/tmdb");
+		const { fetchTvShowDetails } = await import("#/server/api/tmdb");
 		for (let index = 0; index < tvRows.length; index++) {
 			const row = tvRows[index];
 			if (!row) continue;
@@ -125,7 +125,7 @@ export async function runTimeToCompleteBackfill(
 		const clientId = process.env.IGDB_CLIENT_ID;
 		if (!clientId) throw new Error("IGDB_CLIENT_ID is not set");
 
-		const { getAccessToken, fetchTimesToBeat } = await import("#/lib/api/igdb");
+		const { getAccessToken, fetchTimesToBeat } = await import("#/server/api/igdb");
 		const accessToken = await getAccessToken();
 
 		for (

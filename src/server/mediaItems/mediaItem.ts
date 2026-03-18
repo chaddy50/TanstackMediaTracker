@@ -15,10 +15,10 @@ import {
 	series,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/server/enums";
 import { transitionReleasedItems } from "./mediaItemList.server";
 import { getNextItemInSeries, syncSeriesStatus } from "#/server/series/seriesList.server";
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 
 export function inferStatusAfterInstanceEdit(
 	startedAt?: string | null,

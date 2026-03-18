@@ -1,5 +1,5 @@
 import { Input } from "#/components/ui/input";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 import {
 	type MediaItemDetails,
 	setMediaItemExpectedReleaseDate,

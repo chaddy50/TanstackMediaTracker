@@ -3,12 +3,12 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import { mediaItemMetadata, mediaItems, mediaTypeEnum } from "#/db/schema";
-import * as hardcover from "#/lib/api/hardcover";
-import * as igdb from "#/lib/api/igdb";
-import * as itunes from "#/lib/api/itunes";
-import * as tmdb from "#/lib/api/tmdb";
-import type { ExternalSearchResult } from "#/lib/api/types";
-import { type MediaItemStatus, MediaItemType } from "#/lib/enums";
+import * as hardcover from "#/server/api/hardcover";
+import * as igdb from "#/server/api/igdb";
+import * as itunes from "#/server/api/itunes";
+import * as tmdb from "#/server/api/tmdb";
+import type { ExternalSearchResult } from "#/server/api/types";
+import { type MediaItemStatus, MediaItemType } from "#/server/enums";
 
 export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 

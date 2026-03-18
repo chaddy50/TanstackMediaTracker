@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MediaCard } from "#/components/common/MediaCard";
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),

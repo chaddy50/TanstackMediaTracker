@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 import {
 	runItemQuery,
 	transitionReleasedItems,

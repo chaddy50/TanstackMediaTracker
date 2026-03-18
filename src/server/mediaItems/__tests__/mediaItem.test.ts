@@ -3,7 +3,7 @@ import {
 	inferStatusAfterInstanceEdit,
 	inferStatusAfterInstanceDelete,
 } from "../mediaItem";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 
 describe("inferStatusAfterInstanceEdit", () => {
 	it("returns COMPLETED when completedAt is set", () => {

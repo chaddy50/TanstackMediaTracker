@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import type { ReportDataPoint } from "../types";
 import { buildMonthRange } from "../utils.server";
 

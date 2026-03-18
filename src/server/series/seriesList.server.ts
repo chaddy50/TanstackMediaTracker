@@ -17,8 +17,8 @@ import {
 	series,
 	type SeriesSortField,
 } from "#/db/schema";
-import { MediaItemStatus, type MediaItemType, NextItemStatus } from "#/lib/enums";
-import { inferSeriesStatus } from "#/lib/seriesStatus";
+import { MediaItemStatus, type MediaItemType, NextItemStatus } from "#/server/enums";
+import { inferSeriesStatus } from "#/server/series/seriesStatus";
 
 // ---------------------------------------------------------------------------
 // runSeriesQuery

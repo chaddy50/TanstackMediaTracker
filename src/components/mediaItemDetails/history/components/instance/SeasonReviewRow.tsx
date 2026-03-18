@@ -4,7 +4,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import type { SeasonReview } from "#/db/schema";
-import { formatDateRange } from "#/lib/utils";
+import { formatDateRange } from "#/server/utils";
 import { FictionRatingComments } from "@/components/common/rating/fictionRating/FictionRatingComments";
 import { RatingEditor } from "@/components/common/rating/RatingEditor";
 import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";

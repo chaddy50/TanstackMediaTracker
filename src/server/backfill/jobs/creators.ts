@@ -2,11 +2,11 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import { mediaItemMetadata, mediaItems } from "#/db/schema";
-import * as hardcover from "#/lib/api/hardcover";
-import * as igdb from "#/lib/api/igdb";
-import * as itunes from "#/lib/api/itunes";
-import * as tmdb from "#/lib/api/tmdb";
-import { MediaItemType } from "#/lib/enums";
+import * as hardcover from "#/server/api/hardcover";
+import * as igdb from "#/server/api/igdb";
+import * as itunes from "#/server/api/itunes";
+import * as tmdb from "#/server/api/tmdb";
+import { MediaItemType } from "#/server/enums";
 import { findOrCreateCreator } from "#/server/creators/creators.server";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

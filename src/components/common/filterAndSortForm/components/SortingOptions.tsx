@@ -7,7 +7,7 @@ import type {
 	SortDirection,
 	ViewSubject,
 } from "#/db/schema";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
+import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/server/sortFields";
 import { useTranslation } from "react-i18next";
 
 export interface SortingOptionsProps {

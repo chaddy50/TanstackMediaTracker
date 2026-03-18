@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "#/db/index";
 import { customReports } from "#/db/schema";
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 import type { DrillDownItemsResult } from "../types";
 import { getDateRangeFromMonthCount, rowToCustomReport } from "../utils.server";
 import {

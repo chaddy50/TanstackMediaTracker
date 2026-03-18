@@ -5,7 +5,7 @@ import { NextItemStatusBadge } from "#/components/common/NextItemStatusBadge";
 import { StatusBadge } from "#/components/common/StatusBadge";
 import { TypeBadge } from "#/components/common/TypeBadge";
 import { SeriesCompletionBadge } from "#/components/seriesDetails/SeriesCompletionBadge";
-import type { MediaItemStatus, MediaItemType, NextItemStatus } from "#/lib/enums";
+import type { MediaItemStatus, MediaItemType, NextItemStatus } from "#/server/enums";
 
 interface SeriesListItem {
 	id: number;

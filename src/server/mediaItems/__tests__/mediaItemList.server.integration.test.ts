@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 
 // Redirect all db calls to the test database.
 // vi.mock is hoisted before imports, so runItemQuery will see testDb.
@@ -8,8 +8,8 @@ vi.mock("#/db/index", async () => {
 	const { testDb } = await import("#/tests/integration/db");
 	return { db: testDb };
 });
-vi.mock("#/lib/auth", () => ({ auth: {} }));
-vi.mock("#/lib/session", () => ({
+vi.mock("#/server/auth", () => ({ auth: {} }));
+vi.mock("#/server/auth/session", () => ({
 	getLoggedInUser: vi.fn(),
 	getRequiredUser: vi.fn(),
 }));

@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import type {
 	CustomReport,
 	DashboardReportType,

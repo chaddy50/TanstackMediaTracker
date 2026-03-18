@@ -6,7 +6,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 
 const TYPE_ICONS: Record<MediaItemType, React.ComponentType<{ className?: string }>> = {
 	[MediaItemType.BOOK]: BookOpen,

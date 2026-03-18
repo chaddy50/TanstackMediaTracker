@@ -9,7 +9,7 @@ import {
 	mediaItemMetadata,
 	mediaItems,
 } from "#/db/schema";
-import { getLoggedInUser } from "#/lib/session";
+import { getLoggedInUser } from "#/server/auth/session";
 import { findOrCreateGenre } from "#/server/genres/genres.server";
 
 // ---------------------------------------------------------------------------

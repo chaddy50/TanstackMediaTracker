@@ -1,7 +1,7 @@
 import { StatusBadge } from "#/components/common/StatusBadge";
 import { PodcastArcPickerDialog } from "#/components/searchPopup/components/PodcastArcPickerDialog";
 import { Button } from "#/components/ui/button";
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemType } from "#/server/enums";
 import { addToLibrary } from "@/server/search/search";
 import type { SearchResultWithStatus } from "@/server/search/search.server";
 import { useNavigate } from "@tanstack/react-router";

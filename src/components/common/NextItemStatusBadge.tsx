@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { NextItemStatus } from "#/lib/enums";
+import type { NextItemStatus } from "#/server/enums";
 
 const STATUS_CLASSES: Record<NextItemStatus, string> = {
 	waiting_for_release: "bg-secondary text-secondary-foreground",

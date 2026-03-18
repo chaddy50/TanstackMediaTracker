@@ -1,5 +1,5 @@
 import { Button } from "#/components/ui/button";
-import { cn } from "#/lib/utils";
+import { cn } from "#/server/utils";
 import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 

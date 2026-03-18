@@ -6,7 +6,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
-import type { PurchaseStatus } from "#/lib/enums";
+import type { PurchaseStatus } from "#/server/enums";
 
 interface PurchasedBadgeProps {
 	purchaseStatus: PurchaseStatus;

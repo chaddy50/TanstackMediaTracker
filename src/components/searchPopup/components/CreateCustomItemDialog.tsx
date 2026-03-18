@@ -15,8 +15,8 @@ import {
 } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
 import { mediaTypeEnum } from "#/db/schema";
-import { MediaItemType } from "#/lib/enums";
-import { toTitleCase } from "#/lib/utils";
+import { MediaItemType } from "#/server/enums";
+import { toTitleCase } from "#/server/utils";
 import { createCustomItem } from "@/server/search/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";

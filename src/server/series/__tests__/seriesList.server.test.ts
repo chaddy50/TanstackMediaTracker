@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, PurchaseStatus } from "#/server/enums";
 import { findNextSeriesItem } from "../seriesList.server";
 
 vi.mock("#/db/index", () => ({ db: {} }));
-vi.mock("#/lib/auth", () => ({ auth: {} }));
-vi.mock("#/lib/session", () => ({
+vi.mock("#/server/auth", () => ({ auth: {} }));
+vi.mock("#/server/auth/session", () => ({
 	getLoggedInUser: vi.fn(),
 	getRequiredUser: vi.fn(),
 }));

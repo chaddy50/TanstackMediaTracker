@@ -5,7 +5,7 @@ import { Label } from "#/components/ui/label";
 import { MultiSelectFilter } from "#/components/ui/multi-select-filter";
 import { Toggle } from "#/components/ui/toggle";
 import type { ViewSubject } from "#/db/schema";
-import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
 
 export type SeriesCompleteFilter = "all" | "complete" | "incomplete";
 export type CompletionDateMode = "none" | "this-year" | "range";

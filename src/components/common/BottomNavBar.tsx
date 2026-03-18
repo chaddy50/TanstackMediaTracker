@@ -3,7 +3,7 @@ import { Layers, LayoutDashboard, Library, Menu } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "#/lib/utils";
+import { cn } from "#/server/utils";
 import { NavDrawer } from "./NavDrawer";
 
 function BottomNavItem({

@@ -8,8 +8,8 @@ import {
 	mediaItems,
 	series,
 } from "#/db/schema";
-import { MediaItemStatus } from "#/lib/enums";
-import { getLoggedInUser } from "#/lib/session";
+import { MediaItemStatus } from "#/server/enums";
+import { getLoggedInUser } from "#/server/auth/session";
 
 async function fetchInProgressItems(userId: string) {
 	return db

@@ -8,7 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { PurchaseStatus } from "#/lib/enums";
+import { PurchaseStatus } from "#/server/enums";
 import { type MediaItemDetails, setPurchaseStatus } from "#/server/mediaItems/mediaItem";
 
 interface PurchasedToggleProps {

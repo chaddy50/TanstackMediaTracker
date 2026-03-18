@@ -9,8 +9,8 @@ import {
 	mediaItemMetadata,
 	mediaItems,
 } from "#/db/schema";
-import { MediaItemType } from "#/lib/enums";
-import { getLoggedInUser } from "#/lib/session";
+import { MediaItemType } from "#/server/enums";
+import { getLoggedInUser } from "#/server/auth/session";
 
 // ---------------------------------------------------------------------------
 // Server functions

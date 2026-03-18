@@ -4,7 +4,7 @@ import {
 	MediaItemStatus,
 	MediaItemType,
 	type PurchaseStatus,
-} from "#/lib/enums";
+} from "#/server/enums";
 import { PurchasedBadge } from "./PurchasedBadge";
 import { RatingStars } from "./rating/ratingStars/RatingStars";
 import { StatusBadge } from "./StatusBadge";

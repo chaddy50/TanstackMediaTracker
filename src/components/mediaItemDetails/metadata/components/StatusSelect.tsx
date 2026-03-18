@@ -5,7 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus } from "#/server/enums";
 import {
 	type MediaItemDetails,
 	updateMediaItemStatus,
