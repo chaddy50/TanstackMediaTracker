@@ -9,14 +9,16 @@ import {
 	mediaTypeEnum,
 	series,
 } from "#/db/schema";
-import * as hardcover from "#/server/api/hardcover";
 import * as itunes from "#/server/api/itunes";
-import * as tmdb from "#/server/api/tmdb";
-import { MediaItemStatus, MediaItemType } from "#/server/enums";
 import { getLoggedInUser } from "#/server/auth/session";
 import { findOrCreateCreator } from "#/server/creators/creators.server";
+import { MediaItemStatus, MediaItemType } from "#/server/enums";
 import { syncSeriesStatus } from "#/server/series/seriesList.server";
-import { performMediaSearch, typeSchema } from "@/server/search/search.server";
+import {
+	handleAddToLibrary,
+	performMediaSearch,
+	typeSchema,
+} from "@/server/search/search.server";
 
 export const searchMedia = createServerFn({ method: "GET" })
 	.inputValidator(
@@ -250,194 +252,5 @@ export const addToLibrary = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-
-		// For TMDB movies and TV shows, enrich metadata with details not available in search results.
-		let metadata = data.metadata;
-		if (data.externalSource === "tmdb" && data.type === "movie") {
-			const details = await tmdb.fetchMovieDetails(data.externalId);
-			metadata = { ...metadata, ...details };
-		}
-		if (data.externalSource === "tmdb" && data.type === "tv_show") {
-			const details = await tmdb.fetchTvShowDetails(data.externalId);
-			metadata = { ...metadata, ...details };
-		}
-
-		// Upsert metadata (no-op on conflict, then fetch existing if needed)
-		const inserted = await db
-			.insert(mediaItemMetadata)
-			.values({
-				externalId: data.externalId,
-				externalSource: data.externalSource,
-				type: data.type,
-				title: data.title,
-				description: data.description ?? null,
-				coverImageUrl: data.coverImageUrl ?? null,
-				releaseDate: data.releaseDate ?? null,
-				metadata,
-			})
-			.onConflictDoNothing()
-			.returning({ id: mediaItemMetadata.id });
-
-		let metadataId: number;
-		if (inserted.length > 0 && inserted[0]) {
-			metadataId = inserted[0].id;
-		} else {
-			// Already exists — fetch the existing row
-			const [existing] = await db
-				.select({ id: mediaItemMetadata.id })
-				.from(mediaItemMetadata)
-				.where(eq(mediaItemMetadata.externalId, data.externalId));
-			if (!existing) throw new Error("Failed to find or create metadata");
-			metadataId = existing.id;
-		}
-
-		// Find or create a series entity for this user if this item belongs to one
-		const seriesName = (metadata as Record<string, unknown>)?.series;
-		let seriesId: number | null = null;
-		if (typeof seriesName === "string" && seriesName) {
-			const [existingSeries] = await db
-				.select({ id: series.id })
-				.from(series)
-				.where(
-					and(
-						eq(series.name, seriesName),
-						eq(series.type, data.type),
-						eq(series.userId, user.id),
-					),
-				);
-			if (existingSeries) {
-				seriesId = existingSeries.id;
-			} else {
-				const seriesInfo =
-					data.externalSource === "hardcover"
-						? await hardcover.fetchSeriesInfo(seriesName)
-						: null;
-
-				const [newSeries] = await db
-					.insert(series)
-					.values({
-						userId: user.id,
-						name: seriesName,
-						type: data.type,
-						description: seriesInfo?.description ?? null,
-						isComplete: seriesInfo?.isComplete ?? false,
-					})
-					.returning({ id: series.id });
-				if (newSeries) seriesId = newSeries.id;
-			}
-		}
-
-		// Find or create a creator entity for this item
-		const creatorNameRaw = metadata as Record<string, unknown>;
-		let creatorName: string | null = null;
-		if (data.type === MediaItemType.BOOK) {
-			creatorName =
-				typeof creatorNameRaw.author === "string"
-					? creatorNameRaw.author
-					: null;
-		} else if (data.type === MediaItemType.MOVIE) {
-			creatorName =
-				typeof creatorNameRaw.director === "string"
-					? creatorNameRaw.director
-					: null;
-		} else if (
-			data.type === MediaItemType.TV_SHOW ||
-			data.type === MediaItemType.PODCAST
-		) {
-			creatorName =
-				typeof creatorNameRaw.creator === "string"
-					? creatorNameRaw.creator
-					: null;
-		} else if (data.type === MediaItemType.VIDEO_GAME) {
-			creatorName =
-				typeof creatorNameRaw.developer === "string"
-					? creatorNameRaw.developer
-					: null;
-		}
-
-		let creatorId: number | null = null;
-		if (creatorName) {
-			// Resolve biography based on source/type
-			let biography: string | null = null;
-			if (data.externalSource === "hardcover") {
-				const bioResult = await hardcover.fetchCreatorBio(creatorName);
-				biography = bioResult?.biography ?? null;
-			} else if (data.externalSource === "tmdb") {
-				const bioResult = await tmdb.fetchCreatorBio(creatorName);
-				biography = bioResult?.biography ?? null;
-			} else if (data.externalSource === "igdb") {
-				biography =
-					typeof creatorNameRaw.developerBio === "string"
-						? creatorNameRaw.developerBio
-						: null;
-			} else if (
-				data.externalSource === "itunes" &&
-				typeof creatorNameRaw.feedUrl === "string"
-			) {
-				const channelInfo = await itunes.fetchPodcastChannelInfo(
-					creatorNameRaw.feedUrl,
-				);
-				biography = channelInfo?.description ?? null;
-			}
-			creatorId = await findOrCreateCreator(creatorName, user.id, biography);
-		}
-
-		// Strip transient developerBio from game metadata before it's persisted
-		if (
-			data.type === MediaItemType.VIDEO_GAME &&
-			typeof creatorNameRaw.developerBio === "string"
-		) {
-			delete (metadata as Record<string, unknown>).developerBio;
-		}
-
-		// Check if this user already has a mediaItems row for this metadata
-		const [existingItem] = await db
-			.select({
-				id: mediaItems.id,
-				seriesId: mediaItems.seriesId,
-				creatorId: mediaItems.creatorId,
-			})
-			.from(mediaItems)
-			.where(
-				and(
-					eq(mediaItems.mediaItemMetadataId, metadataId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		if (existingItem) {
-			// Backfill seriesId and creatorId if the item was added before those were supported
-			const updates: Record<string, unknown> = {};
-			if (seriesId && !existingItem.seriesId) {
-				updates.seriesId = seriesId;
-			}
-			if (creatorId && !existingItem.creatorId) {
-				updates.creatorId = creatorId;
-			}
-			if (Object.keys(updates).length > 0) {
-				await db
-					.update(mediaItems)
-					.set(updates)
-					.where(eq(mediaItems.id, existingItem.id));
-			}
-			return { mediaItemId: existingItem.id };
-		}
-
-		// Create the user's library entry
-		const [newItem] = await db
-			.insert(mediaItems)
-			.values({
-				userId: user.id,
-				mediaItemMetadataId: metadataId,
-				status: MediaItemStatus.BACKLOG,
-				seriesId,
-				creatorId,
-			})
-			.returning({ id: mediaItems.id });
-
-		if (!newItem) throw new Error("Failed to create library entry");
-		if (seriesId) {
-			await syncSeriesStatus(seriesId, user.id);
-		}
-		return { mediaItemId: newItem.id };
+		return handleAddToLibrary(data, user.id);
 	});
