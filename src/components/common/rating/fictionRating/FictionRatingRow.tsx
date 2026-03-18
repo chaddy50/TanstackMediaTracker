@@ -11,7 +11,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RatingStars } from "../RatingStars";
+import { RatingStars } from "../ratingStars/RatingStars";
 
 type FictionRatingRowProps = {
 	title: string;
@@ -70,7 +70,11 @@ export function FictionRatingRow({
 					</div>
 				) : (
 					<DialogTrigger asChild>
-						<Button variant="ghost" size="sm" className="text-muted-foreground self-start sm:self-auto">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-muted-foreground self-start sm:self-auto"
+						>
 							{t("fictionRating.addComment")}
 						</Button>
 					</DialogTrigger>

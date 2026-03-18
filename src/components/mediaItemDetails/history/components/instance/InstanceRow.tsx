@@ -1,9 +1,9 @@
+import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
 import { Button } from "#/components/ui/button";
 import { formatDateRange } from "#/lib/utils";
-import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
-import { FictionRatingComments } from "#/components/common/rating/FictionRatingComments";
-import { RatingStars } from "#/components/common/rating/RatingStars";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
+import { FictionRatingComments } from "@/components/common/rating/fictionRating/FictionRatingComments";
+import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";
 import { useTranslation } from "react-i18next";
 
 export function InstanceRow({
@@ -46,7 +46,10 @@ export function InstanceRow({
 									seasonReview.completedAt || null,
 								);
 								return (
-									<div key={seasonReview.season} className="flex flex-col gap-1">
+									<div
+										key={seasonReview.season}
+										className="flex flex-col gap-1"
+									>
 										<div className="flex items-center gap-3 flex-wrap">
 											<span className="text-sm font-medium text-muted-foreground">
 												{t("mediaItemDetails.seasonN", {

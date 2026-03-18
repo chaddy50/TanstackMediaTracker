@@ -17,7 +17,7 @@ import {
 	updateSeriesStatus,
 } from "#/server/series/series";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
-import { RatingStars } from "../common/rating/RatingStars";
+import { RatingStars } from "../common/rating/ratingStars/RatingStars";
 import { TypeBadge } from "../common/TypeBadge";
 import { EditSeriesDialog } from "./EditSeriesDialog";
 import { SeriesCompletionBadge } from "./SeriesCompletionBadge";
@@ -46,20 +46,26 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	const allItemsSameCreator =
 		seriesDetails.items.length > 0 &&
 		seriesDetails.items.every(
-			(item) => item.creatorId !== null && item.creatorId === firstItem?.creatorId,
+			(item) =>
+				item.creatorId !== null && item.creatorId === firstItem?.creatorId,
 		);
 	const sharedCreator =
-		allItemsSameCreator && firstItem?.creatorId != null && firstItem?.creatorName
+		allItemsSameCreator &&
+		firstItem?.creatorId != null &&
+		firstItem?.creatorName
 			? { id: firstItem.creatorId, name: firstItem.creatorName }
 			: null;
 
 	const allItemsCompleted =
 		seriesDetails.items.length > 0 &&
-		seriesDetails.items.every((item) => item.status === MediaItemStatus.COMPLETED);
+		seriesDetails.items.every(
+			(item) => item.status === MediaItemStatus.COMPLETED,
+		);
 	const seriesCompletedAt =
 		allItemsCompleted &&
 		seriesDetails.status !== MediaItemStatus.WAITING_FOR_NEXT_RELEASE
-			? (seriesDetails.items[seriesDetails.items.length - 1].completedAt ?? null)
+			? (seriesDetails.items[seriesDetails.items.length - 1].completedAt ??
+				null)
 			: null;
 
 	async function handleStatusChange(status: string) {
@@ -76,10 +82,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 		await updateNextItemStatus({
 			data: {
 				seriesId: seriesDetails.id,
-				nextItemStatus:
-					value === "none"
-						? null
-						: (value as NextItemStatus),
+				nextItemStatus: value === "none" ? null : (value as NextItemStatus),
 			},
 		});
 		router.invalidate();

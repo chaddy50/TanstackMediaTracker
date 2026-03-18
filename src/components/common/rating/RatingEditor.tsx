@@ -1,8 +1,8 @@
-import { Button } from "#/components/ui/button";
-import type { FictionRating } from "#/db/schema";
 import { DeleteButton } from "#/components/common/DeleteButton";
 import { FictionRatingForm } from "#/components/common/rating/fictionRating/FictionRatingForm";
-import { RatingStars } from "#/components/common/rating/RatingStars";
+import { Button } from "#/components/ui/button";
+import type { FictionRating } from "#/db/schema";
+import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
