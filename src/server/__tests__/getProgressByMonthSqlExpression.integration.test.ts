@@ -15,7 +15,7 @@ vi.mock("#/lib/session", () => ({
 
 import { testDb } from "#/tests/integration/db";
 import { insertMetadata, truncateAll } from "#/tests/integration/helpers";
-import { getProgressByMonthSqlExpression } from "../reports.server";
+import { getProgressByMonthSqlExpression } from "../reports/reportTypes/progressByMonth.server";
 
 beforeEach(() => truncateAll());
 

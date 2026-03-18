@@ -28,13 +28,15 @@ import {
 } from "#/components/ui/select";
 import { MediaItemType } from "#/lib/enums";
 import {
-	type CustomReport,
-	type DashboardReport as DashboardReportData,
-	type GenreDataPoint,
 	getDashboardReport,
-	type ReportDataPoint,
 	setActiveCustomReport,
 } from "#/server/reports";
+import type {
+	CustomReport,
+	DashboardReport as DashboardReportData,
+	GenreDataPoint,
+	ReportDataPoint,
+} from "#/server/reports/types";
 import { ManageReportsDialog } from "./ManageReportsDialog";
 
 const PIE_COLORS = [

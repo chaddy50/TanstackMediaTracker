@@ -7,7 +7,7 @@ vi.mock("#/lib/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { buildLastNMonths } from "../reports.server";
+import { buildLastNMonths } from "../reports/utils.server";
 
 describe("buildLastNMonths", () => {
 	beforeEach(() => {

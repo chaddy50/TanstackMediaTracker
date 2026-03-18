@@ -18,7 +18,7 @@ import {
 	type DashboardReportType,
 	REPORT_MONTH_OPTIONS,
 	type ReportMonthOption,
-} from "#/server/reports";
+} from "#/server/reports/types";
 
 const ALL_MEDIA_TYPES = [
 	MediaItemType.BOOK,

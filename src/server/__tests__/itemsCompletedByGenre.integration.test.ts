@@ -19,7 +19,7 @@ import {
 	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchItemsCompletedByGenre } from "../reports.server";
+import { fetchItemsCompletedByGenre } from "../reports/reportTypes/completedByGenre.server";
 
 const USER = "test-user";
 const OTHER_USER = "other-user";
