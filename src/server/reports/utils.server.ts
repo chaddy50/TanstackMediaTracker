@@ -30,30 +30,53 @@ export function rowToCustomReport(
 	};
 }
 
-export function cutoffDateFromMonthCount(monthCount: number): string {
+export function getStartDateFromMonthCount(monthCount: number): string {
 	const startDate = new Date();
 	startDate.setMonth(startDate.getMonth() - (monthCount - 1));
 	startDate.setDate(1);
 	return startDate.toISOString().slice(0, 10);
 }
 
+export function getDateRangeFromMonthCount(monthCount: number): {
+	startDate: string;
+	endDate: string;
+} {
+	return {
+		startDate: getStartDateFromMonthCount(monthCount),
+		endDate: new Date().toISOString().slice(0, 10),
+	};
+}
+
 /**
- * Builds an ascending array of the last N calendar months, pairing each with
- * its value from the provided rows. Months not present in rows default to 0.
+ * Builds an ascending array of calendar months from startDate's month through
+ * endDate's month, pairing each with its value from the provided rows.
+ * Months not present in rows default to 0.
  */
-export function buildLastNMonths(
+export function buildMonthRange(
 	rows: { month: string; value: number }[],
-	monthCount: number,
+	startDate: string,
+	endDate: string,
 ): ReportDataPoint[] {
 	const valueByMonth = new Map(rows.map((r) => [r.month, Number(r.value)]));
 	const months: ReportDataPoint[] = [];
-	const now = new Date();
-	for (let offset = monthCount - 1; offset >= 0; offset--) {
-		const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const key = `${year}-${month}`;
+
+	const [startYear, startMonthOneBased] = startDate.split("-").map(Number);
+	const [endYear, endMonthOneBased] = endDate.split("-").map(Number);
+
+	let year = startYear;
+	let month = startMonthOneBased - 1; // 0-based
+
+	const endMonth = endMonthOneBased - 1; // 0-based
+
+	while (year < endYear || (year === endYear && month <= endMonth)) {
+		const key = `${year}-${String(month + 1).padStart(2, "0")}`;
 		months.push({ month: key, value: valueByMonth.get(key) ?? 0 });
+		month++;
+		if (month > 11) {
+			month = 0;
+			year++;
+		}
 	}
+
 	return months;
 }

@@ -4,15 +4,14 @@ import { db } from "#/db/index";
 import { mediaItemInstances, mediaItemMetadata, mediaItems } from "#/db/schema";
 import type { MediaItemType } from "#/lib/enums";
 import type { ReportDataPoint } from "../types";
-import { buildLastNMonths, cutoffDateFromMonthCount } from "../utils.server";
+import { buildMonthRange } from "../utils.server";
 
 export async function fetchItemsCompletedByMonth(
 	userId: string,
-	monthCount: number,
+	startDate: string,
+	endDate: string,
 	mediaTypes?: MediaItemType[] | null,
 ): Promise<ReportDataPoint[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
-
 	const hasTypeFilter = mediaTypes && mediaTypes.length > 0;
 
 	const rows = await db
@@ -30,12 +29,13 @@ export async function fetchItemsCompletedByMonth(
 			and(
 				eq(mediaItems.userId, userId),
 				isNotNull(mediaItemInstances.completedAt),
-				sql`${mediaItemInstances.completedAt} >= ${cutoffDate}`,
+				sql`${mediaItemInstances.completedAt} >= ${startDate}`,
+				sql`${mediaItemInstances.completedAt} <= ${endDate}`,
 				hasTypeFilter ? inArray(mediaItemMetadata.type, mediaTypes) : undefined,
 			),
 		)
 		.groupBy(sql`to_char(${mediaItemInstances.completedAt}, 'YYYY-MM')`)
 		.orderBy(sql`to_char(${mediaItemInstances.completedAt}, 'YYYY-MM')`);
 
-	return buildLastNMonths(rows, monthCount);
+	return buildMonthRange(rows, startDate, endDate);
 }

@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import { db } from "#/db/index";
 import type { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
 import type { DrillDownItem } from "../types";
-import { cutoffDateFromMonthCount } from "../utils.server";
 
 export async function fetchDrillDownItemsForMonth(
 	userId: string,
@@ -78,10 +77,10 @@ export async function fetchDrillDownItemsForMonth(
 export async function fetchDrillDownItemsForGenre(
 	userId: string,
 	genre: string,
-	monthCount: number,
+	startDate: string,
+	endDate: string,
 	mediaTypes?: MediaItemType[] | null,
 ): Promise<DrillDownItem[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
 	const filteredTypes = mediaTypes && mediaTypes.length > 0 ? mediaTypes : [];
 	const hasTypeFilter = filteredTypes.length > 0;
 
@@ -119,7 +118,8 @@ export async function fetchDrillDownItemsForGenre(
 			WHERE
 				mi.user_id = ${userId}
 				AND inst.completed_at IS NOT NULL
-				AND inst.completed_at >= ${cutoffDate}
+				AND inst.completed_at >= ${startDate}
+				AND inst.completed_at <= ${endDate}
 				AND g.name = ${genre}
 				${
 					hasTypeFilter

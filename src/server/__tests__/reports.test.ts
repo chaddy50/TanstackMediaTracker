@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("#/db/index", () => ({ db: {} }));
 vi.mock("#/lib/auth", () => ({ auth: {} }));
@@ -7,26 +7,18 @@ vi.mock("#/lib/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { buildLastNMonths } from "../reports/utils.server";
+import { buildMonthRange } from "../reports/utils.server";
 
-describe("buildLastNMonths", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
+describe("buildMonthRange", () => {
 	describe("month range generation", () => {
-		it("returns a single entry for the current month when monthCount is 1", () => {
-			vi.setSystemTime(new Date("2024-03-15"));
-			expect(buildLastNMonths([], 1)).toEqual([{ month: "2024-03", value: 0 }]);
+		it("returns a single entry when start and end are in the same month", () => {
+			expect(
+				buildMonthRange([], "2024-03-01", "2024-03-15"),
+			).toEqual([{ month: "2024-03", value: 0 }]);
 		});
 
-		it("returns entries in ascending order ending with the current month", () => {
-			vi.setSystemTime(new Date("2024-03-15"));
-			const result = buildLastNMonths([], 3);
+		it("returns entries in ascending order from start to end", () => {
+			const result = buildMonthRange([], "2024-01-01", "2024-03-15");
 			expect(result.map((r) => r.month)).toEqual([
 				"2024-01",
 				"2024-02",
@@ -35,16 +27,14 @@ describe("buildLastNMonths", () => {
 		});
 
 		it("returns exactly 12 entries for a 12-month range", () => {
-			vi.setSystemTime(new Date("2024-03-15"));
-			const result = buildLastNMonths([], 12);
+			const result = buildMonthRange([], "2023-04-01", "2024-03-15");
 			expect(result).toHaveLength(12);
 			expect(result[0].month).toBe("2023-04");
 			expect(result[11].month).toBe("2024-03");
 		});
 
-		it("wraps correctly across a year boundary from January", () => {
-			vi.setSystemTime(new Date("2024-01-15"));
-			const result = buildLastNMonths([], 3);
+		it("wraps correctly across a year boundary", () => {
+			const result = buildMonthRange([], "2023-11-01", "2024-01-15");
 			expect(result.map((r) => r.month)).toEqual([
 				"2023-11",
 				"2023-12",
@@ -53,20 +43,15 @@ describe("buildLastNMonths", () => {
 		});
 
 		it("formats all month keys as YYYY-MM", () => {
-			vi.setSystemTime(new Date("2024-03-15"));
-			for (const entry of buildLastNMonths([], 6)) {
+			for (const entry of buildMonthRange([], "2024-01-01", "2024-06-30")) {
 				expect(entry.month).toMatch(/^\d{4}-\d{2}$/);
 			}
 		});
 	});
 
 	describe("filling in missing data", () => {
-		beforeEach(() => {
-			vi.setSystemTime(new Date("2024-03-15"));
-		});
-
 		it("fills all months with 0 when rows is empty", () => {
-			expect(buildLastNMonths([], 3)).toEqual([
+			expect(buildMonthRange([], "2024-01-01", "2024-03-15")).toEqual([
 				{ month: "2024-01", value: 0 },
 				{ month: "2024-02", value: 0 },
 				{ month: "2024-03", value: 0 },
@@ -74,7 +59,9 @@ describe("buildLastNMonths", () => {
 		});
 
 		it("fills missing months with 0 and preserves the provided value", () => {
-			expect(buildLastNMonths([{ month: "2024-02", value: 5 }], 3)).toEqual([
+			expect(
+				buildMonthRange([{ month: "2024-02", value: 5 }], "2024-01-01", "2024-03-15"),
+			).toEqual([
 				{ month: "2024-01", value: 0 },
 				{ month: "2024-02", value: 5 },
 				{ month: "2024-03", value: 0 },
@@ -87,7 +74,7 @@ describe("buildLastNMonths", () => {
 				{ month: "2024-02", value: 7 },
 				{ month: "2024-03", value: 2 },
 			];
-			expect(buildLastNMonths(rows, 3)).toEqual([
+			expect(buildMonthRange(rows, "2024-01-01", "2024-03-15")).toEqual([
 				{ month: "2024-01", value: 3 },
 				{ month: "2024-02", value: 7 },
 				{ month: "2024-03", value: 2 },
@@ -95,17 +82,19 @@ describe("buildLastNMonths", () => {
 		});
 
 		it("drops rows outside the month range", () => {
-			expect(buildLastNMonths([{ month: "2023-12", value: 99 }], 3)).toEqual([
+			expect(
+				buildMonthRange([{ month: "2023-12", value: 99 }], "2024-01-01", "2024-03-15"),
+			).toEqual([
 				{ month: "2024-01", value: 0 },
 				{ month: "2024-02", value: 0 },
 				{ month: "2024-03", value: 0 },
 			]);
 		});
 
-		it("output length always equals monthCount", () => {
-			expect(buildLastNMonths([], 3)).toHaveLength(3);
-			expect(buildLastNMonths([], 6)).toHaveLength(6);
-			expect(buildLastNMonths([], 12)).toHaveLength(12);
+		it("output length matches the number of months in the range", () => {
+			expect(buildMonthRange([], "2024-01-01", "2024-03-15")).toHaveLength(3);
+			expect(buildMonthRange([], "2024-01-01", "2024-06-30")).toHaveLength(6);
+			expect(buildMonthRange([], "2023-04-01", "2024-03-15")).toHaveLength(12);
 		});
 	});
 });

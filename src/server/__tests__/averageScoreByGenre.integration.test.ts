@@ -19,7 +19,7 @@ import {
 	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchItemsCompletedByGenre } from "../reports/reportTypes/itemsCompletedByGenre.server";
+import { fetchAverageScoreByGenre } from "../reports/reportTypes/averageScoreByGenre.server";
 
 const USER = "test-user";
 const OTHER_USER = "other-user";
@@ -29,45 +29,82 @@ const END = "2024-03-15";
 beforeEach(() => truncateAll());
 
 // ---------------------------------------------------------------------------
-// genre exclusion
+// exclusions
 // ---------------------------------------------------------------------------
 
-describe("genre exclusion", () => {
-	it("genres with no completions don't appear", async () => {
+describe("exclusions", () => {
+	it("genres with no rated completions don't appear", async () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 		await insertMediaItem({ userId: USER, metadataId, genreId });
-		// No instance inserted — nothing completed
+		// No instance inserted
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 
 		expect(result).toHaveLength(0);
 	});
-});
 
-// ---------------------------------------------------------------------------
-// null genre exclusion
-// ---------------------------------------------------------------------------
-
-describe("null genre exclusion", () => {
 	it("items with no genre are excluded", async () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-		// No genreId — item has no genre
 		const itemId = await insertMediaItem({ userId: USER, metadataId });
-		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
+
+		expect(result).toHaveLength(0);
+	});
+
+	it("items with a null rating are excluded", async () => {
+		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
+		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
+		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
+		// No rating provided
+
+		const result = await fetchAverageScoreByGenre(USER, START, END);
+
+		expect(result).toHaveLength(0);
+	});
+
+	it("items with a null completedAt are excluded", async () => {
+		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
+		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
+		await insertInstance({ mediaItemId: itemId, rating: "8" });
+		// No completedAt provided
+
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 
 		expect(result).toHaveLength(0);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// genre grouping and counting
+// score averaging
 // ---------------------------------------------------------------------------
 
-describe("genre grouping and counting", () => {
-	it("counts distinct items per genre", async () => {
+describe("score averaging", () => {
+	it("returns the rating for a single rated item", async () => {
+		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
+		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
+
+		const result = await fetchAverageScoreByGenre(USER, START, END);
+		const genre = result.find((row) => row.genre === "Fiction");
+
+		expect(genre?.value).toBe(8);
+	});
+
+	it("averages ratings across multiple items in the same genre", async () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 		const itemId1 = await insertMediaItem({
@@ -80,29 +117,59 @@ describe("genre grouping and counting", () => {
 			metadataId,
 			genreId,
 		});
-		await insertInstance({ mediaItemId: itemId1, completedAt: "2024-03-05" });
-		await insertInstance({ mediaItemId: itemId2, completedAt: "2024-03-10" });
+		await insertInstance({
+			mediaItemId: itemId1,
+			completedAt: "2024-03-05",
+			rating: "6",
+		});
+		await insertInstance({
+			mediaItemId: itemId2,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 		const genre = result.find((row) => row.genre === "Fiction");
 
-		expect(genre?.value).toBe(2);
+		expect(genre?.value).toBe(7);
 	});
 
-	it("counts an item completed twice only once", async () => {
+	it("rounds the average to 1 decimal place", async () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
-		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
-		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-05" });
-		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
+		const itemId1 = await insertMediaItem({
+			userId: USER,
+			metadataId,
+			genreId,
+		});
+		const itemId2 = await insertMediaItem({
+			userId: USER,
+			metadataId,
+			genreId,
+		});
+		await insertInstance({
+			mediaItemId: itemId1,
+			completedAt: "2024-03-05",
+			rating: "7",
+		});
+		await insertInstance({
+			mediaItemId: itemId2,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
+		await insertInstance({
+			mediaItemId: itemId2,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 		const genre = result.find((row) => row.genre === "Fiction");
 
-		expect(genre?.value).toBe(1);
+		expect(genre?.value).toBe(7.7);
 	});
 
-	it("multiple genres appear separately", async () => {
+	it("multiple genres appear separately with their own averages", async () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreIdA = await insertGenre({ userId: USER, name: "Fiction" });
 		const genreIdB = await insertGenre({ userId: USER, name: "History" });
@@ -116,14 +183,48 @@ describe("genre grouping and counting", () => {
 			metadataId,
 			genreId: genreIdB,
 		});
-		await insertInstance({ mediaItemId: itemIdA, completedAt: "2024-03-05" });
-		await insertInstance({ mediaItemId: itemIdB, completedAt: "2024-03-10" });
+		await insertInstance({
+			mediaItemId: itemIdA,
+			completedAt: "2024-03-05",
+			rating: "9",
+		});
+		await insertInstance({
+			mediaItemId: itemIdB,
+			completedAt: "2024-03-10",
+			rating: "6",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
-		const genreNames = result.map((row) => row.genre);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 
-		expect(genreNames).toContain("Fiction");
-		expect(genreNames).toContain("History");
+		expect(result.find((row) => row.genre === "Fiction")?.value).toBe(9);
+		expect(result.find((row) => row.genre === "History")?.value).toBe(6);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// instance counting
+// ---------------------------------------------------------------------------
+
+describe("instance counting", () => {
+	it("both instances contribute when an item is completed twice", async () => {
+		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
+		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-03-05",
+			rating: "6",
+		});
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
+
+		const result = await fetchAverageScoreByGenre(USER, START, END);
+		const genre = result.find((row) => row.genre === "Fiction");
+
+		expect(genre?.value).toBe(7);
 	});
 });
 
@@ -149,16 +250,18 @@ describe("media type filter", () => {
 		await insertInstance({
 			mediaItemId: bookItemId,
 			completedAt: "2024-03-05",
+			rating: "6",
 		});
 		await insertInstance({
 			mediaItemId: movieItemId,
 			completedAt: "2024-03-10",
+			rating: "8",
 		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 		const genre = result.find((row) => row.genre === "Fiction");
 
-		expect(genre?.value).toBe(2);
+		expect(genre?.value).toBe(7);
 	});
 
 	it("filters to specified media type only", async () => {
@@ -178,18 +281,20 @@ describe("media type filter", () => {
 		await insertInstance({
 			mediaItemId: bookItemId,
 			completedAt: "2024-03-05",
+			rating: "6",
 		});
 		await insertInstance({
 			mediaItemId: movieItemId,
 			completedAt: "2024-03-10",
+			rating: "8",
 		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END, [
+		const result = await fetchAverageScoreByGenre(USER, START, END, [
 			MediaItemType.BOOK,
 		]);
 		const genre = result.find((row) => row.genre === "Fiction");
 
-		expect(genre?.value).toBe(1);
+		expect(genre?.value).toBe(6);
 	});
 
 	it("returns empty when no items match the type filter", async () => {
@@ -203,9 +308,10 @@ describe("media type filter", () => {
 		await insertInstance({
 			mediaItemId: bookItemId,
 			completedAt: "2024-03-05",
+			rating: "8",
 		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END, [
+		const result = await fetchAverageScoreByGenre(USER, START, END, [
 			MediaItemType.MOVIE,
 		]);
 
@@ -223,9 +329,13 @@ describe("date range", () => {
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
 		// 4 months ago — outside the window
-		await insertInstance({ mediaItemId: itemId, completedAt: "2023-11-10" });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2023-11-10",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 
 		expect(result).toHaveLength(0);
 	});
@@ -234,9 +344,13 @@ describe("date range", () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
-		await insertInstance({ mediaItemId: itemId, completedAt: "2025-01-01" });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2025-01-01",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 
 		expect(result).toHaveLength(0);
 	});
@@ -245,12 +359,53 @@ describe("date range", () => {
 		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 		const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 		const itemId = await insertMediaItem({ userId: USER, metadataId, genreId });
-		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-03-10",
+			rating: "8",
+		});
 
-		const result = await fetchItemsCompletedByGenre(USER, START, END);
+		const result = await fetchAverageScoreByGenre(USER, START, END);
 		const genre = result.find((row) => row.genre === "Fiction");
 
-		expect(genre?.value).toBe(1);
+		expect(genre?.value).toBe(8);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ordering
+// ---------------------------------------------------------------------------
+
+describe("ordering", () => {
+	it("returns genres ordered by average score descending", async () => {
+		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+		const genreIdA = await insertGenre({ userId: USER, name: "Fiction" });
+		const genreIdB = await insertGenre({ userId: USER, name: "History" });
+		const itemIdA = await insertMediaItem({
+			userId: USER,
+			metadataId,
+			genreId: genreIdA,
+		});
+		const itemIdB = await insertMediaItem({
+			userId: USER,
+			metadataId,
+			genreId: genreIdB,
+		});
+		await insertInstance({
+			mediaItemId: itemIdA,
+			completedAt: "2024-03-05",
+			rating: "6",
+		});
+		await insertInstance({
+			mediaItemId: itemIdB,
+			completedAt: "2024-03-10",
+			rating: "9",
+		});
+
+		const result = await fetchAverageScoreByGenre(USER, START, END);
+
+		expect(result[0].genre).toBe("History");
+		expect(result[1].genre).toBe("Fiction");
 	});
 });
 
@@ -279,16 +434,18 @@ describe("user scoping", () => {
 		await insertInstance({
 			mediaItemId: userItemId,
 			completedAt: "2024-03-10",
+			rating: "8",
 		});
 		await insertInstance({
 			mediaItemId: otherItemId,
 			completedAt: "2024-03-10",
+			rating: "4",
 		});
 
-		const userResult = await fetchItemsCompletedByGenre(USER, START, END);
-		const otherResult = await fetchItemsCompletedByGenre(OTHER_USER, START, END);
+		const userResult = await fetchAverageScoreByGenre(USER, START, END);
+		const otherResult = await fetchAverageScoreByGenre(OTHER_USER, START, END);
 
-		expect(userResult.find((row) => row.genre === "Fiction")?.value).toBe(1);
-		expect(otherResult.find((row) => row.genre === "Fiction")?.value).toBe(1);
+		expect(userResult.find((row) => row.genre === "Fiction")?.value).toBe(8);
+		expect(otherResult.find((row) => row.genre === "Fiction")?.value).toBe(4);
 	});
 });

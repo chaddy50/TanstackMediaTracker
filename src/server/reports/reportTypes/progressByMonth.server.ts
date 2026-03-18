@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "#/db/index";
 import { MediaItemType } from "#/lib/enums";
 import type { ReportDataPoint } from "../types";
-import { buildLastNMonths, cutoffDateFromMonthCount } from "../utils.server";
+import { buildMonthRange } from "../utils.server";
 
 /**
  * Returns the SQL expression that computes the progress metric for a given
@@ -41,10 +41,9 @@ export function getProgressByMonthSqlExpression(
 export async function fetchProgressByMonth(
 	userId: string,
 	mediaType: MediaItemType,
-	monthCount: number,
+	startDate: string,
+	endDate: string,
 ): Promise<ReportDataPoint[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
-
 	// Per-item metric expression (no aggregation — used in the dedup subquery).
 	const progressByMonthExpression = getProgressByMonthSqlExpression(mediaType);
 
@@ -64,12 +63,13 @@ export async function fetchProgressByMonth(
 				mi.user_id = ${userId}
 				AND mim.type = ${mediaType}
 				AND inst.completed_at IS NOT NULL
-				AND inst.completed_at >= ${cutoffDate}
+				AND inst.completed_at >= ${startDate}
+				AND inst.completed_at <= ${endDate}
 			ORDER BY mi.id, to_char(inst.completed_at, 'YYYY-MM'), inst.completed_at DESC
 		) sub
 		GROUP BY month
 		ORDER BY month
 	`);
 
-	return buildLastNMonths(rows.rows, monthCount);
+	return buildMonthRange(rows.rows, startDate, endDate);
 }

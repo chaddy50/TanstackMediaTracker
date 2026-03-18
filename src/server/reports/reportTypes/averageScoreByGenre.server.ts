@@ -9,15 +9,13 @@ import {
 } from "#/db/schema";
 import type { MediaItemType } from "#/lib/enums";
 import type { GenreDataPoint } from "../types";
-import { cutoffDateFromMonthCount } from "../utils.server";
 
 export async function fetchAverageScoreByGenre(
 	userId: string,
-	monthCount: number,
+	startDate: string,
+	endDate: string,
 	mediaTypes?: MediaItemType[] | null,
 ): Promise<GenreDataPoint[]> {
-	const cutoffDate = cutoffDateFromMonthCount(monthCount);
-
 	const hasTypeFilter = mediaTypes && mediaTypes.length > 0;
 
 	const rows = await db
@@ -37,7 +35,8 @@ export async function fetchAverageScoreByGenre(
 				eq(mediaItems.userId, userId),
 				isNotNull(mediaItemInstances.rating),
 				isNotNull(mediaItemInstances.completedAt),
-				sql`${mediaItemInstances.completedAt} >= ${cutoffDate}`,
+				sql`${mediaItemInstances.completedAt} >= ${startDate}`,
+				sql`${mediaItemInstances.completedAt} <= ${endDate}`,
 				hasTypeFilter ? inArray(mediaItemMetadata.type, mediaTypes) : undefined,
 			),
 		)

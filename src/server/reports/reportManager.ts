@@ -8,7 +8,7 @@ import { MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
 import { getDrillDownItems } from "./drilldown/drilldown";
 import { fetchAverageScoreByGenre } from "./reportTypes/averageScoreByGenre.server";
-import { fetchItemsCompletedByGenre } from "./reportTypes/completedByGenre.server";
+import { fetchItemsCompletedByGenre } from "./reportTypes/itemsCompletedByGenre.server";
 import { fetchItemsCompletedByMonth } from "./reportTypes/itemsCompletedByMonth.server";
 import { fetchProgressByMonth } from "./reportTypes/progressByMonth.server";
 import type {
@@ -17,7 +17,7 @@ import type {
 	GenreDataPoint,
 	ReportDataPoint,
 } from "./types";
-import { rowToCustomReport } from "./utils.server";
+import { getDateRangeFromMonthCount, rowToCustomReport } from "./utils.server";
 
 // ---- Exported server functions ----------------------------------------------
 
@@ -137,29 +137,36 @@ export const getDashboardReport = createServerFn({ method: "GET" }).handler(
 
 		let data: ReportDataPoint[] | GenreDataPoint[] = [];
 		if (activeReport) {
+			const { startDate, endDate } = getDateRangeFromMonthCount(
+				activeReport.monthCount,
+			);
 			if (activeReport.reportType === "progress_by_month") {
 				const mediaType = activeReport.mediaTypes?.[0] ?? MediaItemType.BOOK;
 				data = await fetchProgressByMonth(
 					user.id,
 					mediaType,
-					activeReport.monthCount,
+					startDate,
+					endDate,
 				);
 			} else if (activeReport.reportType === "items_completed_by_month") {
 				data = await fetchItemsCompletedByMonth(
 					user.id,
-					activeReport.monthCount,
+					startDate,
+					endDate,
 					activeReport.mediaTypes,
 				);
 			} else if (activeReport.reportType === "items_completed_by_genre") {
 				data = await fetchItemsCompletedByGenre(
 					user.id,
-					activeReport.monthCount,
+					startDate,
+					endDate,
 					activeReport.mediaTypes,
 				);
 			} else {
 				data = await fetchAverageScoreByGenre(
 					user.id,
-					activeReport.monthCount,
+					startDate,
+					endDate,
 					activeReport.mediaTypes,
 				);
 			}
@@ -170,7 +177,6 @@ export const getDashboardReport = createServerFn({ method: "GET" }).handler(
 );
 
 export { getDrillDownItems };
-
 
 // ---- Private helpers --------------------------------------------------------
 

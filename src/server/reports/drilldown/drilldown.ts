@@ -6,7 +6,7 @@ import { db } from "#/db/index";
 import { customReports } from "#/db/schema";
 import { getLoggedInUser } from "#/lib/session";
 import type { DrillDownItemsResult } from "../types";
-import { rowToCustomReport } from "../utils.server";
+import { getDateRangeFromMonthCount, rowToCustomReport } from "../utils.server";
 import {
 	fetchDrillDownItemsForGenre,
 	fetchDrillDownItemsForMonth,
@@ -38,10 +38,14 @@ export const getDrillDownItems = createServerFn({ method: "GET" })
 			report.reportType === "avg_score_by_genre";
 
 		if (isGenreReport) {
+			const { startDate, endDate } = getDateRangeFromMonthCount(
+				report.monthCount,
+			);
 			return fetchDrillDownItemsForGenre(
 				user.id,
 				data.key,
-				report.monthCount,
+				startDate,
+				endDate,
 				report.mediaTypes,
 			);
 		} else {
