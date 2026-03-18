@@ -17,7 +17,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { mediaTypeEnum } from "#/db/schema";
 import { MediaItemType } from "#/lib/enums";
 import { toTitleCase } from "#/lib/utils";
-import { createCustomItem } from "#/server/search";
+import { createCustomItem } from "@/server/search/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,7 +26,6 @@ import { FormField } from "../../mediaItemDetails/metadata/components/editMetada
 import { GameFields } from "../../mediaItemDetails/metadata/components/editMetadata/GameFields";
 import { MovieFields } from "../../mediaItemDetails/metadata/components/editMetadata/MovieFields";
 import { TvShowFields } from "../../mediaItemDetails/metadata/components/editMetadata/TvShowFields";
-
 
 interface CreateCustomItemDialogProps {
 	isOpen: boolean;
@@ -185,7 +184,6 @@ export function CreateCustomItemDialog({
 					{type === MediaItemType.VIDEO_GAME && (
 						<GameFields rawMetadata={{}} onChange={setTypeMetadata} />
 					)}
-
 				</div>
 
 				{error && <p className="text-sm text-destructive">{error}</p>}

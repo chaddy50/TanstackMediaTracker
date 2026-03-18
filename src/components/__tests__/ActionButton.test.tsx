@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActionButton } from "#/components/searchPopup/components/searchResults/searchResult/components/ActionButton";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
-import type { SearchResultWithStatus } from "#/server/search";
+import type { SearchResultWithStatus } from "@/server/search/search.server";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -18,12 +18,9 @@ vi.mock("#/server/search", () => ({
 	addToLibrary: vi.fn(),
 }));
 
-vi.mock(
-	"#/components/searchPopup/components/PodcastArcPickerDialog",
-	() => ({
-		PodcastArcPickerDialog: () => null,
-	}),
-);
+vi.mock("#/components/searchPopup/components/PodcastArcPickerDialog", () => ({
+	PodcastArcPickerDialog: () => null,
+}));
 
 const baseResult: SearchResultWithStatus = {
 	externalId: "123",

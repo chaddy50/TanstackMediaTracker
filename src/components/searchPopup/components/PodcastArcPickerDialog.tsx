@@ -16,7 +16,7 @@ import {
 import type { PodcastEpisode } from "#/lib/api/itunes";
 import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus } from "#/lib/enums";
-import { addPodcastArc, fetchEpisodesForFeed } from "#/server/search";
+import { addPodcastArc, fetchEpisodesForFeed } from "@/server/search/search";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

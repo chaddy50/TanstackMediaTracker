@@ -1,6 +1,7 @@
-import type { SearchResultWithStatus } from "#/server/search";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { SearchResultWithStatus } from "@/server/search/search.server";
 import { SearchResult } from "./searchResult/SearchResult";
 
 interface SearchResultsProps {

@@ -1,13 +1,50 @@
-import { describe, expect, it } from "vitest";
-import { MediaItemStatus } from "#/lib/enums";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type { ExternalSearchResult } from "#/lib/api/types";
-import { attachLibraryStatus, collectApiResults } from "../search";
+import { MediaItemStatus } from "#/lib/enums";
+
+vi.mock("#/db/index", () => ({
+	db: {
+		select: vi.fn(() => ({
+			from: vi.fn(() => ({
+				where: vi.fn().mockResolvedValue([]),
+			})),
+		})),
+	},
+}));
+vi.mock("#/lib/auth", () => ({ auth: {} }));
+vi.mock("#/lib/session", () => ({
+	getLoggedInUser: vi.fn(),
+	getRequiredUser: vi.fn(),
+}));
+vi.mock("#/lib/api/hardcover", () => ({ search: vi.fn() }));
+vi.mock("#/lib/api/igdb", () => ({ search: vi.fn() }));
+vi.mock("#/lib/api/itunes", () => ({ searchPodcasts: vi.fn() }));
+vi.mock("#/lib/api/tmdb", () => ({ search: vi.fn() }));
+
+import * as hardcover from "#/lib/api/hardcover";
+import * as igdb from "#/lib/api/igdb";
+import * as itunes from "#/lib/api/itunes";
+import * as tmdb from "#/lib/api/tmdb";
+import {
+	attachLibraryStatus,
+	collectApiResults,
+	performMediaSearch,
+} from "../search/search.server";
 
 const baseResult: ExternalSearchResult = {
 	externalId: "42",
 	externalSource: "tmdb",
 	type: "movie",
 	title: "Dune",
+	metadata: {},
+};
+
+const gameResult: ExternalSearchResult = {
+	externalId: "game-1",
+	externalSource: "igdb",
+	type: "video_game",
+	title: "Elden Ring",
 	metadata: {},
 };
 
@@ -117,5 +154,39 @@ describe("attachLibraryStatus", () => {
 		expect(results[0].status).toBe(MediaItemStatus.IN_PROGRESS);
 		expect(results[1].mediaItemId).toBeUndefined();
 		expect(results[1].status).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// handleSearchMedia
+// ---------------------------------------------------------------------------
+
+describe("handleSearchMedia", () => {
+	beforeEach(() => {
+		vi.mocked(hardcover.search).mockResolvedValue([]);
+		vi.mocked(igdb.search).mockResolvedValue([]);
+		vi.mocked(itunes.searchPodcasts).mockResolvedValue([]);
+		vi.mocked(tmdb.search).mockResolvedValue([]);
+	});
+
+	it("returns results from surviving APIs when one throws", async () => {
+		vi.mocked(hardcover.search).mockRejectedValue(new Error("API down"));
+		vi.mocked(igdb.search).mockResolvedValue([gameResult]);
+
+		const result = await performMediaSearch("user-1", "elden ring", "all");
+
+		expect(result).toHaveLength(1);
+		expect(result[0].externalId).toBe("game-1");
+	});
+
+	it("returns empty array when all APIs throw", async () => {
+		vi.mocked(hardcover.search).mockRejectedValue(new Error("down"));
+		vi.mocked(igdb.search).mockRejectedValue(new Error("down"));
+		vi.mocked(itunes.searchPodcasts).mockRejectedValue(new Error("down"));
+		vi.mocked(tmdb.search).mockRejectedValue(new Error("down"));
+
+		const result = await performMediaSearch("user-1", "test", "all");
+
+		expect(result).toEqual([]);
 	});
 });

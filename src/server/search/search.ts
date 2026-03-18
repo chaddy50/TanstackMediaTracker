@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
@@ -10,72 +10,13 @@ import {
 	series,
 } from "#/db/schema";
 import * as hardcover from "#/lib/api/hardcover";
-import * as igdb from "#/lib/api/igdb";
 import * as itunes from "#/lib/api/itunes";
 import * as tmdb from "#/lib/api/tmdb";
-import type { ExternalSearchResult } from "#/lib/api/types";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
 import { findOrCreateCreator } from "#/server/creators/creators.server";
 import { syncSeriesStatus } from "#/server/series/seriesList.server";
-
-export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
-
-export type SearchResultWithStatus = ExternalSearchResult & {
-	mediaItemId?: number;
-	status?: MediaItemStatus;
-};
-
-/**
- * Flattens settled API call results, silently dropping any that rejected.
- * This ensures a single failing external API does not suppress results from
- * the others.
- */
-export function collectApiResults(
-	settled: PromiseSettledResult<ExternalSearchResult[]>[],
-): ExternalSearchResult[] {
-	return settled.flatMap((result) =>
-		result.status === "fulfilled" ? result.value : [],
-	);
-}
-
-/**
- * Enriches external search results with the user's library status. Results
- * that exist in the user's library receive `mediaItemId` and `status`;
- * unrecognized results are returned unchanged.
- */
-export function attachLibraryStatus(
-	results: ExternalSearchResult[],
-	existingMetadata: Array<{
-		id: number;
-		externalId: string;
-		externalSource: string;
-	}>,
-	existingItems: Array<{
-		id: number;
-		mediaItemMetadataId: number;
-		status: MediaItemStatus;
-	}>,
-): SearchResultWithStatus[] {
-	const metadataByExternalKey = new Map(
-		existingMetadata.map((m) => [`${m.externalId}:${m.externalSource}`, m]),
-	);
-	const itemByMetadataId = new Map(
-		existingItems.map((item) => [item.mediaItemMetadataId, item]),
-	);
-
-	return results.map((result): SearchResultWithStatus => {
-		const meta = metadataByExternalKey.get(
-			`${result.externalId}:${result.externalSource}`,
-		);
-		if (!meta) return result;
-
-		const item = itemByMetadataId.get(meta.id);
-		if (!item) return result;
-
-		return { ...result, mediaItemId: item.id, status: item.status };
-	});
-}
+import { performMediaSearch, typeSchema } from "@/server/search/search.server";
 
 export const searchMedia = createServerFn({ method: "GET" })
 	.inputValidator(
@@ -86,62 +27,7 @@ export const searchMedia = createServerFn({ method: "GET" })
 	)
 	.handler(async ({ data: { query, type } }) => {
 		const user = await getLoggedInUser();
-
-		// Call relevant external APIs in parallel
-		const apiCalls: Promise<ExternalSearchResult[]>[] = [];
-
-		if (type === MediaItemType.BOOK || type === "all") {
-			apiCalls.push(hardcover.search(query));
-		}
-		if (type === MediaItemType.MOVIE || type === "all") {
-			apiCalls.push(
-				tmdb.search(query, type === "all" ? "all" : MediaItemType.MOVIE),
-			);
-		} else if (type === MediaItemType.TV_SHOW) {
-			apiCalls.push(tmdb.search(query, MediaItemType.TV_SHOW));
-		}
-		if (type === MediaItemType.VIDEO_GAME || type === "all") {
-			apiCalls.push(igdb.search(query));
-		}
-		if (type === MediaItemType.PODCAST || type === "all") {
-			apiCalls.push(itunes.searchPodcasts(query));
-		}
-
-		const resultArrays = await Promise.allSettled(apiCalls);
-		const externalResults = collectApiResults(resultArrays);
-
-		if (externalResults.length === 0) return [];
-
-		// Check which results are already in this user's library
-		const externalIds = externalResults.map((r) => r.externalId);
-		const existingMetadata = await db
-			.select({
-				id: mediaItemMetadata.id,
-				externalId: mediaItemMetadata.externalId,
-				externalSource: mediaItemMetadata.externalSource,
-			})
-			.from(mediaItemMetadata)
-			.where(inArray(mediaItemMetadata.externalId, externalIds));
-
-		const metadataIds = existingMetadata.map((m) => m.id);
-		const existingItems =
-			metadataIds.length > 0
-				? await db
-						.select({
-							id: mediaItems.id,
-							mediaItemMetadataId: mediaItems.mediaItemMetadataId,
-							status: mediaItems.status,
-						})
-						.from(mediaItems)
-						.where(
-							and(
-								inArray(mediaItems.mediaItemMetadataId, metadataIds),
-								eq(mediaItems.userId, user.id),
-							),
-						)
-				: [];
-
-		return attachLibraryStatus(externalResults, existingMetadata, existingItems);
+		return performMediaSearch(user.id, query, type);
 	});
 
 export const createCustomItem = createServerFn({ method: "POST" })
@@ -215,7 +101,8 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 			}),
 			status: z.enum(
 				Object.values(MediaItemStatus).filter(
-					(statusValue) => statusValue !== MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+					(statusValue) =>
+						statusValue !== MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
 				) as [string, ...string[]],
 			),
 		}),
@@ -257,10 +144,16 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 		if (data.arcMetadata.creator) {
 			let biography: string | null = null;
 			if (data.arcMetadata.feedUrl) {
-				const channelInfo = await itunes.fetchPodcastChannelInfo(data.arcMetadata.feedUrl);
+				const channelInfo = await itunes.fetchPodcastChannelInfo(
+					data.arcMetadata.feedUrl,
+				);
 				biography = channelInfo?.description ?? null;
 			}
-			arcCreatorId = await findOrCreateCreator(data.arcMetadata.creator, user.id, biography);
+			arcCreatorId = await findOrCreateCreator(
+				data.arcMetadata.creator,
+				user.id,
+				biography,
+			);
 		}
 
 		// Podcast arcs have no external ID — each is a custom entry
@@ -435,16 +328,31 @@ export const addToLibrary = createServerFn({ method: "POST" })
 		}
 
 		// Find or create a creator entity for this item
-		const creatorNameRaw = (metadata as Record<string, unknown>);
+		const creatorNameRaw = metadata as Record<string, unknown>;
 		let creatorName: string | null = null;
 		if (data.type === MediaItemType.BOOK) {
-			creatorName = typeof creatorNameRaw.author === "string" ? creatorNameRaw.author : null;
+			creatorName =
+				typeof creatorNameRaw.author === "string"
+					? creatorNameRaw.author
+					: null;
 		} else if (data.type === MediaItemType.MOVIE) {
-			creatorName = typeof creatorNameRaw.director === "string" ? creatorNameRaw.director : null;
-		} else if (data.type === MediaItemType.TV_SHOW || data.type === MediaItemType.PODCAST) {
-			creatorName = typeof creatorNameRaw.creator === "string" ? creatorNameRaw.creator : null;
+			creatorName =
+				typeof creatorNameRaw.director === "string"
+					? creatorNameRaw.director
+					: null;
+		} else if (
+			data.type === MediaItemType.TV_SHOW ||
+			data.type === MediaItemType.PODCAST
+		) {
+			creatorName =
+				typeof creatorNameRaw.creator === "string"
+					? creatorNameRaw.creator
+					: null;
 		} else if (data.type === MediaItemType.VIDEO_GAME) {
-			creatorName = typeof creatorNameRaw.developer === "string" ? creatorNameRaw.developer : null;
+			creatorName =
+				typeof creatorNameRaw.developer === "string"
+					? creatorNameRaw.developer
+					: null;
 		}
 
 		let creatorId: number | null = null;
@@ -458,22 +366,37 @@ export const addToLibrary = createServerFn({ method: "POST" })
 				const bioResult = await tmdb.fetchCreatorBio(creatorName);
 				biography = bioResult?.biography ?? null;
 			} else if (data.externalSource === "igdb") {
-				biography = typeof creatorNameRaw.developerBio === "string" ? creatorNameRaw.developerBio : null;
-			} else if (data.externalSource === "itunes" && typeof creatorNameRaw.feedUrl === "string") {
-				const channelInfo = await itunes.fetchPodcastChannelInfo(creatorNameRaw.feedUrl);
+				biography =
+					typeof creatorNameRaw.developerBio === "string"
+						? creatorNameRaw.developerBio
+						: null;
+			} else if (
+				data.externalSource === "itunes" &&
+				typeof creatorNameRaw.feedUrl === "string"
+			) {
+				const channelInfo = await itunes.fetchPodcastChannelInfo(
+					creatorNameRaw.feedUrl,
+				);
 				biography = channelInfo?.description ?? null;
 			}
 			creatorId = await findOrCreateCreator(creatorName, user.id, biography);
 		}
 
 		// Strip transient developerBio from game metadata before it's persisted
-		if (data.type === MediaItemType.VIDEO_GAME && typeof creatorNameRaw.developerBio === "string") {
+		if (
+			data.type === MediaItemType.VIDEO_GAME &&
+			typeof creatorNameRaw.developerBio === "string"
+		) {
 			delete (metadata as Record<string, unknown>).developerBio;
 		}
 
 		// Check if this user already has a mediaItems row for this metadata
 		const [existingItem] = await db
-			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId, creatorId: mediaItems.creatorId })
+			.select({
+				id: mediaItems.id,
+				seriesId: mediaItems.seriesId,
+				creatorId: mediaItems.creatorId,
+			})
 			.from(mediaItems)
 			.where(
 				and(

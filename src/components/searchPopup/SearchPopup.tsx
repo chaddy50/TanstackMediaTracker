@@ -6,7 +6,8 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import type { MediaItemType } from "#/lib/enums";
-import { type SearchResultWithStatus, searchMedia } from "#/server/search";
+import { searchMedia } from "@/server/search/search";
+import type { SearchResultWithStatus } from "@/server/search/search.server";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateCustomItemDialog } from "./components/CreateCustomItemDialog";

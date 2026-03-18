@@ -1,9 +1,8 @@
+import { SearchResults } from "#/components/searchPopup/components/searchResults/SearchResults";
+import { TooltipProvider } from "#/components/ui/tooltip";
+import type { SearchResultWithStatus } from "@/server/search/search.server";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-import { TooltipProvider } from "#/components/ui/tooltip";
-import { SearchResults } from "#/components/searchPopup/components/searchResults/SearchResults";
-import type { SearchResultWithStatus } from "#/server/search";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
