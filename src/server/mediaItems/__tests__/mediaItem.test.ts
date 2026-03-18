@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
 	inferStatusAfterInstanceEdit,
 	inferStatusAfterInstanceDelete,
-} from "../mediaItems/mediaItem";
+} from "../mediaItem";
 import { MediaItemStatus } from "#/lib/enums";
 
 describe("inferStatusAfterInstanceEdit", () => {

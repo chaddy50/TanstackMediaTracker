@@ -30,7 +30,7 @@ import {
 	attachLibraryStatus,
 	collectApiResults,
 	performMediaSearch,
-} from "../search/search.server";
+} from "../search.server";
 
 const baseResult: ExternalSearchResult = {
 	externalId: "42",

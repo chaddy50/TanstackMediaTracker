@@ -23,7 +23,7 @@ import {
 import {
 	fetchDrillDownItemsForGenre,
 	fetchDrillDownItemsForMonth,
-} from "../reports/drilldown/drilldown.server";
+} from "../drilldown.server";
 
 const USER = "test-user";
 const OTHER_USER = "other-user";

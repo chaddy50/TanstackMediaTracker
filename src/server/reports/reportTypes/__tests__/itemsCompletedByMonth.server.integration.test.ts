@@ -18,7 +18,7 @@ import {
 	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchItemsCompletedByMonth } from "../reports/reportTypes/itemsCompletedByMonth.server";
+import { fetchItemsCompletedByMonth } from "../itemsCompletedByMonth.server";
 
 const USER = "test-user";
 

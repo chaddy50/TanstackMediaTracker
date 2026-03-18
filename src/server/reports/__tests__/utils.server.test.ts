@@ -7,7 +7,7 @@ vi.mock("#/lib/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { buildMonthRange } from "../reports/utils.server";
+import { buildMonthRange } from "../utils.server";
 
 describe("buildMonthRange", () => {
 	describe("month range generation", () => {

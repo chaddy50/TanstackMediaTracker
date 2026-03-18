@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
-import { findNextSeriesItem } from "../series/seriesList.server";
+import { findNextSeriesItem } from "../seriesList.server";
 
 vi.mock("#/db/index", () => ({ db: {} }));
 vi.mock("#/lib/auth", () => ({ auth: {} }));

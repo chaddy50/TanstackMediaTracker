@@ -19,7 +19,7 @@ import {
 	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchAverageScoreByGenre } from "../reports/reportTypes/averageScoreByGenre.server";
+import { fetchAverageScoreByGenre } from "../averageScoreByGenre.server";
 
 const USER = "test-user";
 const OTHER_USER = "other-user";

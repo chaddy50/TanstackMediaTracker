@@ -18,7 +18,7 @@ import {
 	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchProgressByMonth } from "../reports/reportTypes/progressByMonth.server";
+import { fetchProgressByMonth } from "../progressByMonth.server";
 
 const USER = "test-user";
 const OTHER_USER = "other-user";
