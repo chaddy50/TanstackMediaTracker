@@ -219,6 +219,137 @@ export async function handleAddToLibrary(
 	return { mediaItemId };
 }
 
+export type PodcastArcMetadata = {
+	creator?: string;
+	genres?: string[];
+	feedUrl?: string;
+	episodeNumbers?: number[];
+	episodeTitles?: string[];
+	episodeGuids?: string[];
+	totalDuration?: number;
+	firstPublishedAt?: string;
+	lastPublishedAt?: string;
+};
+
+export type AddPodcastArcInput = {
+	podcastTitle: string;
+	podcastCoverImageUrl?: string;
+	arcTitle: string;
+	arcMetadata: PodcastArcMetadata;
+	status: MediaItemStatus;
+};
+
+export async function handleAddPodcastArc(
+	data: AddPodcastArcInput,
+	userId: string,
+): Promise<{ mediaItemId: number }> {
+	// Find or create the podcast series for this user
+	const [existingSeries] = await db
+		.select({ id: series.id })
+		.from(series)
+		.where(
+			and(
+				eq(series.name, data.podcastTitle),
+				eq(series.type, MediaItemType.PODCAST),
+				eq(series.userId, userId),
+			),
+		);
+
+	let seriesId: number;
+	if (existingSeries) {
+		seriesId = existingSeries.id;
+	} else {
+		const [newSeries] = await db
+			.insert(series)
+			.values({
+				userId,
+				name: data.podcastTitle,
+				type: MediaItemType.PODCAST,
+				isComplete: false,
+			})
+			.returning({ id: series.id });
+		if (!newSeries) throw new Error("Failed to create podcast series");
+		seriesId = newSeries.id;
+	}
+
+	// Find or create a creator for this podcast arc
+	let arcCreatorId: number | null = null;
+	if (data.arcMetadata.creator) {
+		let biography: string | null = null;
+		if (data.arcMetadata.feedUrl) {
+			const channelInfo = await itunes.fetchPodcastChannelInfo(
+				data.arcMetadata.feedUrl,
+			);
+			biography = channelInfo?.description ?? null;
+		}
+		arcCreatorId = await findOrCreateCreator(
+			data.arcMetadata.creator,
+			userId,
+			biography,
+		);
+	}
+
+	// Compute a deterministic externalId so that re-adding the same arc is idempotent.
+	// Primary key: sorted episode GUIDs (stable regardless of arc title).
+	// Fallback: podcastTitle + arcTitle when GUIDs are not available.
+	const externalId =
+		data.arcMetadata.episodeGuids?.length
+			? `itunes-arc-guids:${[...data.arcMetadata.episodeGuids].sort().join(",")}`
+			: `itunes-arc:${data.podcastTitle}:${data.arcTitle}`;
+
+	const inserted = await db
+		.insert(mediaItemMetadata)
+		.values({
+			externalId,
+			externalSource: "itunes",
+			type: MediaItemType.PODCAST,
+			title: data.arcTitle,
+			description: null,
+			coverImageUrl: data.podcastCoverImageUrl ?? null,
+			releaseDate: data.arcMetadata.firstPublishedAt ?? null,
+			metadata: data.arcMetadata,
+		})
+		.onConflictDoNothing()
+		.returning({ id: mediaItemMetadata.id });
+
+	let metadataId: number;
+	if (inserted.length > 0 && inserted[0]) {
+		metadataId = inserted[0].id;
+	} else {
+		const [existing] = await db
+			.select({ id: mediaItemMetadata.id })
+			.from(mediaItemMetadata)
+			.where(eq(mediaItemMetadata.externalId, externalId));
+		if (!existing) throw new Error("Failed to find or create arc metadata");
+		metadataId = existing.id;
+	}
+
+	// Return early if the user already has this arc in their library
+	const [existingItem] = await db
+		.select({ id: mediaItems.id })
+		.from(mediaItems)
+		.where(
+			and(
+				eq(mediaItems.mediaItemMetadataId, metadataId),
+				eq(mediaItems.userId, userId),
+			),
+		);
+
+	if (existingItem) {
+		return { mediaItemId: existingItem.id };
+	}
+
+	const mediaItemId = await insertLibraryEntry(
+		userId,
+		metadataId,
+		seriesId,
+		arcCreatorId,
+		data.status,
+	);
+	await syncSeriesStatus(seriesId, userId);
+	return { mediaItemId };
+}
+
 // ---- Private helpers
 
 export async function enrichTmdbMetadata(
@@ -381,13 +512,14 @@ async function insertLibraryEntry(
 	metadataId: number,
 	seriesId: number | null,
 	creatorId: number | null,
+	status: MediaItemStatus = MediaItemStatus.BACKLOG,
 ): Promise<number> {
 	const [newItem] = await db
 		.insert(mediaItems)
 		.values({
 			userId,
 			mediaItemMetadataId: metadataId,
-			status: MediaItemStatus.BACKLOG,
+			status,
 			seriesId,
 			creatorId,
 		})

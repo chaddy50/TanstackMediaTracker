@@ -3,18 +3,12 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/db/index";
-import {
-	mediaItemMetadata,
-	mediaItems,
-	mediaTypeEnum,
-	series,
-} from "#/db/schema";
+import { mediaItemMetadata, mediaItems, mediaTypeEnum } from "#/db/schema";
 import * as itunes from "#/server/api/itunes";
 import { getLoggedInUser } from "#/server/auth/session";
-import { findOrCreateCreator } from "#/server/creators/creators.server";
-import { MediaItemStatus, MediaItemType } from "#/server/enums";
-import { syncSeriesStatus } from "#/server/series/seriesList.server";
+import { MediaItemStatus } from "#/server/enums";
 import {
+	handleAddPodcastArc,
 	handleAddToLibrary,
 	performMediaSearch,
 	typeSchema,
@@ -111,84 +105,10 @@ export const addPodcastArc = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-
-		// Find or create the podcast series for this user
-		const [existingSeries] = await db
-			.select({ id: series.id })
-			.from(series)
-			.where(
-				and(
-					eq(series.name, data.podcastTitle),
-					eq(series.type, MediaItemType.PODCAST),
-					eq(series.userId, user.id),
-				),
-			);
-
-		let seriesId: number;
-		if (existingSeries) {
-			seriesId = existingSeries.id;
-		} else {
-			const [newSeries] = await db
-				.insert(series)
-				.values({
-					userId: user.id,
-					name: data.podcastTitle,
-					type: MediaItemType.PODCAST,
-					isComplete: false,
-				})
-				.returning({ id: series.id });
-			if (!newSeries) throw new Error("Failed to create podcast series");
-			seriesId = newSeries.id;
-		}
-
-		// Find or create a creator for this podcast arc
-		let arcCreatorId: number | null = null;
-		if (data.arcMetadata.creator) {
-			let biography: string | null = null;
-			if (data.arcMetadata.feedUrl) {
-				const channelInfo = await itunes.fetchPodcastChannelInfo(
-					data.arcMetadata.feedUrl,
-				);
-				biography = channelInfo?.description ?? null;
-			}
-			arcCreatorId = await findOrCreateCreator(
-				data.arcMetadata.creator,
-				user.id,
-				biography,
-			);
-		}
-
-		// Podcast arcs have no external ID — each is a custom entry
-		const [insertedMetadata] = await db
-			.insert(mediaItemMetadata)
-			.values({
-				externalId: crypto.randomUUID(),
-				externalSource: "itunes",
-				type: MediaItemType.PODCAST,
-				title: data.arcTitle,
-				description: null,
-				coverImageUrl: data.podcastCoverImageUrl ?? null,
-				releaseDate: data.arcMetadata.firstPublishedAt ?? null,
-				metadata: data.arcMetadata,
-			})
-			.returning({ id: mediaItemMetadata.id });
-
-		if (!insertedMetadata) throw new Error("Failed to create arc metadata");
-
-		const [newItem] = await db
-			.insert(mediaItems)
-			.values({
-				userId: user.id,
-				mediaItemMetadataId: insertedMetadata.id,
-				status: data.status as MediaItemStatus,
-				seriesId,
-				creatorId: arcCreatorId,
-			})
-			.returning({ id: mediaItems.id });
-
-		if (!newItem) throw new Error("Failed to create library entry");
-		await syncSeriesStatus(seriesId, user.id);
-		return { mediaItemId: newItem.id };
+		return handleAddPodcastArc(
+			{ ...data, status: data.status as MediaItemStatus },
+			user.id,
+		);
 	});
 
 const arcMetadataSchema = z.object({
