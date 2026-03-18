@@ -11,7 +11,7 @@ const searchSchema = z.object({
 	token: z.string().optional(),
 });
 
-export const Route = createFileRoute("/reset-password")({
+export const Route = createFileRoute("/_auth/reset-password")({
 	validateSearch: searchSchema,
 	component: ResetPasswordPage,
 });
@@ -42,7 +42,7 @@ function ResetPasswordPage() {
 					</Link>
 				</div>
 			</div>
-		);
+		)
 	}
 
 	async function handleSubmit(event: React.FormEvent) {
@@ -51,7 +51,7 @@ function ResetPasswordPage() {
 
 		if (newPassword !== confirmPassword) {
 			setError(t("auth.passwordMismatch"));
-			return;
+			return
 		}
 
 		setIsSubmitting(true);
@@ -60,11 +60,11 @@ function ResetPasswordPage() {
 			const result = await authClient.resetPassword({
 				newPassword,
 				token: token!,
-			});
+			})
 
 			if (result.error) {
 				setError(t("auth.resetPasswordInvalidToken"));
-				return;
+				return
 			}
 
 			setIsSuccess(true);
@@ -144,5 +144,5 @@ function ResetPasswordPage() {
 				)}
 			</div>
 		</div>
-	);
+	)
 }

@@ -10,7 +10,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute(
-	"/_authenticated/reports/$reportId/drilldown",
+	"/_authenticated/_details/reports/$reportId/drilldown",
 )({
 	validateSearch: searchSchema,
 	loaderDeps: ({ search }: { search: { key: string } }) => ({
@@ -56,5 +56,5 @@ function DrillDownPage() {
 				)}
 			</div>
 		</div>
-	);
+	)
 }

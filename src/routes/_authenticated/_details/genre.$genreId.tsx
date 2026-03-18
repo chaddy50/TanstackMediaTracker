@@ -5,7 +5,7 @@ import { GenreInfo } from "#/components/genreDetails/GenreInfo";
 import { GenreItems } from "#/components/genreDetails/GenreItems";
 import { getGenreDetails } from "#/server/genres/genres";
 
-export const Route = createFileRoute("/_authenticated/genre/$genreId")({
+export const Route = createFileRoute("/_authenticated/_details/genre/$genreId")({
 	loader: ({ params }) =>
 		getGenreDetails({ data: { id: parseInt(params.genreId, 10) } }),
 	component: GenrePage,
@@ -23,5 +23,5 @@ function GenrePage() {
 				<GenreItems items={genreDetails.items} />
 			</div>
 		</div>
-	);
+	)
 }

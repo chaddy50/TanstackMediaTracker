@@ -6,7 +6,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/login")({
+export const Route = createFileRoute("/_auth/login")({
 	component: LoginPage,
 });
 
@@ -34,19 +34,19 @@ function LoginPage() {
 					name,
 					email,
 					password,
-				});
+				})
 				if (result.error) {
 					setError(result.error.message ?? t("auth.error"));
-					return;
+					return
 				}
 			} else {
 				const result = await authClient.signIn.email({
 					email,
 					password,
-				});
+				})
 				if (result.error) {
 					setError(t("auth.invalidCredentials"));
-					return;
+					return
 				}
 			}
 			await router.navigate({ to: "/" });
@@ -119,7 +119,7 @@ function LoginPage() {
 						type="button"
 						onClick={() => {
 							setIsSignUp(!isSignUp);
-							setError(null);
+							setError(null)
 						}}
 						className="underline hover:text-foreground transition-colors"
 					>
@@ -139,5 +139,5 @@ function LoginPage() {
 				)}
 			</div>
 		</div>
-	);
+	)
 }

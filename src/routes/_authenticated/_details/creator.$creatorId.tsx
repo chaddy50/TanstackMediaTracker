@@ -4,18 +4,18 @@ import { useTranslation } from "react-i18next";
 
 import { DeleteButton } from "#/components/common/DeleteButton";
 import { PageHeader } from "#/components/common/PageHeader";
-import { SeriesInfo } from "#/components/seriesDetails/SeriesInfo";
-import { SeriesItems } from "#/components/seriesDetails/SeriesItems";
-import { deleteSeries, getSeriesDetails } from "#/server/series/series";
+import { CreatorInfo } from "#/components/creatorDetails/CreatorInfo";
+import { CreatorItems } from "#/components/creatorDetails/CreatorItems";
+import { deleteCreator, getCreatorDetails } from "#/server/creators/creators";
 
-export const Route = createFileRoute("/_authenticated/series/$seriesId")({
+export const Route = createFileRoute("/_authenticated/_details/creator/$creatorId")({
 	loader: ({ params }) =>
-		getSeriesDetails({ data: { id: parseInt(params.seriesId, 10) } }),
-	component: SeriesPage,
+		getCreatorDetails({ data: { id: parseInt(params.creatorId, 10) } }),
+	component: CreatorPage,
 });
 
-function SeriesPage() {
-	const seriesDetails = Route.useLoaderData();
+function CreatorPage() {
+	const creatorDetails = Route.useLoaderData();
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -23,7 +23,7 @@ function SeriesPage() {
 	async function handleDelete() {
 		setIsDeleting(true);
 		try {
-			await deleteSeries({ data: { seriesId: seriesDetails.id } });
+			await deleteCreator({ data: { creatorId: creatorDetails.id } });
 			await navigate({ to: "/" });
 		} finally {
 			setIsDeleting(false);
@@ -36,15 +36,15 @@ function SeriesPage() {
 				shouldShowBackButton
 				right={
 					<DeleteButton onClick={handleDelete} disabled={isDeleting}>
-						{t("seriesDetails.delete")}
+						{t("creatorDetails.delete")}
 					</DeleteButton>
 				}
 			/>
 
 			<div className="px-6 py-8 max-w-5xl mx-auto">
-				<SeriesInfo seriesDetails={seriesDetails} />
-				<SeriesItems items={seriesDetails.items} />
+				<CreatorInfo creatorDetails={creatorDetails} />
+				<CreatorItems items={creatorDetails.items} />
 			</div>
 		</div>
-	);
+	)
 }

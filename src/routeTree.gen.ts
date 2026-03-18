@@ -9,45 +9,55 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AuthenticatedDetailsRouteImport } from './routes/_authenticated/_details'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/_app'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/_app/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AuthenticatedSeriesSeriesIdRouteImport } from './routes/_authenticated/series.$seriesId'
-import { Route as AuthenticatedMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/mediaItemDetails.$mediaItemId'
-import { Route as AuthenticatedGenreGenreIdRouteImport } from './routes/_authenticated/genre.$genreId'
-import { Route as AuthenticatedCreatorCreatorIdRouteImport } from './routes/_authenticated/creator.$creatorId'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/_app/settings'
 import { Route as AuthenticatedAppSeriesRouteImport } from './routes/_authenticated/_app/series'
 import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/_app/library'
-import { Route as AuthenticatedReportsReportIdDrilldownRouteImport } from './routes/_authenticated/reports.$reportId.drilldown'
+import { Route as AuthenticatedDetailsSeriesSeriesIdRouteImport } from './routes/_authenticated/_details/series.$seriesId'
+import { Route as AuthenticatedDetailsMediaItemDetailsMediaItemIdRouteImport } from './routes/_authenticated/_details/mediaItemDetails.$mediaItemId'
+import { Route as AuthenticatedDetailsGenreGenreIdRouteImport } from './routes/_authenticated/_details/genre.$genreId'
+import { Route as AuthenticatedDetailsCreatorCreatorIdRouteImport } from './routes/_authenticated/_details/creator.$creatorId'
 import { Route as AuthenticatedAppViewsViewIdRouteImport } from './routes/_authenticated/_app/views.$viewId'
+import { Route as AuthenticatedDetailsReportsReportIdDrilldownRouteImport } from './routes/_authenticated/_details/reports.$reportId.drilldown'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDetailsRoute = AuthenticatedDetailsRouteImport.update({
+  id: '/_details',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/_app',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
@@ -59,30 +69,6 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSeriesSeriesIdRoute =
-  AuthenticatedSeriesSeriesIdRouteImport.update({
-    id: '/series/$seriesId',
-    path: '/series/$seriesId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedMediaItemDetailsMediaItemIdRoute =
-  AuthenticatedMediaItemDetailsMediaItemIdRouteImport.update({
-    id: '/mediaItemDetails/$mediaItemId',
-    path: '/mediaItemDetails/$mediaItemId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedGenreGenreIdRoute =
-  AuthenticatedGenreGenreIdRouteImport.update({
-    id: '/genre/$genreId',
-    path: '/genre/$genreId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedCreatorCreatorIdRoute =
-  AuthenticatedCreatorCreatorIdRouteImport.update({
-    id: '/creator/$creatorId',
-    path: '/creator/$creatorId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedAppSettingsRoute =
   AuthenticatedAppSettingsRouteImport.update({
     id: '/settings',
@@ -99,11 +85,29 @@ const AuthenticatedAppLibraryRoute = AuthenticatedAppLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
-const AuthenticatedReportsReportIdDrilldownRoute =
-  AuthenticatedReportsReportIdDrilldownRouteImport.update({
-    id: '/reports/$reportId/drilldown',
-    path: '/reports/$reportId/drilldown',
-    getParentRoute: () => AuthenticatedRoute,
+const AuthenticatedDetailsSeriesSeriesIdRoute =
+  AuthenticatedDetailsSeriesSeriesIdRouteImport.update({
+    id: '/series/$seriesId',
+    path: '/series/$seriesId',
+    getParentRoute: () => AuthenticatedDetailsRoute,
+  } as any)
+const AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute =
+  AuthenticatedDetailsMediaItemDetailsMediaItemIdRouteImport.update({
+    id: '/mediaItemDetails/$mediaItemId',
+    path: '/mediaItemDetails/$mediaItemId',
+    getParentRoute: () => AuthenticatedDetailsRoute,
+  } as any)
+const AuthenticatedDetailsGenreGenreIdRoute =
+  AuthenticatedDetailsGenreGenreIdRouteImport.update({
+    id: '/genre/$genreId',
+    path: '/genre/$genreId',
+    getParentRoute: () => AuthenticatedDetailsRoute,
+  } as any)
+const AuthenticatedDetailsCreatorCreatorIdRoute =
+  AuthenticatedDetailsCreatorCreatorIdRouteImport.update({
+    id: '/creator/$creatorId',
+    path: '/creator/$creatorId',
+    getParentRoute: () => AuthenticatedDetailsRoute,
   } as any)
 const AuthenticatedAppViewsViewIdRoute =
   AuthenticatedAppViewsViewIdRouteImport.update({
@@ -111,57 +115,65 @@ const AuthenticatedAppViewsViewIdRoute =
     path: '/views/$viewId',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedDetailsReportsReportIdDrilldownRoute =
+  AuthenticatedDetailsReportsReportIdDrilldownRouteImport.update({
+    id: '/reports/$reportId/drilldown',
+    path: '/reports/$reportId/drilldown',
+    getParentRoute: () => AuthenticatedDetailsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedAppIndexRoute
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/login': typeof AuthLoginRoute
+  '/reset-password': typeof AuthResetPasswordRoute
   '/library': typeof AuthenticatedAppLibraryRoute
   '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
-  '/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
-  '/genre/$genreId': typeof AuthenticatedGenreGenreIdRoute
-  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
-  '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
-  '/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
+  '/creator/$creatorId': typeof AuthenticatedDetailsCreatorCreatorIdRoute
+  '/genre/$genreId': typeof AuthenticatedDetailsGenreGenreIdRoute
+  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute
+  '/series/$seriesId': typeof AuthenticatedDetailsSeriesSeriesIdRoute
+  '/reports/$reportId/drilldown': typeof AuthenticatedDetailsReportsReportIdDrilldownRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedAppIndexRoute
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
+  '/login': typeof AuthLoginRoute
+  '/reset-password': typeof AuthResetPasswordRoute
   '/library': typeof AuthenticatedAppLibraryRoute
   '/series': typeof AuthenticatedAppSeriesRoute
   '/settings': typeof AuthenticatedAppSettingsRoute
-  '/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
-  '/genre/$genreId': typeof AuthenticatedGenreGenreIdRoute
-  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
-  '/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
-  '/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
+  '/creator/$creatorId': typeof AuthenticatedDetailsCreatorCreatorIdRoute
+  '/genre/$genreId': typeof AuthenticatedDetailsGenreGenreIdRoute
+  '/mediaItemDetails/$mediaItemId': typeof AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute
+  '/series/$seriesId': typeof AuthenticatedDetailsSeriesSeriesIdRoute
+  '/reports/$reportId/drilldown': typeof AuthenticatedDetailsReportsReportIdDrilldownRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_auth': typeof AuthRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_authenticated/_app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/_details': typeof AuthenticatedDetailsRouteWithChildren
   '/_authenticated/_app/library': typeof AuthenticatedAppLibraryRoute
   '/_authenticated/_app/series': typeof AuthenticatedAppSeriesRoute
   '/_authenticated/_app/settings': typeof AuthenticatedAppSettingsRoute
-  '/_authenticated/creator/$creatorId': typeof AuthenticatedCreatorCreatorIdRoute
-  '/_authenticated/genre/$genreId': typeof AuthenticatedGenreGenreIdRoute
-  '/_authenticated/mediaItemDetails/$mediaItemId': typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
-  '/_authenticated/series/$seriesId': typeof AuthenticatedSeriesSeriesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/_app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/_app/views/$viewId': typeof AuthenticatedAppViewsViewIdRoute
-  '/_authenticated/reports/$reportId/drilldown': typeof AuthenticatedReportsReportIdDrilldownRoute
+  '/_authenticated/_details/creator/$creatorId': typeof AuthenticatedDetailsCreatorCreatorIdRoute
+  '/_authenticated/_details/genre/$genreId': typeof AuthenticatedDetailsGenreGenreIdRoute
+  '/_authenticated/_details/mediaItemDetails/$mediaItemId': typeof AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute
+  '/_authenticated/_details/series/$seriesId': typeof AuthenticatedDetailsSeriesSeriesIdRoute
+  '/_authenticated/_details/reports/$reportId/drilldown': typeof AuthenticatedDetailsReportsReportIdDrilldownRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,12 +185,12 @@ export interface FileRouteTypes {
     | '/library'
     | '/series'
     | '/settings'
+    | '/api/auth/$'
+    | '/views/$viewId'
     | '/creator/$creatorId'
     | '/genre/$genreId'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
-    | '/api/auth/$'
-    | '/views/$viewId'
     | '/reports/$reportId/drilldown'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -189,64 +201,43 @@ export interface FileRouteTypes {
     | '/library'
     | '/series'
     | '/settings'
+    | '/api/auth/$'
+    | '/views/$viewId'
     | '/creator/$creatorId'
     | '/genre/$genreId'
     | '/mediaItemDetails/$mediaItemId'
     | '/series/$seriesId'
-    | '/api/auth/$'
-    | '/views/$viewId'
     | '/reports/$reportId/drilldown'
   id:
     | '__root__'
+    | '/_auth'
     | '/_authenticated'
-    | '/forgot-password'
-    | '/login'
-    | '/reset-password'
+    | '/_auth/forgot-password'
+    | '/_auth/login'
+    | '/_auth/reset-password'
     | '/_authenticated/_app'
+    | '/_authenticated/_details'
     | '/_authenticated/_app/library'
     | '/_authenticated/_app/series'
     | '/_authenticated/_app/settings'
-    | '/_authenticated/creator/$creatorId'
-    | '/_authenticated/genre/$genreId'
-    | '/_authenticated/mediaItemDetails/$mediaItemId'
-    | '/_authenticated/series/$seriesId'
     | '/api/auth/$'
     | '/_authenticated/_app/'
     | '/_authenticated/_app/views/$viewId'
-    | '/_authenticated/reports/$reportId/drilldown'
+    | '/_authenticated/_details/creator/$creatorId'
+    | '/_authenticated/_details/genre/$genreId'
+    | '/_authenticated/_details/mediaItemDetails/$mediaItemId'
+    | '/_authenticated/_details/series/$seriesId'
+    | '/_authenticated/_details/reports/$reportId/drilldown'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthRoute: typeof AuthRouteWithChildren
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  ForgotPasswordRoute: typeof ForgotPasswordRoute
-  LoginRoute: typeof LoginRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -254,12 +245,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_details': {
+      id: '/_authenticated/_details'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedDetailsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/_app': {
       id: '/_authenticated/_app'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedAppRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/_app/': {
       id: '/_authenticated/_app/'
@@ -274,34 +300,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/series/$seriesId': {
-      id: '/_authenticated/series/$seriesId'
-      path: '/series/$seriesId'
-      fullPath: '/series/$seriesId'
-      preLoaderRoute: typeof AuthenticatedSeriesSeriesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/mediaItemDetails/$mediaItemId': {
-      id: '/_authenticated/mediaItemDetails/$mediaItemId'
-      path: '/mediaItemDetails/$mediaItemId'
-      fullPath: '/mediaItemDetails/$mediaItemId'
-      preLoaderRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/genre/$genreId': {
-      id: '/_authenticated/genre/$genreId'
-      path: '/genre/$genreId'
-      fullPath: '/genre/$genreId'
-      preLoaderRoute: typeof AuthenticatedGenreGenreIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/creator/$creatorId': {
-      id: '/_authenticated/creator/$creatorId'
-      path: '/creator/$creatorId'
-      fullPath: '/creator/$creatorId'
-      preLoaderRoute: typeof AuthenticatedCreatorCreatorIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_app/settings': {
       id: '/_authenticated/_app/settings'
@@ -324,12 +322,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppLibraryRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
-    '/_authenticated/reports/$reportId/drilldown': {
-      id: '/_authenticated/reports/$reportId/drilldown'
-      path: '/reports/$reportId/drilldown'
-      fullPath: '/reports/$reportId/drilldown'
-      preLoaderRoute: typeof AuthenticatedReportsReportIdDrilldownRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/_authenticated/_details/series/$seriesId': {
+      id: '/_authenticated/_details/series/$seriesId'
+      path: '/series/$seriesId'
+      fullPath: '/series/$seriesId'
+      preLoaderRoute: typeof AuthenticatedDetailsSeriesSeriesIdRouteImport
+      parentRoute: typeof AuthenticatedDetailsRoute
+    }
+    '/_authenticated/_details/mediaItemDetails/$mediaItemId': {
+      id: '/_authenticated/_details/mediaItemDetails/$mediaItemId'
+      path: '/mediaItemDetails/$mediaItemId'
+      fullPath: '/mediaItemDetails/$mediaItemId'
+      preLoaderRoute: typeof AuthenticatedDetailsMediaItemDetailsMediaItemIdRouteImport
+      parentRoute: typeof AuthenticatedDetailsRoute
+    }
+    '/_authenticated/_details/genre/$genreId': {
+      id: '/_authenticated/_details/genre/$genreId'
+      path: '/genre/$genreId'
+      fullPath: '/genre/$genreId'
+      preLoaderRoute: typeof AuthenticatedDetailsGenreGenreIdRouteImport
+      parentRoute: typeof AuthenticatedDetailsRoute
+    }
+    '/_authenticated/_details/creator/$creatorId': {
+      id: '/_authenticated/_details/creator/$creatorId'
+      path: '/creator/$creatorId'
+      fullPath: '/creator/$creatorId'
+      preLoaderRoute: typeof AuthenticatedDetailsCreatorCreatorIdRouteImport
+      parentRoute: typeof AuthenticatedDetailsRoute
     }
     '/_authenticated/_app/views/$viewId': {
       id: '/_authenticated/_app/views/$viewId'
@@ -338,8 +357,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppViewsViewIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/_details/reports/$reportId/drilldown': {
+      id: '/_authenticated/_details/reports/$reportId/drilldown'
+      path: '/reports/$reportId/drilldown'
+      fullPath: '/reports/$reportId/drilldown'
+      preLoaderRoute: typeof AuthenticatedDetailsReportsReportIdDrilldownRouteImport
+      parentRoute: typeof AuthenticatedDetailsRoute
+    }
   }
 }
+
+interface AuthRouteChildren {
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppLibraryRoute: typeof AuthenticatedAppLibraryRoute
@@ -360,24 +400,37 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
 const AuthenticatedAppRouteWithChildren =
   AuthenticatedAppRoute._addFileChildren(AuthenticatedAppRouteChildren)
 
+interface AuthenticatedDetailsRouteChildren {
+  AuthenticatedDetailsCreatorCreatorIdRoute: typeof AuthenticatedDetailsCreatorCreatorIdRoute
+  AuthenticatedDetailsGenreGenreIdRoute: typeof AuthenticatedDetailsGenreGenreIdRoute
+  AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute
+  AuthenticatedDetailsSeriesSeriesIdRoute: typeof AuthenticatedDetailsSeriesSeriesIdRoute
+  AuthenticatedDetailsReportsReportIdDrilldownRoute: typeof AuthenticatedDetailsReportsReportIdDrilldownRoute
+}
+
+const AuthenticatedDetailsRouteChildren: AuthenticatedDetailsRouteChildren = {
+  AuthenticatedDetailsCreatorCreatorIdRoute:
+    AuthenticatedDetailsCreatorCreatorIdRoute,
+  AuthenticatedDetailsGenreGenreIdRoute: AuthenticatedDetailsGenreGenreIdRoute,
+  AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute:
+    AuthenticatedDetailsMediaItemDetailsMediaItemIdRoute,
+  AuthenticatedDetailsSeriesSeriesIdRoute:
+    AuthenticatedDetailsSeriesSeriesIdRoute,
+  AuthenticatedDetailsReportsReportIdDrilldownRoute:
+    AuthenticatedDetailsReportsReportIdDrilldownRoute,
+}
+
+const AuthenticatedDetailsRouteWithChildren =
+  AuthenticatedDetailsRoute._addFileChildren(AuthenticatedDetailsRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRouteWithChildren
-  AuthenticatedCreatorCreatorIdRoute: typeof AuthenticatedCreatorCreatorIdRoute
-  AuthenticatedGenreGenreIdRoute: typeof AuthenticatedGenreGenreIdRoute
-  AuthenticatedMediaItemDetailsMediaItemIdRoute: typeof AuthenticatedMediaItemDetailsMediaItemIdRoute
-  AuthenticatedSeriesSeriesIdRoute: typeof AuthenticatedSeriesSeriesIdRoute
-  AuthenticatedReportsReportIdDrilldownRoute: typeof AuthenticatedReportsReportIdDrilldownRoute
+  AuthenticatedDetailsRoute: typeof AuthenticatedDetailsRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRouteWithChildren,
-  AuthenticatedCreatorCreatorIdRoute: AuthenticatedCreatorCreatorIdRoute,
-  AuthenticatedGenreGenreIdRoute: AuthenticatedGenreGenreIdRoute,
-  AuthenticatedMediaItemDetailsMediaItemIdRoute:
-    AuthenticatedMediaItemDetailsMediaItemIdRoute,
-  AuthenticatedSeriesSeriesIdRoute: AuthenticatedSeriesSeriesIdRoute,
-  AuthenticatedReportsReportIdDrilldownRoute:
-    AuthenticatedReportsReportIdDrilldownRoute,
+  AuthenticatedDetailsRoute: AuthenticatedDetailsRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -385,10 +438,8 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  AuthRoute: AuthRouteWithChildren,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  ForgotPasswordRoute: ForgotPasswordRoute,
-  LoginRoute: LoginRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

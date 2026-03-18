@@ -4,18 +4,18 @@ import { useTranslation } from "react-i18next";
 
 import { DeleteButton } from "#/components/common/DeleteButton";
 import { PageHeader } from "#/components/common/PageHeader";
-import { CreatorInfo } from "#/components/creatorDetails/CreatorInfo";
-import { CreatorItems } from "#/components/creatorDetails/CreatorItems";
-import { deleteCreator, getCreatorDetails } from "#/server/creators/creators";
+import { SeriesInfo } from "#/components/seriesDetails/SeriesInfo";
+import { SeriesItems } from "#/components/seriesDetails/SeriesItems";
+import { deleteSeries, getSeriesDetails } from "#/server/series/series";
 
-export const Route = createFileRoute("/_authenticated/creator/$creatorId")({
+export const Route = createFileRoute("/_authenticated/_details/series/$seriesId")({
 	loader: ({ params }) =>
-		getCreatorDetails({ data: { id: parseInt(params.creatorId, 10) } }),
-	component: CreatorPage,
+		getSeriesDetails({ data: { id: parseInt(params.seriesId, 10) } }),
+	component: SeriesPage,
 });
 
-function CreatorPage() {
-	const creatorDetails = Route.useLoaderData();
+function SeriesPage() {
+	const seriesDetails = Route.useLoaderData();
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -23,7 +23,7 @@ function CreatorPage() {
 	async function handleDelete() {
 		setIsDeleting(true);
 		try {
-			await deleteCreator({ data: { creatorId: creatorDetails.id } });
+			await deleteSeries({ data: { seriesId: seriesDetails.id } });
 			await navigate({ to: "/" });
 		} finally {
 			setIsDeleting(false);
@@ -36,15 +36,15 @@ function CreatorPage() {
 				shouldShowBackButton
 				right={
 					<DeleteButton onClick={handleDelete} disabled={isDeleting}>
-						{t("creatorDetails.delete")}
+						{t("seriesDetails.delete")}
 					</DeleteButton>
 				}
 			/>
 
 			<div className="px-6 py-8 max-w-5xl mx-auto">
-				<CreatorInfo creatorDetails={creatorDetails} />
-				<CreatorItems items={creatorDetails.items} />
+				<SeriesInfo seriesDetails={seriesDetails} />
+				<SeriesItems items={seriesDetails.items} />
 			</div>
 		</div>
-	);
+	)
 }

@@ -8,7 +8,7 @@ import { History } from "#/components/mediaItemDetails/history/History";
 import { Metadata } from "#/components/mediaItemDetails/metadata/Metadata";
 import { getMediaItemDetails, removeFromLibrary } from "#/server/mediaItems/mediaItem";
 
-export const Route = createFileRoute("/_authenticated/mediaItemDetails/$mediaItemId")({
+export const Route = createFileRoute("/_authenticated/_details/mediaItemDetails/$mediaItemId")({
 	loader: ({ params }) =>
 		getMediaItemDetails({ data: { id: parseInt(params.mediaItemId, 10) } }),
 	component: EntryDetailPage,

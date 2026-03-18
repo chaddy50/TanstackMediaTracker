@@ -6,7 +6,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/forgot-password")({
+export const Route = createFileRoute("/_auth/forgot-password")({
 	component: ForgotPasswordPage,
 });
 
@@ -25,7 +25,7 @@ function ForgotPasswordPage() {
 			await authClient.requestPasswordReset({
 				email,
 				redirectTo: "/reset-password",
-			});
+			})
 		} finally {
 			// Always show the same message to avoid email enumeration
 			setIsSubmitted(true);
@@ -90,5 +90,5 @@ function ForgotPasswordPage() {
 				)}
 			</div>
 		</div>
-	);
+	)
 }
