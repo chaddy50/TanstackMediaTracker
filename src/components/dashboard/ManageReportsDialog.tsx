@@ -10,12 +10,16 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { MediaItemType } from "#/lib/enums";
+import type {
+	CustomReport,
+	DashboardReportType,
+	ReportMonthOption,
+} from "#/server/reports/types";
 import {
 	createCustomReport,
 	deleteCustomReport,
 	updateCustomReport,
-} from "#/server/reports";
-import type { CustomReport, DashboardReportType, ReportMonthOption } from "#/server/reports/types";
+} from "@/server/reports/reportManager";
 import { CreateEditReportForm } from "./CreateEditReportForm";
 
 type FormState =

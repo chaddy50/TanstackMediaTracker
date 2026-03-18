@@ -1,18 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
-import { useTranslation } from "react-i18next";
-
-import { PageHeader } from "#/components/common/PageHeader";
 import { MediaCard } from "#/components/common/MediaCard";
-import { getDrillDownItems } from "#/server/reports";
+import { PageHeader } from "#/components/common/PageHeader";
+import { getDrillDownItems } from "@/server/reports/reportManager";
+import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
 const searchSchema = z.object({
 	key: z.string(),
 });
 
-export const Route = createFileRoute("/_authenticated/reports/$reportId/drilldown")({
+export const Route = createFileRoute(
+	"/_authenticated/reports/$reportId/drilldown",
+)({
 	validateSearch: searchSchema,
-	loaderDeps: ({ search }: { search: { key: string } }) => ({ key: search.key }),
+	loaderDeps: ({ search }: { search: { key: string } }) => ({
+		key: search.key,
+	}),
 	loader: ({ params, deps }) =>
 		getDrillDownItems({
 			data: { reportId: parseInt(params.reportId, 10), key: deps.key },

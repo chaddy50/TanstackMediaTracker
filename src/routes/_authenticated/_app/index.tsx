@@ -5,7 +5,7 @@ import { PageHeader } from "#/components/common/PageHeader";
 import { DashboardReport } from "#/components/dashboard/DashboardReport";
 import { DashboardSection } from "#/components/dashboard/DashboardSection";
 import { getDashboardData } from "#/server/dashboard";
-import { getDashboardReport } from "#/server/reports";
+import { getDashboardReport } from "@/server/reports/reportManager";
 
 export const Route = createFileRoute("/_authenticated/_app/")({
 	loader: () => Promise.all([getDashboardData(), getDashboardReport()]),

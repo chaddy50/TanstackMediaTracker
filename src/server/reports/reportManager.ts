@@ -6,7 +6,7 @@ import { db } from "#/db/index";
 import { customReports, userSettings } from "#/db/schema";
 import { MediaItemType } from "#/lib/enums";
 import { getLoggedInUser } from "#/lib/session";
-import { getDrillDownItems } from "./drilldown.server";
+import { getDrillDownItems } from "./drilldown/drilldown";
 import { fetchAverageScoreByGenre } from "./reportTypes/averageScoreByGenre.server";
 import { fetchItemsCompletedByGenre } from "./reportTypes/completedByGenre.server";
 import { fetchItemsCompletedByMonth } from "./reportTypes/itemsCompletedByMonth.server";

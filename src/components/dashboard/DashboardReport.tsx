@@ -27,16 +27,16 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { MediaItemType } from "#/lib/enums";
-import {
-	getDashboardReport,
-	setActiveCustomReport,
-} from "#/server/reports";
 import type {
 	CustomReport,
 	DashboardReport as DashboardReportData,
 	GenreDataPoint,
 	ReportDataPoint,
 } from "#/server/reports/types";
+import {
+	getDashboardReport,
+	setActiveCustomReport,
+} from "@/server/reports/reportManager";
 import { ManageReportsDialog } from "./ManageReportsDialog";
 
 const PIE_COLORS = [
@@ -151,7 +151,9 @@ export function DashboardReport({ initialReport }: Props) {
 				setData([]);
 			}
 		} else if (activeReport) {
-			const updatedVersion = updatedReports.find((r) => r.id === activeReport.id);
+			const updatedVersion = updatedReports.find(
+				(r) => r.id === activeReport.id,
+			);
 			const wasEdited =
 				updatedVersion &&
 				JSON.stringify(updatedVersion) !== JSON.stringify(activeReport);
@@ -279,7 +281,9 @@ export function DashboardReport({ initialReport }: Props) {
 									return null;
 								}
 								return (
-									<div style={{ ...TOOLTIP_CONTENT_STYLE, padding: "6px 10px" }}>
+									<div
+										style={{ ...TOOLTIP_CONTENT_STYLE, padding: "6px 10px" }}
+									>
 										<p style={{ marginBottom: 2 }}>{label}</p>
 										<p>
 											{t("dashboard.report.avgScore")}:{" "}
@@ -377,7 +381,11 @@ export function DashboardReport({ initialReport }: Props) {
 				<p className="text-sm text-muted-foreground">
 					{t("dashboard.report.noReports")}
 				</p>
-				<Button variant="outline" size="sm" onClick={() => setIsManageOpen(true)}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setIsManageOpen(true)}
+				>
 					{t("dashboard.report.createFirstReport")}
 				</Button>
 				<ManageReportsDialog
