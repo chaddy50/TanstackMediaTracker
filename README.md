@@ -77,6 +77,12 @@ You can filter the search results based on the type of media that you want to ad
 
 ![Add Item](./screenshots/add_item.png)
 
+## Mobile
+The app has full mobile support, and can be installed locally on mobile devices as a PWA.
+![Mobile Dashboard](./screenshots/dashboard_mobile.png)
+![Mobile Library](./screenshots/library_mobile.png)
+![Mobile Item Details](./screenshots/item_details_mobile.png)
+![Mobile Custom Views](./screenshots/custom_views_mobile.png)
 # Technical Details
 This app was built using [Tanstack Start](https://tanstack.com/start/latest).
 
