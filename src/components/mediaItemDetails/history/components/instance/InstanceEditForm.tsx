@@ -1,9 +1,12 @@
 import { DeleteButton } from "#/components/common/DeleteButton";
+import { ConsumptionEditor } from "#/components/mediaItemDetails/history/components/instance/ConsumptionEditor";
+import { getDefaultMethod } from "#/components/mediaItemDetails/history/components/instance/consumptionUtils";
 import { SeasonReviewRow } from "#/components/mediaItemDetails/history/components/instance/SeasonReviewRow";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import type { FictionRating, SeasonReview } from "#/db/schema";
+import type { ConsumptionInfo, FictionRating, SeasonReview } from "#/db/schema";
+import { GameControlMethod, MediaItemType } from "#/server/enums";
 import {
 	deleteInstance,
 	type MediaItemDetails,
@@ -16,7 +19,7 @@ import { useTranslation } from "react-i18next";
 interface InstanceEditFormProps {
 	instance?: MediaItemDetails["instances"][number];
 	mediaItemId: number;
-	isTvShow: boolean;
+	mediaItemType: MediaItemType;
 	totalSeasons?: number;
 	onSave: () => void;
 	onCancel: () => void;
@@ -26,10 +29,28 @@ function emptySeasonReview(season: number): SeasonReview {
 	return { season, startedAt: "", completedAt: "", rating: 0, reviewText: "" };
 }
 
+// ---- Private helpers
+
+function getInitialConsumptionInfo(
+	mediaItemType: MediaItemType,
+	instance: InstanceEditFormProps["instance"],
+): ConsumptionInfo | null {
+	if (mediaItemType === MediaItemType.PODCAST) {
+		return null;
+	}
+	if (instance?.consumptionInfo) {
+		return instance.consumptionInfo;
+	}
+	if (mediaItemType === MediaItemType.VIDEO_GAME) {
+		return { method: getDefaultMethod(mediaItemType), controlMethod: GameControlMethod.CONTROLLER };
+	}
+	return { method: getDefaultMethod(mediaItemType) };
+}
+
 export function InstanceEditForm({
 	instance,
 	mediaItemId,
-	isTvShow,
+	mediaItemType,
 	totalSeasons,
 	onSave,
 	onCancel,
@@ -45,6 +66,8 @@ export function InstanceEditForm({
 			(instance === undefined ? new Date().toISOString().split("T")[0] : ""),
 	);
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
+	const [consumptionInfo, setConsumptionInfo] =
+		useState<ConsumptionInfo | null>(getInitialConsumptionInfo(mediaItemType, instance));
 	const [seasonReviews, setSeasonReviews] = useState<SeasonReview[]>(
 		instance?.seasonReviews ?? [],
 	);
@@ -133,6 +156,7 @@ export function InstanceEditForm({
 					startedAt: startedAt || undefined,
 					completedAt: completedAt || undefined,
 					seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
+					consumptionInfo: consumptionInfo ?? undefined,
 				},
 			});
 			onSave();
@@ -154,6 +178,7 @@ export function InstanceEditForm({
 						startedAt: startedAt || undefined,
 						completedAt: completedAt || undefined,
 						seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
+						consumptionInfo: consumptionInfo ?? undefined,
 					},
 				});
 			} finally {
@@ -212,6 +237,12 @@ export function InstanceEditForm({
 				</p>
 			)}
 
+			<ConsumptionEditor
+				mediaItemType={mediaItemType}
+				value={consumptionInfo}
+				onChange={setConsumptionInfo}
+			/>
+
 			<RatingEditor
 				rating={rating}
 				fictionRating={fictionRating}
@@ -236,7 +267,7 @@ export function InstanceEditForm({
 			</div>
 
 			{/* Season Reviews */}
-			{isTvShow && (
+			{mediaItemType === MediaItemType.TV_SHOW && (
 				<div className="flex flex-col gap-3">
 					<div className="flex items-center justify-between">
 						<span className="text-sm font-medium">

@@ -232,6 +232,13 @@
       "when": 1773604755332,
       "tag": "0032_icy_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1773877068820,
+      "tag": "0033_lame_viper",
+      "breakpoints": true
     }
   ]
 }

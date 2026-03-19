@@ -15,7 +15,13 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { MediaItemStatus, MediaItemType, NextItemStatus, PurchaseStatus } from "#/server/enums";
+import {
+	type GameControlMethod,
+	MediaItemStatus,
+	MediaItemType,
+	NextItemStatus,
+	PurchaseStatus,
+} from "#/server/enums";
 
 // --- Enums ---
 
@@ -147,6 +153,11 @@ export type SeasonReview = {
 	rating: number;
 	reviewText: string;
 	fictionRating?: FictionRating;
+};
+
+export type ConsumptionInfo = {
+	method: string;
+	controlMethod?: GameControlMethod;
 };
 
 // --- Better-auth tables ---
@@ -433,6 +444,7 @@ export const mediaItemInstances = pgTable(
 		rating: decimal("rating", { precision: 3, scale: 1 }),
 		fictionRating: jsonb("fiction_rating").$type<FictionRating>(),
 		seasonReviews: jsonb("season_reviews").$type<SeasonReview[]>(),
+		consumptionInfo: jsonb("consumption_info").$type<ConsumptionInfo>(),
 		reviewText: text("review_text"),
 		startedAt: date("started_at"),
 		completedAt: date("completed_at"), // null = still in progress

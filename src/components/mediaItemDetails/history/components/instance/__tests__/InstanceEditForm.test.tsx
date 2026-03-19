@@ -1,4 +1,5 @@
 import { InstanceEditForm } from "#/components/mediaItemDetails/history/components/instance/InstanceEditForm";
+import { MediaItemType } from "#/server/enums";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -13,7 +14,7 @@ vi.mock("#/server/mediaItems/mediaItem", () => ({
 
 const baseProps = {
 	mediaItemId: 1,
-	isTvShow: false,
+	mediaItemType: MediaItemType.BOOK,
 	onSave: vi.fn(),
 	onCancel: vi.fn(),
 };
@@ -52,11 +53,11 @@ describe("InstanceEditForm", () => {
 		expect(saveInstance).toHaveBeenCalled();
 	});
 
-	it("shows season reviews section only when isTvShow is true", () => {
-		const { rerender } = render(<InstanceEditForm {...baseProps} isTvShow={false} />);
+	it("shows season reviews section only when mediaItemType is TV_SHOW", () => {
+		const { rerender } = render(<InstanceEditForm {...baseProps} mediaItemType={MediaItemType.BOOK} />);
 		expect(screen.queryByText("mediaItemDetails.seasonReviews")).not.toBeInTheDocument();
 
-		rerender(<InstanceEditForm {...baseProps} isTvShow={true} />);
+		rerender(<InstanceEditForm {...baseProps} mediaItemType={MediaItemType.TV_SHOW} />);
 		expect(screen.getByText("mediaItemDetails.seasonReviews")).toBeInTheDocument();
 	});
 
@@ -66,6 +67,7 @@ describe("InstanceEditForm", () => {
 			rating: 0,
 			fictionRating: null,
 			seasonReviews: null,
+			consumptionInfo: null,
 			reviewText: null,
 			startedAt: null,
 			completedAt: null,

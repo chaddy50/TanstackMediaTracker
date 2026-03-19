@@ -30,17 +30,18 @@ export function InstanceList(props: InstanceListProps) {
 		);
 	}
 
-	const isTvShow = mediaItemDetails.type === MediaItemType.TV_SHOW;
-	const totalSeasons = isTvShow
-		? (mediaItemDetails.metadata as { seasons?: number })?.seasons
-		: undefined;
+	const mediaItemType = mediaItemDetails.type;
+	const totalSeasons =
+		mediaItemType === MediaItemType.TV_SHOW
+			? (mediaItemDetails.metadata as { seasons?: number })?.seasons
+			: undefined;
 
 	return (
 		<div className="flex flex-col gap-3">
 			{idBeingEdited === "new" && (
 				<InstanceEditForm
 					mediaItemId={mediaItemDetails.id}
-					isTvShow={isTvShow}
+					mediaItemType={mediaItemType}
 					totalSeasons={totalSeasons}
 					onSave={onInstanceSaved}
 					onCancel={() => setIdBeingEdited(null)}
@@ -53,7 +54,7 @@ export function InstanceList(props: InstanceListProps) {
 						key={instance.id}
 						instance={instance}
 						mediaItemId={mediaItemDetails.id}
-						isTvShow={isTvShow}
+						mediaItemType={mediaItemType}
 						totalSeasons={totalSeasons}
 						onSave={onInstanceSaved}
 						onCancel={() => setIdBeingEdited(null)}

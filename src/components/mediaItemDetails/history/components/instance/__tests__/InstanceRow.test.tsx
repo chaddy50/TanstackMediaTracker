@@ -2,7 +2,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { InstanceRow } from "#/components/mediaItemDetails/history/components/instance/InstanceRow";
+import {
+	getConsumptionLabel,
+	InstanceRow,
+} from "#/components/mediaItemDetails/history/components/instance/InstanceRow";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
 
 vi.mock("react-i18next", () => ({
@@ -16,6 +19,7 @@ const baseInstance: Instance = {
 	rating: 0,
 	fictionRating: null,
 	seasonReviews: null,
+	consumptionInfo: null,
 	reviewText: null,
 	startedAt: null,
 	completedAt: null,
@@ -33,7 +37,25 @@ function renderInstanceRow(instanceOverrides: Partial<Instance> = {}) {
 	);
 }
 
+const t = (key: string) => key;
+
 afterEach(cleanup);
+
+describe("getConsumptionLabel", () => {
+	it("returns null when consumptionInfo is null", () => {
+		expect(getConsumptionLabel(null, t)).toBeNull();
+	});
+
+	it("returns the translated method for method-based consumption", () => {
+		expect(getConsumptionLabel({ method: "ebook" }, t)).toBe("consumption.method.ebook");
+	});
+
+	it("returns translated platform and translated control method joined with ·", () => {
+		expect(
+			getConsumptionLabel({ method: "ps5", controlMethod: "controller" }, t),
+		).toBe("consumption.gamePlatform.ps5 · consumption.controlMethod.controller");
+	});
+});
 
 describe("InstanceRow", () => {
 	it("does not show season reviews when seasonReviews is null", () => {

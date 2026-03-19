@@ -398,4 +398,33 @@ export const en = {
 		noGenre: "No genre",
 		createNewGenre: "Create new genre...",
 	},
+	consumption: {
+		label: "Consumed via",
+		method: {
+			hardcover: "Hardcover",
+			paperback: "Paperback",
+			ebook: "E-book",
+			audiobook: "Audiobook",
+			theater: "Theater",
+			streaming: "Streaming",
+			local_copy: "Local Copy",
+		},
+		platform: "Platform",
+		gamePlatform: {
+			pc: "PC",
+			ps5: "PS5",
+			ps4: "PS4",
+			xbox_series_x: "Xbox Series X",
+			xbox_one: "Xbox One",
+			nintendo_switch_2: "Nintendo Switch 2",
+			nintendo_switch: "Nintendo Switch",
+		},
+		controlMethod: {
+			label: "Control Method",
+			mouse_and_keyboard: "Mouse & Keyboard",
+			controller: "Controller",
+			wheel_and_pedals: "Wheel & Pedals",
+			virtual_reality: "Virtual Reality",
+		},
+	},
 } as const;

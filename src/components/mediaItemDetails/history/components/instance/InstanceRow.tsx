@@ -1,10 +1,22 @@
+import { useTranslation } from "react-i18next";
 import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
 import { Button } from "#/components/ui/button";
-import { formatDateRange } from "#/server/utils";
+import type { ConsumptionInfo } from "#/db/schema";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
+import { formatDateRange } from "#/server/utils";
 import { FictionRatingComments } from "@/components/common/rating/fictionRating/FictionRatingComments";
 import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";
-import { useTranslation } from "react-i18next";
+
+export function getConsumptionLabel(
+	info: ConsumptionInfo | null,
+	t: (key: string) => string,
+): string | null {
+	if (!info) return null;
+	if (info.controlMethod) {
+		return `${t(`consumption.gamePlatform.${info.method}`)} · ${t(`consumption.controlMethod.${info.controlMethod}`)}`;
+	}
+	return t(`consumption.method.${info.method}`);
+}
 
 export function InstanceRow({
 	index,
@@ -18,6 +30,11 @@ export function InstanceRow({
 	const { t } = useTranslation();
 	const dateRange = formatDateRange(instance.startedAt, instance.completedAt);
 
+	const consumptionLabel = getConsumptionLabel(
+		instance.consumptionInfo,
+		t as (key: string) => string,
+	);
+
 	return (
 		<div className="flex items-start justify-between gap-4 p-4 rounded-lg border border-border bg-card">
 			<div className="flex flex-col gap-1.5 min-w-0">
@@ -27,6 +44,11 @@ export function InstanceRow({
 					</span>
 					{dateRange && (
 						<span className="text-muted-foreground text-sm">{dateRange}</span>
+					)}
+					{consumptionLabel && (
+						<span className="text-muted-foreground text-sm">
+							{consumptionLabel}
+						</span>
 					)}
 					<RatingStars rating={instance.rating} />
 				</div>

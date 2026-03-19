@@ -14,6 +14,7 @@ import {
 	mediaTypeEnum,
 	series,
 	tags,
+	type ConsumptionInfo,
 } from "#/db/schema";
 import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/server/enums";
 import { transitionReleasedItems } from "./mediaItemList.server";
@@ -100,6 +101,7 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				rating: mediaItemInstances.rating,
 				fictionRating: mediaItemInstances.fictionRating,
 				seasonReviews: mediaItemInstances.seasonReviews,
+				consumptionInfo: mediaItemInstances.consumptionInfo,
 				reviewText: mediaItemInstances.reviewText,
 				startedAt: mediaItemInstances.startedAt,
 				completedAt: mediaItemInstances.completedAt,
@@ -221,6 +223,9 @@ export const saveInstance = createServerFn({ method: "POST" })
 					}),
 				)
 				.optional(),
+			consumptionInfo: z
+				.object({ method: z.string(), controlMethod: z.string().optional() })
+				.optional(),
 		}),
 	)
 	.handler(
@@ -234,6 +239,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 				startedAt,
 				completedAt,
 				seasonReviews,
+				consumptionInfo,
 			},
 		}) => {
 			const user = await getLoggedInUser();
@@ -241,6 +247,7 @@ export const saveInstance = createServerFn({ method: "POST" })
 				rating: rating ?? null,
 				fictionRating: fictionRating ?? null,
 				seasonReviews: seasonReviews ?? null,
+				consumptionInfo: (consumptionInfo ?? null) as ConsumptionInfo | null,
 				reviewText: reviewText || null,
 				startedAt: startedAt || null,
 				completedAt: completedAt || null,
