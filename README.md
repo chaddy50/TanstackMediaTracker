@@ -1,265 +1,128 @@
-Welcome to your new TanStack Start app! 
+# What does this app do?
+This app is a private, self-hosted way to track your media consumption.
 
-# Getting Started
+Think Goodreads, but without the social aspects, and with support for movies, TV shows, video games, and podcasts in addition to books.
 
-To run this application:
-
-```bash
-npm install
-npm run dev
-```
-
-# Building For Production
-
-To build this application for production:
-
-```bash
-npm run build
-```
-
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
-npm run test
-```
-
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## T3Env
-
-- You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
-
-### Usage
-
-```ts
-import { env } from "#/env";
-
-console.log(env.VITE_APP_TITLE);
-```
-
-
-
-
-
-## Setting up Better Auth
-
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   npx -y @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-npx -y @better-auth/cli migrate
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+# Features
+## Dashboard
+A dashboard view shows you:
+- What you're currently playing/reading/watching/listening to
+- What's next up based on what's currently in progress and what you've finished recently
+- A quick glance into things you've finished recently
+- A configurable report about your media consumption
+
+![Dashboard View](./screenshots/dashboard.png)
+## Library
+A library view lets you browse all items currently in your library.
+
+You can search the library to find specific items, and you can filter and sort it however you'd like.
+
+![Library View](./screenshots/library.png)
+
+## Series
+A series view lets you browse all series in your library.
+
+It can also be filtered and sorted.
+
+![Series View](./screenshots/series_view.png)
+
+## Custom Views
+Custom views let you create filtered and sorted views of your library that you can access quickly from the sidebar.
+
+These can show either individual items:
+![Item Custom View](./screenshots/item_custom_view.png)
+
+or series:
+![Series Custom View](./screenshots/series_custom_view.png)
+## Item Details
+Clicking into the card for an item in your library takes you to a detailed page that shows all of the metadata for that item.
+
+This includes links out to the item's series (if it's in a series), the item's creator (author, director, etc.), and the item's genre.
+
+All of the metadata shown on this screen is pulled from one of the APIs in the [External APIs](#external-apis) section.
+<br>
+It is also user-editable.
+
+![Item Details](./screenshots/item_details.png)
+
+You can track multiple reads/watches/listens of an item by adding a history entry.
+<br>The entries also allow you to track things like:
+- When you started and finished the item
+- How you consumed the item
+- A rating for this read/watch/listen
+- What your thoughts on the item were
+
+![History Entry](./screenshots/history_entry.png)
+
+TV shows let you track and review each season of the show individually.
+<br>
+Those ratings will then be averaged up to the show overall once you've completed every season.
+![TV Show Season Reviews](./screenshots/tv_show_season_reviews.png)
+
+## Series Details
+Clicking into a series from a [series view](#series) or from the link in an [item's details](#item-details) will take you to a screen with details about that specific series.
+
+It will show you all items in that series, in order.
+<br>
+The order will be based on either series number (books only) or release date (everything else).
+
+![Series Details](./screenshots/series_details.png)
+
+Similar views exist for creators (authors, directors, etc.) and genres.
+
+## Adding Items
+Adding new items will search the APIs listed in the [External APIs](#external-apis) section for an item that matches your search term.
+
+You can filter the search results based on the type of media that you want to add.
+
+![Add Item](./screenshots/add_item.png)
+
+# Technical Details
+This app was built using [Tanstack Start](https://tanstack.com/start/latest).
+
+## Libraries Used
+[PostgreSQL](https://www.postgresql.org/) for the database.
+<br>
+[Drizzle ORM](https://orm.drizzle.team/docs/overview) to query the database from TypeScript.
+<br>
+[Tailwind CSS](https://tailwindcss.com/) for styling.
+<br>
+[Zod](https://zod.dev/) for validating inputs to server functions.
+<br>
+[Shadcn](https://ui.shadcn.com/) for building block UI components.
+<br>
+[Recharts](https://recharts.github.io/) for displaying graphs and charts.
+<br>
+[Lucide React](https://lucide.dev/guide/packages/lucide-react) for icons.
+<br>
+[Better Auth](https://www.better-auth.com) for user auth.
+<br>
+[Vitest](https://vitest.dev/) for automated testing.
+<br>
+[Biome](https://biomejs.dev/) for linting and formatting.
+<br>
+[dnd kit](dndkit.com/overview) for drag-and-drop functionality.
+<br>
+[dotenv](https://www.npmjs.com/package/dotenv) for reading environment variables.
+<br>
+[T3 Env](https://env.t3.gg/) for type-safe environment variables.
+<br>
+[i18next](https://www.i18next.com/) for string internationalization.
+
+## External APIs
+[Hardcover](https://docs.hardcover.app/api/getting-started/) for books.
+<br>
+[IGDB](https://api-docs.igdb.com/#getting-started) for games.
+<br>
+[TMDB](https://developer.themoviedb.org/docs/getting-started) for movies and TV shows.
+<br>
+[iTunes](https://performance-partners.apple.com/search-api) for podcasts.
+
+# How can you install and use this app?
+This app is intended to be self-hosted on a server.
+
+There's an example docker-compose file included that you can use to get started.
+
+You'll also need to create a .env file and fill out the necessary variables in there.
+<br>
+.env.example lists out all of the variables and has documentation on where to get the various API keys needed.
