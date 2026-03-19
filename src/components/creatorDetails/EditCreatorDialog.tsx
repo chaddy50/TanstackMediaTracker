@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DialogActions } from "#/components/common/DialogActions";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -84,19 +85,13 @@ export function EditCreatorDialog({ creatorDetails }: EditCreatorDialogProps) {
 
 					{error && <p className="text-sm text-destructive">{error}</p>}
 
-					<div className="flex gap-2 pt-2">
-						<Button size="sm" onClick={handleSave} disabled={isSaving || name.trim() === ""}>
-							{t("mediaItemDetails.save")}
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setIsOpen(false)}
-							disabled={isSaving}
-						>
-							{t("mediaItemDetails.cancel")}
-						</Button>
-					</div>
+					<DialogActions
+						onSave={handleSave}
+						onCancel={() => setIsOpen(false)}
+						isPending={isSaving}
+						isSaveDisabled={name.trim() === ""}
+						className="pt-2"
+					/>
 				</DialogContent>
 			</Dialog>
 		</>

@@ -1,4 +1,4 @@
-import { Button } from "#/components/ui/button";
+import { DialogActions } from "#/components/common/DialogActions";
 import { DeleteButton } from "#/components/common/DeleteButton";
 import { useTranslation } from "react-i18next";
 
@@ -33,16 +33,13 @@ export function FilterAndSortActions({
 					</DeleteButton>
 				)}
 			</div>
-			<div className="flex gap-2">
-				<Button variant="outline" onClick={onCancel} disabled={isPending}>
-					{t("mediaItemDetails.cancel")}
-				</Button>
-				<Button onClick={onSubmit} disabled={isPending || isSubmitDisabled}>
-					{isSubmitting
-						? t("views.form.saving")
-						: (submitLabel ?? t("mediaItemDetails.save"))}
-				</Button>
-			</div>
+			<DialogActions
+				onSave={onSubmit}
+				saveLabel={isSubmitting ? t("views.form.saving") : submitLabel}
+				onCancel={onCancel}
+				isPending={isPending}
+				isSaveDisabled={isSubmitDisabled}
+			/>
 		</div>
 	);
 }

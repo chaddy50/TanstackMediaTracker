@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "#/components/ui/button";
+import { DialogActions } from "#/components/common/DialogActions";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { MultiSelectFilter } from "#/components/ui/multi-select-filter";
@@ -213,14 +213,13 @@ export function CreateEditReportForm({ initial, onSave, onCancel }: Props) {
 				</Select>
 			</div>
 
-			<div className="flex justify-end gap-2 pt-1">
-				<Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
-					{t("common.cancel")}
-				</Button>
-				<Button onClick={handleSubmit} disabled={isSubmitting || !name.trim()}>
-					{t("common.save")}
-				</Button>
-			</div>
+			<DialogActions
+				onSave={handleSubmit}
+				onCancel={onCancel}
+				isPending={isSubmitting}
+				isSaveDisabled={!name.trim()}
+				className="pt-2"
+			/>
 		</div>
 	);
 }

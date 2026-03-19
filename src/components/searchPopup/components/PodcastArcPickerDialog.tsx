@@ -1,3 +1,4 @@
+import { DialogActions } from "#/components/common/DialogActions";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -465,27 +466,19 @@ export function PodcastArcPickerDialog(props: PodcastArcPickerDialogProps) {
 						<p className="text-sm text-destructive">{submitError}</p>
 					)}
 
-					<div className="flex gap-2">
-						<Button
-							size="sm"
-							onClick={handleSubmit}
-							disabled={isSubmitDisabled}
-						>
-							{isSubmitting
+					<DialogActions
+						onSave={handleSubmit}
+						saveLabel={
+							isSubmitting
 								? t("search.adding")
 								: isEditMode
 									? t("mediaItemDetails.save")
-									: t("search.addToLibrary")}
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={onClose}
-							disabled={isSubmitting}
-						>
-							{t("mediaItemDetails.cancel")}
-						</Button>
-					</div>
+									: t("search.addToLibrary")
+						}
+						onCancel={onClose}
+						isPending={isSubmitting}
+						isSaveDisabled={isSubmitDisabled}
+					/>
 				</div>
 			</DialogContent>
 		</Dialog>

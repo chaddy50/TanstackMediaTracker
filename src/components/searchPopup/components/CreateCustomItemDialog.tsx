@@ -1,3 +1,4 @@
+import { DialogActions } from "#/components/common/DialogActions";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -188,23 +189,14 @@ export function CreateCustomItemDialog({
 
 				{error && <p className="text-sm text-destructive">{error}</p>}
 
-				<div className="flex gap-2 pt-2">
-					<Button
-						size="sm"
-						onClick={handleCreate}
-						disabled={shouldSubmitBeDisabled}
-					>
-						{isCreating ? t("search.creating") : t("search.createCustomTitle")}
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={onClose}
-						disabled={isCreating}
-					>
-						{t("mediaItemDetails.cancel")}
-					</Button>
-				</div>
+				<DialogActions
+					onSave={handleCreate}
+					saveLabel={isCreating ? t("search.creating") : t("search.createCustomTitle")}
+					onCancel={onClose}
+					isPending={isCreating}
+					isSaveDisabled={shouldSubmitBeDisabled}
+					className="pt-2"
+				/>
 			</DialogContent>
 		</Dialog>
 	);
