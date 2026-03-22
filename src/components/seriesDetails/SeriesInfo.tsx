@@ -14,7 +14,6 @@ import {
 	updateNextItemStatus,
 	updateSeriesStatus,
 } from "#/server/series/series";
-import { shouldSeriesStatusBeLocked } from "#/server/series/seriesStatus";
 import { formatDate } from "#/server/utils";
 import { ExpandableTextBlock } from "../common/ExpandableTextBlock";
 import { RatingStars } from "../common/rating/ratingStars/RatingStars";
@@ -29,10 +28,6 @@ interface SeriesInfoProps {
 export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 	const router = useRouter();
 	const { t } = useTranslation();
-
-	const isStatusDerived = shouldSeriesStatusBeLocked(
-		seriesDetails.items.map((item) => item.status),
-	);
 
 	const hasUserCompletedAllItems = seriesDetails.items.every(
 		(item) =>
@@ -129,8 +124,7 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 				<Select
 					value={seriesDetails.status}
 					onValueChange={handleStatusChange}
-					disabled={isStatusDerived}
-				>
+					>
 					<SelectTrigger className="w-full sm:w-56">
 						<SelectValue />
 					</SelectTrigger>

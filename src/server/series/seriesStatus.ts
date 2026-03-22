@@ -47,25 +47,3 @@ export function inferSeriesStatus(
 	// No items started yet — leave series status as-is
 	return null;
 }
-
-/**
- * Returns true when the series status is unambiguously forced by item states
- * and the user should not be able to override it manually.
- *
- * "Some done + BACKLOG remaining" is intentionally left unlocked — the user
- * may want to mark the series as Dropped or On Hold without touching each
- * individual backlog item.
- */
-export function shouldSeriesStatusBeLocked(statuses: MediaItemStatus[]): boolean {
-	const derived = inferSeriesStatus(statuses);
-	if (derived === null) {
-		return false;
-	}
-	if (derived !== MediaItemStatus.IN_PROGRESS) {
-		return true;
-	}
-	// inferSeriesStatus returns IN_PROGRESS for two distinct reasons:
-	//   1. An actual IN_PROGRESS item exists → lock the dropdown
-	//   2. Some done + BACKLOG remaining → leave it unlocked
-	return statuses.some((s) => s === MediaItemStatus.IN_PROGRESS);
-}

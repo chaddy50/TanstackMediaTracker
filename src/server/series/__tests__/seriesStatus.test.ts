@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MediaItemStatus } from "#/server/enums";
-import { inferSeriesStatus, shouldSeriesStatusBeLocked } from "#/server/series/seriesStatus";
+import { inferSeriesStatus } from "#/server/series/seriesStatus";
 
 // ---------------------------------------------------------------------------
 // inferSeriesStatus
@@ -103,43 +103,5 @@ describe("inferSeriesStatus", () => {
 		expect(
 			inferSeriesStatus([MediaItemStatus.BACKLOG, MediaItemStatus.BACKLOG]),
 		).toBeNull();
-	});
-});
-
-// ---------------------------------------------------------------------------
-// shouldSeriesStatusBeLocked
-// ---------------------------------------------------------------------------
-
-describe("shouldSeriesStatusBeLocked", () => {
-	it("returns false for an empty list", () => {
-		expect(shouldSeriesStatusBeLocked([])).toBe(false);
-	});
-
-	it("returns false when all items are BACKLOG", () => {
-		expect(
-			shouldSeriesStatusBeLocked([
-				MediaItemStatus.BACKLOG,
-				MediaItemStatus.BACKLOG,
-			]),
-		).toBe(false);
-	});
-
-	it("returns false when some items are done but remaining are BACKLOG", () => {
-		expect(
-			shouldSeriesStatusBeLocked([
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.BACKLOG,
-			]),
-		).toBe(false);
-	});
-
-	it("returns true when any item is IN_PROGRESS", () => {
-		expect(
-			shouldSeriesStatusBeLocked([
-				MediaItemStatus.COMPLETED,
-				MediaItemStatus.IN_PROGRESS,
-				MediaItemStatus.BACKLOG,
-			]),
-		).toBe(true);
 	});
 });
