@@ -22,10 +22,7 @@ export function FilterAndSortButton({
 	subject = "items",
 }: FilterAndSortButtonProps) {
 	const { t } = useTranslation();
-	const numberOfActiveFilters = countActiveFilters(
-		filterAndSortChoices,
-		subject,
-	);
+	const numberOfActiveFilters = countActiveFilters(filterAndSortChoices);
 	const navigate = useNavigate();
 
 	function handleApply(filters: FilterAndSortOptions) {
@@ -37,7 +34,7 @@ export function FilterAndSortButton({
 			<Button
 				variant="outline"
 				size="icon"
-				className="sm:w-auto sm:px-4 gap-2"
+				className={`sm:w-auto sm:px-4 gap-2${numberOfActiveFilters > 0 ? " w-auto px-2" : ""}`}
 				onClick={() => setIsFilterAndSortPopupOpen(true)}
 			>
 				<SlidersHorizontal className="size-4 shrink-0" />
@@ -61,32 +58,21 @@ export function FilterAndSortButton({
 	);
 }
 
-function countActiveFilters(
-	filterAndSortOptions: FilterAndSortOptions,
-	subject: ViewSubject,
-): number {
+export function countActiveFilters(filterAndSortOptions: FilterAndSortOptions): number {
 	let count = 0;
 	if (filterAndSortOptions.mediaTypes?.length) count += 1;
 	if (filterAndSortOptions.statuses?.length) count += 1;
-	if (filterAndSortOptions.isPurchased !== undefined) count += 1;
+	if (filterAndSortOptions.purchaseStatuses?.length) count += 1;
 	if (
 		filterAndSortOptions.completedThisYear ||
-		filterAndSortOptions.completedYearStart !== undefined ||
-		filterAndSortOptions.completedYearEnd !== undefined
+		filterAndSortOptions.completedDateStart !== undefined ||
+		filterAndSortOptions.completedDateEnd !== undefined
 	) {
 		count += 1;
 	}
-	const defaultSortBy = subject === "series" ? "name" : "series";
-	if (
-		filterAndSortOptions.sortBy !== undefined &&
-		filterAndSortOptions.sortBy !== defaultSortBy
-	) {
-		count += 1;
-	}
-	if (
-		filterAndSortOptions.sortDirection !== undefined &&
-		filterAndSortOptions.sortDirection !== "asc"
-	)
-		count += 1;
+	if (filterAndSortOptions.tags?.length) count += 1;
+	if (filterAndSortOptions.genres?.length) count += 1;
+	if (filterAndSortOptions.creatorQuery) count += 1;
+	if (filterAndSortOptions.isSeriesComplete !== undefined) count += 1;
 	return count;
 }
