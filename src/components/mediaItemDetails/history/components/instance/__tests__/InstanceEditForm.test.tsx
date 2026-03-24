@@ -1,7 +1,10 @@
 import { InstanceEditForm } from "#/components/mediaItemDetails/history/components/instance/InstanceEditForm";
+import type { useUserSettings } from "#/hooks/useUserSettings";
 import { MediaItemType } from "#/server/enums";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+type MockedUserSettings = ReturnType<typeof useUserSettings>;
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -13,7 +16,7 @@ vi.mock("#/server/mediaItems/mediaItem", () => ({
 }));
 
 vi.mock("#/hooks/useUserSettings", () => ({
-	useUserSettings: () => ({ data: undefined }),
+	useUserSettings: vi.fn(),
 }));
 
 const baseProps = {
@@ -24,6 +27,10 @@ const baseProps = {
 };
 
 afterEach(cleanup);
+beforeEach(async () => {
+	const { useUserSettings } = await import("#/hooks/useUserSettings");
+	vi.mocked(useUserSettings).mockReturnValue({ data: undefined } as unknown as MockedUserSettings);
+});
 
 describe("InstanceEditForm", () => {
 	it("shows a date error and does not submit when completedAt is before startedAt", async () => {
@@ -63,6 +70,41 @@ describe("InstanceEditForm", () => {
 
 		rerender(<InstanceEditForm {...baseProps} mediaItemType={MediaItemType.TV_SHOW} />);
 		expect(screen.getByText("mediaItemDetails.seasonReviews")).toBeInTheDocument();
+	});
+
+	it("uses settings default consumption method for existing instance with no consumptionInfo", async () => {
+		const { useUserSettings } = await import("#/hooks/useUserSettings");
+		vi.mocked(useUserSettings).mockReturnValue({
+			data: { defaultBookConsumptionMethod: "audiobook" },
+		} as unknown as MockedUserSettings);
+
+		const { saveInstance } = await import("#/server/mediaItems/mediaItem");
+		vi.mocked(saveInstance).mockClear();
+
+		const instance = {
+			id: 42,
+			rating: 0,
+			fictionRating: null,
+			seasonReviews: null,
+			consumptionInfo: null,
+			reviewText: null,
+			startedAt: null,
+			completedAt: null,
+		};
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				mediaItemType={MediaItemType.BOOK}
+				instance={instance}
+			/>,
+		);
+
+		fireEvent.click(screen.getByText("mediaItemDetails.save"));
+
+		await vi.waitFor(() => expect(saveInstance).toHaveBeenCalled());
+		const callData = vi.mocked(saveInstance).mock.calls[0][0].data;
+		expect(callData.consumptionInfo).toMatchObject({ method: "audiobook" });
 	});
 
 	it("shows delete button only when an existing instance is provided", () => {

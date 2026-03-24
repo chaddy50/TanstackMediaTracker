@@ -88,7 +88,7 @@ export function InstanceEditForm({
 		if (
 			settings !== undefined &&
 			!hasInitializedConsumption.current &&
-			instance === undefined
+			(instance === undefined || !instance.consumptionInfo)
 		) {
 			hasInitializedConsumption.current = true;
 			setConsumptionInfo(
