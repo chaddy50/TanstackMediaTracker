@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
 import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
 import { PageHeader } from "#/components/common/PageHeader";
+import { SearchInput } from "#/components/common/SearchInput";
 import { SeriesList } from "#/components/common/SeriesList";
 import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
 import { getSeriesList, type SeriesListItem } from "#/server/series/seriesList";
@@ -43,13 +44,19 @@ function SeriesPage() {
 			<PageHeader
 				title={t("series.title")}
 				right={
-					<FilterAndSortButton
-						filterAndSortChoices={effectiveSearch}
-						isFilterAndSortPopupOpen={isFilterOpen}
-						setIsFilterAndSortPopupOpen={setIsFilterOpen}
-						navigateTo="/series"
-						subject="series"
-					/>
+					<>
+						<SearchInput
+							value={search.titleQuery ?? ""}
+							navigateTo="/series"
+						/>
+						<FilterAndSortButton
+							filterAndSortChoices={effectiveSearch}
+							isFilterAndSortPopupOpen={isFilterOpen}
+							setIsFilterAndSortPopupOpen={setIsFilterOpen}
+							navigateTo="/series"
+							subject="series"
+						/>
+					</>
 				}
 			/>
 

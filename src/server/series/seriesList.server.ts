@@ -3,8 +3,11 @@ import {
 	asc,
 	desc,
 	eq,
+	exists,
+	ilike,
 	inArray,
 	isNotNull,
+	or,
 	sql,
 } from "drizzle-orm";
 
@@ -52,6 +55,33 @@ export async function runSeriesQuery(
 			: undefined,
 		filters.isSeriesComplete !== undefined
 			? eq(series.isComplete, filters.isSeriesComplete)
+			: undefined,
+		filters.titleQuery
+			? or(
+					ilike(series.name, `%${filters.titleQuery}%`),
+					exists(
+						db
+							.select({ one: sql`1` })
+							.from(mediaItems)
+							.innerJoin(
+								mediaItemMetadata,
+								eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
+							)
+							.where(
+								and(
+									eq(mediaItems.seriesId, series.id),
+									eq(mediaItems.userId, userId),
+									or(
+										ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
+										sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItemMetadata.metadata}->>'director' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItemMetadata.metadata}->>'creator' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItemMetadata.metadata}->>'developer' ILIKE ${`%${filters.titleQuery}%`}`,
+									),
+								),
+							),
+					),
+				)
 			: undefined,
 	].filter((c) => c !== undefined);
 

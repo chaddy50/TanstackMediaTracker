@@ -75,13 +75,11 @@ function ViewPage() {
 				title={view.name}
 				right={
 					<>
-						{isItemView && (
-							<SearchInput
-								value={search.titleQuery ?? ""}
-								navigateTo="/views/$viewId"
-								params={{ viewId: String(view.id) }}
-							/>
-						)}
+						<SearchInput
+							value={search.titleQuery ?? ""}
+							navigateTo="/views/$viewId"
+							params={{ viewId: String(view.id) }}
+						/>
 						<Button
 							variant="outline"
 							size="icon"
