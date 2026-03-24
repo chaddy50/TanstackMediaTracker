@@ -5,6 +5,7 @@ export const en = {
 		allTypes: "All",
 		allStatuses: "All",
 		filterAndSort: "Filter & Sort",
+		clearFilters: "Clear filters",
 		applyFilters: "Apply",
 	},
 	series: {

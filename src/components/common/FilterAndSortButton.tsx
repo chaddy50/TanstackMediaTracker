@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import type { FilterAndSortOptions, ViewSubject } from "#/db/schema";
@@ -29,24 +29,58 @@ export function FilterAndSortButton({
 		navigate({ to: navigateTo, search: () => filters });
 	}
 
+	function handleClearFilters() {
+		navigate({
+			to: navigateTo,
+			search: () => ({
+				sortBy: filterAndSortChoices.sortBy,
+				sortDirection: filterAndSortChoices.sortDirection,
+				titleQuery: filterAndSortChoices.titleQuery,
+			}),
+		});
+	}
+
 	return (
 		<>
-			<Button
-				variant="outline"
-				size="icon"
-				className={`sm:w-auto sm:px-4 gap-2${numberOfActiveFilters > 0 ? " w-auto px-2" : ""}`}
-				onClick={() => setIsFilterAndSortPopupOpen(true)}
-			>
-				<SlidersHorizontal className="size-4 shrink-0" />
-				<span className="sr-only sm:not-sr-only">
-					{t("library.filterAndSort")}
-				</span>
-				{numberOfActiveFilters > 0 && (
-					<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center shrink-0">
-						{numberOfActiveFilters}
+			{numberOfActiveFilters > 0 ? (
+				<div className="flex items-center">
+					<Button
+						variant="outline"
+						size="icon"
+						className="sm:w-auto sm:px-4 gap-2 w-auto px-2 rounded-r-none border-r-0"
+						onClick={() => setIsFilterAndSortPopupOpen(true)}
+					>
+						<SlidersHorizontal className="size-4 shrink-0" />
+						<span className="sr-only sm:not-sr-only">
+							{t("library.filterAndSort")}
+						</span>
+						<span className="bg-primary text-primary-foreground rounded-full text-xs size-5 flex items-center justify-center shrink-0">
+							{numberOfActiveFilters}
+						</span>
+					</Button>
+					<Button
+						variant="outline"
+						size="icon"
+						className="rounded-l-none px-2 w-auto"
+						onClick={handleClearFilters}
+						aria-label={t("library.clearFilters")}
+					>
+						<X className="size-3.5" />
+					</Button>
+				</div>
+			) : (
+				<Button
+					variant="outline"
+					size="icon"
+					className="sm:w-auto sm:px-4 gap-2"
+					onClick={() => setIsFilterAndSortPopupOpen(true)}
+				>
+					<SlidersHorizontal className="size-4 shrink-0" />
+					<span className="sr-only sm:not-sr-only">
+						{t("library.filterAndSort")}
 					</span>
-				)}
-			</Button>
+				</Button>
+			)}
 			<LibraryFilterAndSortDialog
 				isOpen={isFilterAndSortPopupOpen}
 				onClose={() => setIsFilterAndSortPopupOpen(false)}
