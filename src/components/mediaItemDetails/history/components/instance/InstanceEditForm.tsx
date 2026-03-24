@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DeleteButton } from "#/components/common/DeleteButton";
 import { ConsumptionEditor } from "#/components/mediaItemDetails/history/components/instance/ConsumptionEditor";
 import { getDefaultMethod } from "#/components/mediaItemDetails/history/components/instance/consumptionUtils";
@@ -5,7 +7,13 @@ import { SeasonReviewRow } from "#/components/mediaItemDetails/history/component
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import type { ConsumptionInfo, FictionRating, SeasonReview } from "#/db/schema";
+import type {
+	ConsumptionInfo,
+	FictionRating,
+	SeasonReview,
+	UserSettings,
+} from "#/db/schema";
+import { useUserSettings } from "#/hooks/useUserSettings";
 import { GameControlMethod, MediaItemType } from "#/server/enums";
 import {
 	deleteInstance,
@@ -13,8 +21,6 @@ import {
 	saveInstance,
 } from "#/server/mediaItems/mediaItem";
 import { RatingEditor } from "@/components/common/rating/RatingEditor";
-import { useId, useState } from "react";
-import { useTranslation } from "react-i18next";
 
 interface InstanceEditFormProps {
 	instance?: MediaItemDetails["instances"][number];
@@ -34,6 +40,7 @@ function emptySeasonReview(season: number): SeasonReview {
 function getInitialConsumptionInfo(
 	mediaItemType: MediaItemType,
 	instance: InstanceEditFormProps["instance"],
+	settings: UserSettings | null,
 ): ConsumptionInfo | null {
 	if (mediaItemType === MediaItemType.PODCAST) {
 		return null;
@@ -42,9 +49,13 @@ function getInitialConsumptionInfo(
 		return instance.consumptionInfo;
 	}
 	if (mediaItemType === MediaItemType.VIDEO_GAME) {
-		return { method: getDefaultMethod(mediaItemType), controlMethod: GameControlMethod.CONTROLLER };
+		return {
+			method: getDefaultMethod(mediaItemType, settings),
+			controlMethod:
+				settings?.defaultGameControlMethod ?? GameControlMethod.CONTROLLER,
+		};
 	}
-	return { method: getDefaultMethod(mediaItemType) };
+	return { method: getDefaultMethod(mediaItemType, settings) };
 }
 
 export function InstanceEditForm({
@@ -56,6 +67,8 @@ export function InstanceEditForm({
 	onCancel,
 }: InstanceEditFormProps) {
 	const { t } = useTranslation();
+	const { data: settings } = useUserSettings();
+	const hasInitializedConsumption = useRef(false);
 	const [rating, setRating] = useState<number>(instance?.rating ?? 0);
 	const [fictionRating, setFictionRating] = useState<FictionRating | null>(
 		instance?.fictionRating ?? null,
@@ -67,7 +80,22 @@ export function InstanceEditForm({
 	);
 	const [completedAt, setCompletedAt] = useState(instance?.completedAt ?? "");
 	const [consumptionInfo, setConsumptionInfo] =
-		useState<ConsumptionInfo | null>(getInitialConsumptionInfo(mediaItemType, instance));
+		useState<ConsumptionInfo | null>(
+			getInitialConsumptionInfo(mediaItemType, instance, null),
+		);
+
+	useEffect(() => {
+		if (
+			settings !== undefined &&
+			!hasInitializedConsumption.current &&
+			instance === undefined
+		) {
+			hasInitializedConsumption.current = true;
+			setConsumptionInfo(
+				getInitialConsumptionInfo(mediaItemType, instance, settings),
+			);
+		}
+	}, [settings, instance, mediaItemType]);
 	const [seasonReviews, setSeasonReviews] = useState<SeasonReview[]>(
 		instance?.seasonReviews ?? [],
 	);

@@ -12,6 +12,10 @@ vi.mock("#/server/mediaItems/mediaItem", () => ({
 	deleteInstance: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("#/hooks/useUserSettings", () => ({
+	useUserSettings: () => ({ data: undefined }),
+}));
+
 const baseProps = {
 	mediaItemId: 1,
 	mediaItemType: MediaItemType.BOOK,

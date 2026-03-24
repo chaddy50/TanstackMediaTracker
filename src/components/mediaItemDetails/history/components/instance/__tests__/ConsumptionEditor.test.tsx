@@ -7,6 +7,10 @@ vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock("#/hooks/useUserSettings", () => ({
+	useUserSettings: () => ({ data: undefined }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
 	useRouter: () => ({ invalidate: vi.fn() }),
 }));

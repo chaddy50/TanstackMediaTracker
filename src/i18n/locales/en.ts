@@ -268,6 +268,17 @@ export const en = {
 			success: "Backup restored successfully.",
 			parseError: "Invalid backup file. Please select a valid backup.",
 		},
+		defaults: {
+			title: "Defaults",
+			description: "Set your preferred defaults for sorting and consumption.",
+			sortDefaults: "Sort defaults",
+			library: "Library",
+			series: "Series",
+			consumptionDefaults: "Consumption method defaults",
+			save: "Save",
+			saving: "Saving...",
+			saved: "Saved.",
+		},
 	},
 	views: {
 		newView: "New View",

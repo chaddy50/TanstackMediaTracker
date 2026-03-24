@@ -16,11 +16,15 @@ import {
 } from "drizzle-orm/pg-core";
 
 import {
+	type BookConsumptionMethod,
 	type GameControlMethod,
+	type GamePlatform,
 	MediaItemStatus,
 	MediaItemType,
+	type MovieConsumptionMethod,
 	NextItemStatus,
 	PurchaseStatus,
+	type TvShowConsumptionMethod,
 } from "#/server/enums";
 
 // --- Enums ---
@@ -531,12 +535,23 @@ export const userSettings = pgTable("user_settings", {
 		() => customReports.id,
 		{ onDelete: "set null" },
 	),
+	defaultLibrarySortBy: text("default_library_sort_by").$type<ItemSortField>(),
+	defaultLibrarySortDirection: text("default_library_sort_direction").$type<SortDirection>(),
+	defaultSeriesSortBy: text("default_series_sort_by").$type<SeriesSortField>(),
+	defaultSeriesSortDirection: text("default_series_sort_direction").$type<SortDirection>(),
+	defaultBookConsumptionMethod: text("default_book_consumption_method").$type<BookConsumptionMethod>(),
+	defaultMovieConsumptionMethod: text("default_movie_consumption_method").$type<MovieConsumptionMethod>(),
+	defaultTvShowConsumptionMethod: text("default_tv_show_consumption_method").$type<TvShowConsumptionMethod>(),
+	defaultGamePlatform: text("default_game_platform").$type<GamePlatform>(),
+	defaultGameControlMethod: text("default_game_control_method").$type<GameControlMethod>(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
 		.notNull()
 		.$onUpdateFn(() => new Date()),
 });
+
+export type UserSettings = typeof userSettings.$inferSelect;
 
 export const views = pgTable("views", {
 	id: serial("id").primaryKey(),

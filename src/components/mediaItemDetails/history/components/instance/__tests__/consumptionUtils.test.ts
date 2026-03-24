@@ -2,6 +2,7 @@ import {
 	getDefaultMethod,
 	getMethodOptions,
 } from "#/components/mediaItemDetails/history/components/instance/consumptionUtils";
+import type { UserSettings } from "#/db/schema";
 import {
 	BookConsumptionMethod,
 	GamePlatform,
@@ -14,20 +15,53 @@ import { describe, expect, it } from "vitest";
 const t = (key: string) => key;
 
 describe("getDefaultMethod", () => {
-	it("returns ebook for BOOK", () => {
-		expect(getDefaultMethod(MediaItemType.BOOK)).toBe(BookConsumptionMethod.EBOOK);
+	describe("without settings (hardcoded fallbacks)", () => {
+		it("returns ebook for BOOK", () => {
+			expect(getDefaultMethod(MediaItemType.BOOK)).toBe(BookConsumptionMethod.EBOOK);
+		});
+
+		it("returns PC for VIDEO_GAME", () => {
+			expect(getDefaultMethod(MediaItemType.VIDEO_GAME)).toBe(GamePlatform.PC);
+		});
+
+		it("returns local_copy for MOVIE", () => {
+			expect(getDefaultMethod(MediaItemType.MOVIE)).toBe(MovieConsumptionMethod.LOCAL_COPY);
+		});
+
+		it("returns local_copy for TV_SHOW", () => {
+			expect(getDefaultMethod(MediaItemType.TV_SHOW)).toBe(TvShowConsumptionMethod.LOCAL_COPY);
+		});
+
+		it("returns hardcoded default when settings is null", () => {
+			expect(getDefaultMethod(MediaItemType.BOOK, null)).toBe(BookConsumptionMethod.EBOOK);
+		});
 	});
 
-	it("returns PC for VIDEO_GAME", () => {
-		expect(getDefaultMethod(MediaItemType.VIDEO_GAME)).toBe(GamePlatform.PC);
-	});
+	describe("with user settings", () => {
+		it("uses defaultBookConsumptionMethod from settings", () => {
+			const settings = { defaultBookConsumptionMethod: BookConsumptionMethod.AUDIOBOOK } as UserSettings;
+			expect(getDefaultMethod(MediaItemType.BOOK, settings)).toBe(BookConsumptionMethod.AUDIOBOOK);
+		});
 
-	it("returns local_copy for MOVIE", () => {
-		expect(getDefaultMethod(MediaItemType.MOVIE)).toBe(MovieConsumptionMethod.LOCAL_COPY);
-	});
+		it("uses defaultMovieConsumptionMethod from settings", () => {
+			const settings = { defaultMovieConsumptionMethod: MovieConsumptionMethod.THEATER } as UserSettings;
+			expect(getDefaultMethod(MediaItemType.MOVIE, settings)).toBe(MovieConsumptionMethod.THEATER);
+		});
 
-	it("returns local_copy for TV_SHOW", () => {
-		expect(getDefaultMethod(MediaItemType.TV_SHOW)).toBe(TvShowConsumptionMethod.LOCAL_COPY);
+		it("uses defaultTvShowConsumptionMethod from settings", () => {
+			const settings = { defaultTvShowConsumptionMethod: TvShowConsumptionMethod.STREAMING } as UserSettings;
+			expect(getDefaultMethod(MediaItemType.TV_SHOW, settings)).toBe(TvShowConsumptionMethod.STREAMING);
+		});
+
+		it("uses defaultGamePlatform from settings", () => {
+			const settings = { defaultGamePlatform: GamePlatform.PS5 } as UserSettings;
+			expect(getDefaultMethod(MediaItemType.VIDEO_GAME, settings)).toBe(GamePlatform.PS5);
+		});
+
+		it("falls back to hardcoded default when settings field is null", () => {
+			const settings = { defaultBookConsumptionMethod: null } as unknown as UserSettings;
+			expect(getDefaultMethod(MediaItemType.BOOK, settings)).toBe(BookConsumptionMethod.EBOOK);
+		});
 	});
 });
 

@@ -1,19 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { PageHeader } from "#/components/common/PageHeader";
 import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
 import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
+import { PageHeader } from "#/components/common/PageHeader";
 import { SeriesList } from "#/components/common/SeriesList";
 import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
 import { getSeriesList, type SeriesListItem } from "#/server/series/seriesList";
+import { applySeriesSortDefaults, getUserSettings } from "#/server/settings";
 import { filterAndSortOptionsSchema } from "#/server/views";
 
 export const Route = createFileRoute("/_authenticated/_app/series")({
 	validateSearch: filterAndSortOptionsSchema,
 	loaderDeps: ({ search }) => search,
-	loader: ({ deps }) => getSeriesList({ data: deps }),
+	loader: async ({ deps }) => {
+		const settings = await getUserSettings();
+		const effectiveDeps = applySeriesSortDefaults(deps, settings);
+		const data = await getSeriesList({ data: effectiveDeps });
+		return { ...data, settings };
+	},
 	component: SeriesPage,
 });
 
@@ -23,11 +28,15 @@ function SeriesPage() {
 	const { t } = useTranslation();
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-	const { allItems, isLoadingMore, sentinelRef } = useInfiniteScroll<SeriesListItem>({
-		initialItems: loaderData.items,
-		initialHasMore: loaderData.hasMore,
-		fetchMore: (offset) => getSeriesList({ data: { ...search, offset } }),
-	});
+	const effectiveSearch = applySeriesSortDefaults(search, loaderData.settings);
+
+	const { allItems, isLoadingMore, sentinelRef } =
+		useInfiniteScroll<SeriesListItem>({
+			initialItems: loaderData.items,
+			initialHasMore: loaderData.hasMore,
+			fetchMore: (offset) =>
+				getSeriesList({ data: { ...effectiveSearch, offset } }),
+		});
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
@@ -35,7 +44,7 @@ function SeriesPage() {
 				title={t("series.title")}
 				right={
 					<FilterAndSortButton
-						filterAndSortChoices={search}
+						filterAndSortChoices={effectiveSearch}
 						isFilterAndSortPopupOpen={isFilterOpen}
 						setIsFilterAndSortPopupOpen={setIsFilterOpen}
 						navigateTo="/series"

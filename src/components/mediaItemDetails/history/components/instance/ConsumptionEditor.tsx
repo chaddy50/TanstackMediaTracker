@@ -1,3 +1,5 @@
+import { useId } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	getDefaultMethod,
 	getMethodOptions,
@@ -11,9 +13,8 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import type { ConsumptionInfo } from "#/db/schema";
+import { useUserSettings } from "#/hooks/useUserSettings";
 import { GameControlMethod, MediaItemType } from "#/server/enums";
-import { useId } from "react";
-import { useTranslation } from "react-i18next";
 
 interface ConsumptionEditorProps {
 	mediaItemType: MediaItemType;
@@ -38,14 +39,18 @@ export function ConsumptionEditor({
 	const { t } = useTranslation();
 	const controlMethodId = useId();
 	const methodId = useId();
+	const { data: settings } = useUserSettings();
 
 	if (mediaItemType === MediaItemType.PODCAST) {
 		return null;
 	}
 
-	const currentMethod = value?.method ?? getDefaultMethod(mediaItemType);
+	const currentMethod =
+		value?.method ?? getDefaultMethod(mediaItemType, settings);
 	const currentControlMethod =
-		value?.controlMethod ?? GameControlMethod.CONTROLLER;
+		value?.controlMethod ??
+		settings?.defaultGameControlMethod ??
+		GameControlMethod.CONTROLLER;
 
 	const isGame = mediaItemType === MediaItemType.VIDEO_GAME;
 

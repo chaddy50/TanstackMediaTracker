@@ -1,3 +1,4 @@
+import type { UserSettings } from "#/db/schema";
 import {
 	BookConsumptionMethod,
 	GamePlatform,
@@ -8,10 +9,28 @@ import {
 
 export type MethodOption = { value: string; label: string };
 
-export function getDefaultMethod(mediaItemType: MediaItemType): string {
-	if (mediaItemType === MediaItemType.BOOK) return BookConsumptionMethod.EBOOK;
-	if (mediaItemType === MediaItemType.VIDEO_GAME) return GamePlatform.PC;
-	return MovieConsumptionMethod.LOCAL_COPY;
+export function getDefaultMethod(
+	mediaItemType: MediaItemType,
+	settings?: UserSettings | null,
+): string {
+	if (mediaItemType === MediaItemType.BOOK) {
+		return (
+			settings?.defaultBookConsumptionMethod ?? BookConsumptionMethod.EBOOK
+		);
+	}
+	if (mediaItemType === MediaItemType.VIDEO_GAME) {
+		return settings?.defaultGamePlatform ?? GamePlatform.PC;
+	}
+	if (mediaItemType === MediaItemType.MOVIE) {
+		return (
+			settings?.defaultMovieConsumptionMethod ??
+			MovieConsumptionMethod.LOCAL_COPY
+		);
+	}
+	return (
+		settings?.defaultTvShowConsumptionMethod ??
+		TvShowConsumptionMethod.LOCAL_COPY
+	);
 }
 
 export function getMethodOptions(
@@ -40,5 +59,8 @@ export function getMethodOptions(
 		.sort((a, b) =>
 			t(`consumption.method.${a}`).localeCompare(t(`consumption.method.${b}`)),
 		)
-		.map((method) => ({ value: method, label: t(`consumption.method.${method}`) }));
+		.map((method) => ({
+			value: method,
+			label: t(`consumption.method.${method}`),
+		}));
 }
