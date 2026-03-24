@@ -78,7 +78,7 @@ export function TagsEditor({ pendingTags, onPendingTagsChange }: TagsEditorProps
 					className="h-8 text-sm"
 				/>
 				{isShowingSuggestions && suggestions.length > 0 && (
-					<ul className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
+					<ul className="absolute z-10 bottom-full mb-1 w-full bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
 						{suggestions.map((suggestion) => (
 							<li key={suggestion}>
 								<button
