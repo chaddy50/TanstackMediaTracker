@@ -12,7 +12,6 @@ vi.mock("#/server/auth/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { eq } from "drizzle-orm";
 import { series } from "#/db/schema";
 import { testDb } from "#/tests/integration/db";
 import {
@@ -21,6 +20,7 @@ import {
 	insertSeries,
 	truncateAll,
 } from "#/tests/integration/helpers";
+import { eq } from "drizzle-orm";
 import { runSeriesQuery } from "../seriesList.server";
 
 const USER = "test-user";
@@ -32,13 +32,15 @@ beforeEach(() => truncateAll());
 // ---------------------------------------------------------------------------
 
 /** Insert a series row and return its id. */
-async function makeSeries(overrides: {
-	name?: string;
-	type?: MediaItemType;
-	status?: MediaItemStatus;
-	isComplete?: boolean;
-	rating?: string;
-} = {}): Promise<number> {
+async function makeSeries(
+	overrides: {
+		name?: string;
+		type?: MediaItemType;
+		status?: MediaItemStatus;
+		isComplete?: boolean;
+		rating?: string;
+	} = {},
+): Promise<number> {
 	return insertSeries({
 		userId: USER,
 		name: overrides.name ?? "Test Series",
@@ -48,17 +50,27 @@ async function makeSeries(overrides: {
 }
 
 /** Insert a media item belonging to a series and return its id. */
-async function addItemToSeries(seriesId: number, userId = USER): Promise<number> {
-	const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
+async function addItemToSeries(
+	seriesId: number,
+	userId = USER,
+	metadataOverrides: {
+		title?: string;
+		metadata?: Record<string, unknown>;
+	} = {},
+): Promise<number> {
+	const metadataId = await insertMetadata({
+		type: MediaItemType.BOOK,
+		...metadataOverrides,
+	});
 	return insertMediaItem({ userId, metadataId, seriesId });
 }
 
 /** Set isComplete and/or rating directly on a series row (fields not exposed by insertSeries). */
-async function patchSeries(seriesId: number, patch: { isComplete?: boolean; rating?: string }) {
-	await testDb
-		.update(series)
-		.set(patch)
-		.where(eq(series.id, seriesId));
+async function patchSeries(
+	seriesId: number,
+	patch: { isComplete?: boolean; rating?: string },
+) {
+	await testDb.update(series).set(patch).where(eq(series.id, seriesId));
 }
 
 // ---------------------------------------------------------------------------
@@ -67,8 +79,16 @@ async function patchSeries(seriesId: number, patch: { isComplete?: boolean; rati
 
 describe("user scoping", () => {
 	it("returns only series belonging to the requesting user", async () => {
-		await insertSeries({ userId: USER, name: "Mine", type: MediaItemType.BOOK });
-		await insertSeries({ userId: "other-user", name: "Theirs", type: MediaItemType.BOOK });
+		await insertSeries({
+			userId: USER,
+			name: "Mine",
+			type: MediaItemType.BOOK,
+		});
+		await insertSeries({
+			userId: "other-user",
+			name: "Theirs",
+			type: MediaItemType.BOOK,
+		});
 
 		const result = await runSeriesQuery({}, USER);
 
@@ -210,17 +230,27 @@ describe("sort by name", () => {
 
 		const result = await runSeriesQuery({}, USER);
 
-		expect(result.items.map((item) => item.name)).toEqual(["Alpha", "Beta", "Gamma"]);
+		expect(result.items.map((item) => item.name)).toEqual([
+			"Alpha",
+			"Beta",
+			"Gamma",
+		]);
 	});
 
 	it("sorts by name ignoring leading 'The'", async () => {
 		await makeSeries({ name: "The Expanse" });
 		await makeSeries({ name: "Dune" });
 
-		const result = await runSeriesQuery({ sortBy: "name", sortDirection: "asc" }, USER);
+		const result = await runSeriesQuery(
+			{ sortBy: "name", sortDirection: "asc" },
+			USER,
+		);
 
 		// sortName for "The Expanse" is "Expanse", which comes after "Dune"
-		expect(result.items.map((item) => item.name)).toEqual(["Dune", "The Expanse"]);
+		expect(result.items.map((item) => item.name)).toEqual([
+			"Dune",
+			"The Expanse",
+		]);
 	});
 });
 
@@ -263,5 +293,114 @@ describe("rating field", () => {
 		const result = await runSeriesQuery({}, USER);
 
 		expect(result.items[0].rating).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// titleQuery filter
+// ---------------------------------------------------------------------------
+
+describe("titleQuery filter", () => {
+	it("matches on series name (case-insensitive)", async () => {
+		await makeSeries({ name: "The Stormlight Archive" });
+		await makeSeries({ name: "Dune" });
+
+		const result = await runSeriesQuery({ titleQuery: "stormlight" }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].name).toBe("The Stormlight Archive");
+	});
+
+	it("returns no results when nothing matches", async () => {
+		await makeSeries({ name: "The Stormlight Archive" });
+
+		const result = await runSeriesQuery({ titleQuery: "zzznomatch" }, USER);
+
+		expect(result.items).toHaveLength(0);
+	});
+
+	it("matches on item title within the series", async () => {
+		const matchingId = await makeSeries({ name: "Series A" });
+		const nonMatchingId = await makeSeries({ name: "Series B" });
+		await addItemToSeries(matchingId, USER, { title: "The Way of Kings" });
+		await addItemToSeries(nonMatchingId, USER, { title: "Something Else" });
+
+		const result = await runSeriesQuery({ titleQuery: "way of kings" }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].name).toBe("Series A");
+	});
+
+	it("matches on author in item metadata", async () => {
+		const matchingId = await makeSeries({ name: "The Way of Kings" });
+		const nonMatchingId = await makeSeries({ name: "The Dark Tower" });
+		await addItemToSeries(matchingId, USER, {
+			metadata: { author: "Brandon Sanderson" },
+		});
+		await addItemToSeries(nonMatchingId, USER, {
+			metadata: { author: "Stephen King" },
+		});
+
+		const result = await runSeriesQuery({ titleQuery: "sanderson" }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].name).toBe("The Way of Kings");
+	});
+
+	it("matches on director in item metadata", async () => {
+		const matchingId = await makeSeries({ name: "The Dark Knight" });
+		const nonMatchingId = await makeSeries({ name: "Terminator" });
+		await addItemToSeries(matchingId, USER, {
+			metadata: { director: "Christopher Nolan" },
+		});
+		await addItemToSeries(nonMatchingId, USER, {
+			metadata: { director: "Steven Spielberg" },
+		});
+
+		const result = await runSeriesQuery({ titleQuery: "nolan" }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].name).toBe("The Dark Knight");
+	});
+
+	it("matches on developer in item metadata", async () => {
+		const matchingId = await makeSeries({ name: "Action RPGs" });
+		const nonMatchingId = await makeSeries({ name: "Platform Games" });
+		await addItemToSeries(matchingId, USER, {
+			metadata: { developer: "FromSoftware" },
+		});
+		await addItemToSeries(nonMatchingId, USER, {
+			metadata: { developer: "Nintendo" },
+		});
+
+		const result = await runSeriesQuery({ titleQuery: "fromsoftware" }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].name).toBe("Action RPGs");
+	});
+
+	it("does not return the same series multiple times when several items match", async () => {
+		const seriesId = await makeSeries({ name: "Prolific Author Series" });
+		await addItemToSeries(seriesId, USER, {
+			metadata: { author: "Brandon Sanderson" },
+		});
+		await addItemToSeries(seriesId, USER, {
+			metadata: { author: "Brandon Sanderson" },
+		});
+
+		const result = await runSeriesQuery({ titleQuery: "sanderson" }, USER);
+
+		expect(result.items).toHaveLength(1);
+	});
+
+	it("does not match items belonging to a different user's series", async () => {
+		const seriesId = await makeSeries({ name: "My Series" });
+		await addItemToSeries(seriesId, "other-user", {
+			metadata: { author: "Brandon Sanderson" },
+		});
+
+		const result = await runSeriesQuery({ titleQuery: "sanderson" }, USER);
+
+		expect(result.items).toHaveLength(0);
 	});
 });
