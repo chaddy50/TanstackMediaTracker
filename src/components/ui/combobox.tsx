@@ -107,8 +107,9 @@ export function SearchableCombobox({
 						/>
 					</div>
 					<div
-					className="max-h-56 overflow-y-auto p-1"
+					className="max-h-56 overflow-y-auto overscroll-contain touch-pan-y p-1"
 					onWheel={(e) => e.stopPropagation()}
+					onTouchMove={(e) => e.stopPropagation()}
 				>
 						<button
 							type="button"

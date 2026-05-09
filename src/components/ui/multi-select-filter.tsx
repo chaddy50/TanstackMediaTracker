@@ -90,8 +90,9 @@ export function MultiSelectFilter({
 						/>
 					</div>
 					<div
-						className="max-h-56 overflow-y-auto p-1"
+						className="max-h-56 overflow-y-auto overscroll-contain touch-pan-y p-1"
 						onWheel={(e) => e.stopPropagation()}
+						onTouchMove={(e) => e.stopPropagation()}
 					>
 						{filteredOptions.length === 0 && (
 							<p className="px-2 py-1.5 text-sm text-muted-foreground">
