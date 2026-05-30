@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
+import { MarkdownTextBlock } from "#/components/common/MarkdownTextBlock";
 import { Button } from "#/components/ui/button";
 import type { ConsumptionInfo } from "#/db/schema";
 import type { MediaItemDetails } from "#/server/mediaItems/mediaItem";
@@ -53,7 +53,7 @@ export function InstanceRow({
 					<RatingStars rating={instance.rating} />
 				</div>
 				{instance.reviewText && (
-					<ExpandableTextBlock text={instance.reviewText} maxLines={5} />
+					<MarkdownTextBlock text={instance.reviewText} maxLines={5} />
 				)}
 				{instance.fictionRating && (
 					<FictionRatingComments fictionRating={instance.fictionRating} />
@@ -91,7 +91,7 @@ export function InstanceRow({
 											/>
 										)}
 										{seasonReview.reviewText && (
-											<ExpandableTextBlock
+											<MarkdownTextBlock
 												text={seasonReview.reviewText}
 												maxLines={3}
 											/>

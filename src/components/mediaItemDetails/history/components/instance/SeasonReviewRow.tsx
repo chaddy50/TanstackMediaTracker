@@ -1,5 +1,7 @@
+import { useId } from "react";
+import { useTranslation } from "react-i18next";
 import { DeleteButton } from "#/components/common/DeleteButton";
-import { ExpandableTextBlock } from "#/components/common/ExpandableTextBlock";
+import { MarkdownTextBlock } from "#/components/common/MarkdownTextBlock";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
@@ -8,8 +10,6 @@ import { formatDateRange } from "#/server/utils";
 import { FictionRatingComments } from "@/components/common/rating/fictionRating/FictionRatingComments";
 import { RatingEditor } from "@/components/common/rating/RatingEditor";
 import { RatingStars } from "@/components/common/rating/ratingStars/RatingStars";
-import { useId } from "react";
-import { useTranslation } from "react-i18next";
 
 export interface SeasonReviewRowProps {
 	seasonReview: SeasonReview;
@@ -63,7 +63,7 @@ export function SeasonReviewRow({
 						<FictionRatingComments fictionRating={seasonReview.fictionRating} />
 					)}
 					{seasonReview.reviewText && (
-						<ExpandableTextBlock text={seasonReview.reviewText} maxLines={3} />
+						<MarkdownTextBlock text={seasonReview.reviewText} maxLines={3} />
 					)}
 				</div>
 				<Button
