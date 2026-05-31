@@ -79,10 +79,10 @@ You can filter the search results based on the type of media that you want to ad
 
 ## Mobile
 The app has full mobile support, and can be installed locally on mobile devices as a PWA.
-![Mobile Dashboard](./screenshots/dashboard_mobile.png)
-![Mobile Library](./screenshots/library_mobile.png)
-![Mobile Item Details](./screenshots/item_details_mobile.png)
-![Mobile Custom Views](./screenshots/custom_views_mobile.png)
+<img src="./screenshots/dashboard_mobile.png" alt="Mobile Dashboard" width="300" />
+<img src="./screenshots/library_mobile.png" alt="Mobile Library" width="300" />
+<img src="./screenshots/item_details_mobile.png" alt="Mobile Item Details" width="300" />
+<img src="./screenshots/custom_views_mobile.png" alt="Mobile Custom Views" width="300" />
 # Technical Details
 This app was built using [Tanstack Start](https://tanstack.com/start/latest).
 
