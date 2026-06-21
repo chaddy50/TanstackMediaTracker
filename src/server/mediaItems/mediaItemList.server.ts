@@ -7,6 +7,8 @@ import {
 	ilike,
 	inArray,
 	isNotNull,
+	isNull,
+	notExists,
 	or,
 	type SQL,
 	sql,
@@ -25,7 +27,12 @@ import {
 	series,
 	tags,
 } from "#/db/schema";
-import { MediaItemStatus, type MediaItemType, type PurchaseStatus } from "#/server/enums";
+import {
+	MediaItemStatus,
+	type MediaItemType,
+	type PurchaseStatus,
+} from "#/server/enums";
+import { BLANK_FILTER_VALUE } from "#/server/genres/constants";
 import { syncSeriesStatus } from "#/server/series/seriesList.server";
 
 // ---------------------------------------------------------------------------
@@ -90,22 +97,8 @@ function buildItemFilterConditions(
 			? inArray(mediaItems.purchaseStatus, filters.purchaseStatuses)
 			: undefined,
 		buildCompletedDateCondition(filters),
-		filters.tags?.length
-			? exists(
-					db
-						.select({ one: sql`1` })
-						.from(mediaItemTags)
-						.innerJoin(tags, eq(tags.id, mediaItemTags.tagId))
-						.where(
-							and(
-								eq(mediaItemTags.mediaItemId, mediaItems.id),
-								inArray(tags.name, filters.tags),
-								eq(tags.userId, userId),
-							),
-						),
-				)
-			: undefined,
-		filters.genres?.length ? inArray(genres.name, filters.genres) : undefined,
+		buildTagCondition(filters.tags, userId),
+		buildGenreCondition(filters.genres),
 		filters.titleQuery
 			? or(
 					ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
@@ -124,6 +117,85 @@ function buildItemFilterConditions(
 				)
 			: undefined,
 	].filter((c) => c !== undefined);
+}
+
+// ---------------------------------------------------------------------------
+// buildGenreCondition
+// ---------------------------------------------------------------------------
+
+function buildGenreCondition(selectedGenres: string[] | undefined) {
+	if (!selectedGenres?.length) {
+		return undefined;
+	}
+
+	const hasBlank = selectedGenres.includes(BLANK_FILTER_VALUE);
+	const realGenres = selectedGenres.filter(
+		(genre) => genre !== BLANK_FILTER_VALUE,
+	);
+
+	const blankCondition = hasBlank ? isNull(mediaItems.genreId) : undefined;
+	const realCondition = realGenres.length
+		? inArray(genres.name, realGenres)
+		: undefined;
+
+	return combineWithOr(blankCondition, realCondition);
+}
+
+// ---------------------------------------------------------------------------
+// buildTagCondition
+// ---------------------------------------------------------------------------
+
+function buildTagCondition(selectedTags: string[] | undefined, userId: string) {
+	if (!selectedTags?.length) {
+		return undefined;
+	}
+
+	const hasBlank = selectedTags.includes(BLANK_FILTER_VALUE);
+	const realTags = selectedTags.filter((tag) => tag !== BLANK_FILTER_VALUE);
+
+	const blankCondition = hasBlank
+		? notExists(
+				db
+					.select({ one: sql`1` })
+					.from(mediaItemTags)
+					.where(eq(mediaItemTags.mediaItemId, mediaItems.id)),
+			)
+		: undefined;
+
+	const realCondition = realTags.length
+		? exists(
+				db
+					.select({ one: sql`1` })
+					.from(mediaItemTags)
+					.innerJoin(tags, eq(tags.id, mediaItemTags.tagId))
+					.where(
+						and(
+							eq(mediaItemTags.mediaItemId, mediaItems.id),
+							inArray(tags.name, realTags),
+							eq(tags.userId, userId),
+						),
+					),
+			)
+		: undefined;
+
+	return combineWithOr(blankCondition, realCondition);
+}
+
+// ---------------------------------------------------------------------------
+// combineWithOr
+// ---------------------------------------------------------------------------
+
+function combineWithOr(...conditions: (SQL | undefined)[]) {
+	const present = conditions.filter(
+		(condition): condition is SQL => condition !== undefined,
+	);
+	if (present.length === 0) {
+		return undefined;
+	}
+	if (present.length === 1) {
+		return present[0];
+	}
+	return or(...present);
 }
 
 // ---------------------------------------------------------------------------

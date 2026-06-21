@@ -6,6 +6,7 @@ import { MultiSelectFilter } from "#/components/ui/multi-select-filter";
 import { Toggle } from "#/components/ui/toggle";
 import type { ViewSubject } from "#/db/schema";
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/server/enums";
+import { BLANK_FILTER_VALUE } from "#/server/genres/constants";
 
 export type SeriesCompleteFilter = "all" | "complete" | "incomplete";
 export type CompletionDateMode = "none" | "this-year" | "range";
@@ -130,7 +131,9 @@ export function Filters({
 								label: t(`views.form.purchasedOption.${option}`),
 							}))}
 							selectedValues={selectedPurchaseStatuses as string[]}
-							onToggle={(value) => onTogglePurchaseStatus(value as PurchaseStatus)}
+							onToggle={(value) =>
+								onTogglePurchaseStatus(value as PurchaseStatus)
+							}
 						/>
 					</div>
 
@@ -139,7 +142,13 @@ export function Filters({
 							<Label>{t("views.form.tags")}</Label>
 							<MultiSelectFilter
 								label={t("views.form.tags")}
-								options={availableTags.map((tag) => ({ value: tag, label: tag }))}
+								options={[
+									{
+										value: BLANK_FILTER_VALUE,
+										label: t("views.form.noTagsOption"),
+									},
+									...availableTags.map((tag) => ({ value: tag, label: tag })),
+								]}
 								selectedValues={selectedTags}
 								onToggle={onToggleTag}
 							/>
@@ -151,7 +160,16 @@ export function Filters({
 							<Label>{t("views.form.genres")}</Label>
 							<MultiSelectFilter
 								label={t("views.form.genres")}
-								options={availableGenres.map((genre) => ({ value: genre, label: genre }))}
+								options={[
+									{
+										value: BLANK_FILTER_VALUE,
+										label: t("views.form.noGenreOption"),
+									},
+									...availableGenres.map((genre) => ({
+										value: genre,
+										label: genre,
+									})),
+								]}
 								selectedValues={selectedGenres}
 								onToggle={onToggleGenre}
 							/>

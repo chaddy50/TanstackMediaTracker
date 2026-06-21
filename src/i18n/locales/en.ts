@@ -87,7 +87,8 @@ export const en = {
 		seasonN: "Season {{season}}",
 		collapse: "Collapse",
 		removeSeason: "Remove Season",
-		completedDateBeforeStartDateError: "Completed date cannot be before started date.",
+		completedDateBeforeStartDateError:
+			"Completed date cannot be before started date.",
 	},
 	search: {
 		addButton: "Add Item",
@@ -119,7 +120,8 @@ export const en = {
 		editArcTitle: "Edit Arc Episodes",
 		editEpisodes: "Edit episodes",
 		shiftClickHint: "Shift-click to select a range",
-		fewEpisodesHint: "Fewer episodes than expected? This podcast may require a subscriber feed URL.",
+		fewEpisodesHint:
+			"Fewer episodes than expected? This podcast may require a subscriber feed URL.",
 		useSubscriberFeed: "Use subscriber feed URL",
 		hideSubscriberFeed: "Hide subscriber feed URL",
 		subscriberFeedPlaceholder: "Paste your private subscriber feed URL",
@@ -320,6 +322,8 @@ export const en = {
 			},
 			tags: "Tags",
 			genres: "Genre",
+			noGenreOption: "No genre",
+			noTagsOption: "No tags",
 			creatorFilter: "Creator",
 			creatorFilterPlaceholder: "Filter by creator name...",
 			filtersSection: "Filters",

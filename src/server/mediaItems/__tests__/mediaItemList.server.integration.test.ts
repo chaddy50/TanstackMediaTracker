@@ -14,6 +14,7 @@ vi.mock("#/server/auth/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
+import { BLANK_FILTER_VALUE } from "#/server/genres/constants";
 import {
 	insertCreator,
 	insertGenre,
@@ -175,6 +176,69 @@ describe("tag filter", () => {
 	});
 });
 
+describe("blank tag filter", () => {
+	it("returns only items with no tags when the sentinel is used alone", async () => {
+		const taggedId = await insertItem({ title: "Tagged" });
+		await insertItem({ title: "Untagged" });
+		const tagId = await insertTag({ userId: USER, name: "favorites" });
+		await linkTag(taggedId, tagId);
+
+		const result = await runItemQuery({ tags: [BLANK_FILTER_VALUE] }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("Untagged");
+	});
+
+	it("returns items with no tags OR the selected real tag", async () => {
+		const favoritesId = await insertItem({ title: "Favorites" });
+		await insertItem({ title: "Untagged" });
+		const laterId = await insertItem({ title: "Later" });
+		const favoritesTagId = await insertTag({ userId: USER, name: "favorites" });
+		const laterTagId = await insertTag({ userId: USER, name: "later" });
+		await linkTag(favoritesId, favoritesTagId);
+		await linkTag(laterId, laterTagId);
+
+		const result = await runItemQuery(
+			{ tags: [BLANK_FILTER_VALUE, "favorites"] },
+			USER,
+		);
+
+		const titles = result.items.map((item) => item.title).sort();
+		expect(titles).toEqual(["Favorites", "Untagged"]);
+	});
+
+	it("does not match an item that has multiple tags", async () => {
+		const multiTaggedId = await insertItem({ title: "Multi" });
+		const tagOneId = await insertTag({ userId: USER, name: "one" });
+		const tagTwoId = await insertTag({ userId: USER, name: "two" });
+		await linkTag(multiTaggedId, tagOneId);
+		await linkTag(multiTaggedId, tagTwoId);
+
+		const result = await runItemQuery({ tags: [BLANK_FILTER_VALUE] }, USER);
+
+		expect(result.items).toHaveLength(0);
+	});
+
+	it("combines with a sibling status filter", async () => {
+		await insertItem({
+			title: "Untagged Backlog",
+			status: MediaItemStatus.BACKLOG,
+		});
+		await insertItem({
+			title: "Untagged Done",
+			status: MediaItemStatus.COMPLETED,
+		});
+
+		const result = await runItemQuery(
+			{ tags: [BLANK_FILTER_VALUE], statuses: [MediaItemStatus.BACKLOG] },
+			USER,
+		);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("Untagged Backlog");
+	});
+});
+
 describe("genre filter", () => {
 	it("returns only items assigned to the requested genre", async () => {
 		const genreId = await insertGenre({ userId: USER, name: "Fantasy" });
@@ -185,6 +249,48 @@ describe("genre filter", () => {
 
 		expect(result.items).toHaveLength(1);
 		expect(result.items[0].title).toBe("Fantasy Book");
+	});
+});
+
+describe("blank genre filter", () => {
+	it("returns only items with no genre when the sentinel is used alone", async () => {
+		const genreId = await insertGenre({ userId: USER, name: "Fantasy" });
+		await insertItem({ title: "Fantasy Book", genreId });
+		await insertItem({ title: "No Genre" });
+
+		const result = await runItemQuery({ genres: [BLANK_FILTER_VALUE] }, USER);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("No Genre");
+	});
+
+	it("returns items with no genre OR the selected real genre", async () => {
+		const fantasyId = await insertGenre({ userId: USER, name: "Fantasy" });
+		const sciFiId = await insertGenre({ userId: USER, name: "Sci-Fi" });
+		await insertItem({ title: "Fantasy Book", genreId: fantasyId });
+		await insertItem({ title: "No Genre" });
+		await insertItem({ title: "Sci-Fi Book", genreId: sciFiId });
+
+		const result = await runItemQuery(
+			{ genres: [BLANK_FILTER_VALUE, "Fantasy"] },
+			USER,
+		);
+
+		const titles = result.items.map((item) => item.title).sort();
+		expect(titles).toEqual(["Fantasy Book", "No Genre"]);
+	});
+
+	it("combines with a sibling media type filter", async () => {
+		await insertItem({ title: "No Genre Book", type: MediaItemType.BOOK });
+		await insertItem({ title: "No Genre Movie", type: MediaItemType.MOVIE });
+
+		const result = await runItemQuery(
+			{ genres: [BLANK_FILTER_VALUE], mediaTypes: [MediaItemType.BOOK] },
+			USER,
+		);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("No Genre Book");
 	});
 });
 
