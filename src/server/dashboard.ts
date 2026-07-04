@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 
 import { db } from "#/db/index";
 import {
@@ -170,6 +170,7 @@ async function fetchNextInSeriesItems(
 			and(
 				eq(mediaItems.userId, userId),
 				inArray(mediaItems.seriesId, uniqueSeriesIds),
+				ne(series.status, MediaItemStatus.DROPPED),
 			),
 		)
 		.orderBy(
