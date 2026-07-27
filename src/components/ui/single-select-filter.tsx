@@ -2,7 +2,7 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import * as React from "react";
 
-import { cn } from "#/server/utils";
+import { cn } from "#/lib/utils";
 
 import { Input } from "./input";
 

@@ -1,8 +1,8 @@
-import * as React from "react";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
+import * as React from "react";
 
-import { cn } from "#/server/utils";
+import { cn } from "#/lib/utils";
 
 import { Input } from "./input";
 
@@ -107,10 +107,10 @@ export function SearchableCombobox({
 						/>
 					</div>
 					<div
-					className="max-h-56 overflow-y-auto overscroll-contain touch-pan-y p-1"
-					onWheel={(e) => e.stopPropagation()}
-					onTouchMove={(e) => e.stopPropagation()}
-				>
+						className="max-h-56 overflow-y-auto overscroll-contain touch-pan-y p-1"
+						onWheel={(e) => e.stopPropagation()}
+						onTouchMove={(e) => e.stopPropagation()}
+					>
 						<button
 							type="button"
 							onClick={() => handleSelect(null)}
@@ -132,7 +132,10 @@ export function SearchableCombobox({
 							<button
 								type="button"
 								onClick={handleCreateNew}
-								className={cn(itemOptionClasses, "text-muted-foreground gap-1.5")}
+								className={cn(
+									itemOptionClasses,
+									"text-muted-foreground gap-1.5",
+								)}
 							>
 								<PlusIcon className="size-3.5 shrink-0" />
 								{createNewLabel(trimmedQuery)}

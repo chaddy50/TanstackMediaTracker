@@ -31,6 +31,27 @@
 		"formatter": {
 			"quoteStyle": "double"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/src/features/**/components/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["**/*.server"],
+										"message": "Components must not import .server modules — they would be pulled into the client bundle. Move the value you need into a non-.server module."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }
-

@@ -1,11 +1,6 @@
 import { sql } from "drizzle-orm";
-
 import {
-	type MediaItemType,
-	type MediaItemStatus,
-	type PurchaseStatus,
-} from "#/server/enums";
-import {
+	creators,
 	genres,
 	mediaItemInstances,
 	mediaItemMetadata,
@@ -13,9 +8,12 @@ import {
 	mediaItemTags,
 	series,
 	tags,
-	views,
-	creators,
-} from "#/db/schema";
+} from "#/database/schema";
+import type {
+	MediaItemStatus,
+	MediaItemType,
+	PurchaseStatus,
+} from "#/lib/enums";
 import { testDb } from "./db";
 
 // ---------------------------------------------------------------------------
@@ -60,7 +58,9 @@ type InsertMetadataOptions = {
 };
 
 /** Inserts a `media_metadata` row and returns its id. */
-export async function insertMetadata(options: InsertMetadataOptions): Promise<number> {
+export async function insertMetadata(
+	options: InsertMetadataOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(mediaItemMetadata)
 		.values({
@@ -88,14 +88,17 @@ type InsertMediaItemOptions = {
 };
 
 /** Inserts a `media_items` row and returns its id. */
-export async function insertMediaItem(options: InsertMediaItemOptions): Promise<number> {
+export async function insertMediaItem(
+	options: InsertMediaItemOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(mediaItems)
 		.values({
 			userId: options.userId,
 			mediaItemMetadataId: options.metadataId,
 			status: options.status ?? ("backlog" as MediaItemStatus),
-			purchaseStatus: options.purchaseStatus ?? ("not_purchased" as PurchaseStatus),
+			purchaseStatus:
+				options.purchaseStatus ?? ("not_purchased" as PurchaseStatus),
 			seriesId: options.seriesId ?? null,
 			creatorId: options.creatorId ?? null,
 			genreId: options.genreId ?? null,
@@ -114,7 +117,9 @@ type InsertInstanceOptions = {
 };
 
 /** Inserts a `media_item_instances` row and returns its id. */
-export async function insertInstance(options: InsertInstanceOptions): Promise<number> {
+export async function insertInstance(
+	options: InsertInstanceOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(mediaItemInstances)
 		.values({
@@ -137,7 +142,9 @@ type InsertSeriesOptions = {
 };
 
 /** Inserts a `series` row and returns its id. */
-export async function insertSeries(options: InsertSeriesOptions): Promise<number> {
+export async function insertSeries(
+	options: InsertSeriesOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(series)
 		.values({
@@ -158,7 +165,9 @@ type InsertGenreOptions = {
 };
 
 /** Inserts a `genres` row and returns its id. */
-export async function insertGenre(options: InsertGenreOptions): Promise<number> {
+export async function insertGenre(
+	options: InsertGenreOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(genres)
 		.values({ userId: options.userId, name: options.name })
@@ -185,7 +194,10 @@ export async function insertTag(options: InsertTagOptions): Promise<number> {
 }
 
 /** Links a media item to a tag. */
-export async function linkTag(mediaItemId: number, tagId: number): Promise<void> {
+export async function linkTag(
+	mediaItemId: number,
+	tagId: number,
+): Promise<void> {
 	await testDb.insert(mediaItemTags).values({ mediaItemId, tagId });
 }
 
@@ -195,7 +207,9 @@ type InsertCreatorOptions = {
 };
 
 /** Inserts a `creators` row and returns its id. */
-export async function insertCreator(options: InsertCreatorOptions): Promise<number> {
+export async function insertCreator(
+	options: InsertCreatorOptions,
+): Promise<number> {
 	const [row] = await testDb
 		.insert(creators)
 		.values({ userId: options.userId, name: options.name })

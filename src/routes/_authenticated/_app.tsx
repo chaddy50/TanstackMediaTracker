@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-import { BottomNavBar } from "#/components/common/BottomNavBar";
-import { Sidebar } from "#/components/common/sidebar/Sidebar";
+import { BottomNavBar } from "#/features/navigation/bottomNavBar/BottomNavBar";
+import { Sidebar } from "#/features/navigation/sidebar/Sidebar";
 
 export const Route = createFileRoute("/_authenticated/_app")({
 	component: AppLayout,

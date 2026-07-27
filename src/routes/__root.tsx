@@ -1,4 +1,3 @@
-import { TooltipProvider } from "#/components/ui/tooltip";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -6,8 +5,9 @@ import {
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
+import { TooltipProvider } from "#/components/ui/tooltip";
 import "../i18n";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
@@ -18,6 +18,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+	notFoundComponent: () => <p>Page not found</p>,
 	head: () => ({
 		meta: [
 			{

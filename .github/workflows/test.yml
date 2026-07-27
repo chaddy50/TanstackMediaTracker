@@ -16,9 +16,28 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run typecheck
+
+      - run: npm run check
+
+      - name: Route surface unchanged
+        run: git diff --exit-code src/routeTree.gen.ts
+
       - run: npm run test
         env:
           BETTER_AUTH_BASE_URL: http://localhost:3000
+
+      - run: npm run build
+        env:
+          BETTER_AUTH_SECRET: ci-build-only
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: No server code in the client bundle
+        run: |
+          if grep -rlE "drizzle-orm|DATABASE_URL|postgres://|BETTER_AUTH_SECRET" .output/public/; then
+            echo "::error::Server-only markers found in the client bundle"
+            exit 1
+          fi
 
   test-integration:
     runs-on: ubuntu-latest

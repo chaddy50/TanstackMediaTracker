@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 
-import * as schema from "#/db/schema";
+import * as schema from "#/database/schema";
 
 const testDatabaseUrl = process.env.DATABASE_URL_TEST;
 if (!testDatabaseUrl) {

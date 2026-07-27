@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { FilterAndSortButton } from "#/components/common/FilterAndSortButton";
-import { InfiniteScrollLoader } from "#/components/common/InfiniteScrollLoader";
-import { PageHeader } from "#/components/common/PageHeader";
-import { SearchInput } from "#/components/common/SearchInput";
-import { useInfiniteScroll } from "#/hooks/useInfiniteScroll";
+import { LibraryScreen } from "#/features/screens/library/LibraryScreen";
+import { getLibrary } from "#/features/screens/library/library";
 import {
-	getLibrary,
-	type LibraryItem,
-} from "#/server/mediaItems/mediaItemList";
-import { applyLibrarySortDefaults, getUserSettings } from "#/server/settings";
-import { filterAndSortOptionsSchema } from "#/server/views";
-import { MediaItemList } from "@/components/common/MediaItemList";
+	applyLibrarySortDefaults,
+	getUserSettings,
+} from "#/features/screens/settings/settings";
+import { filterAndSortOptionsSchema } from "#/lib/filterAndSort";
 
 export const Route = createFileRoute("/_authenticated/_app/library")({
 	validateSearch: filterAndSortOptionsSchema,
@@ -23,50 +16,5 @@ export const Route = createFileRoute("/_authenticated/_app/library")({
 		const data = await getLibrary({ data: effectiveDeps });
 		return { ...data, settings };
 	},
-	component: LibraryPage,
+	component: LibraryScreen,
 });
-
-function LibraryPage() {
-	const loaderData = Route.useLoaderData();
-	const search = Route.useSearch();
-	const { t } = useTranslation();
-	const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-	const effectiveSearch = applyLibrarySortDefaults(search, loaderData.settings);
-
-	const { allItems, isLoadingMore, sentinelRef } =
-		useInfiniteScroll<LibraryItem>({
-			initialItems: loaderData.items,
-			initialHasMore: loaderData.hasMore,
-			fetchMore: (offset) =>
-				getLibrary({ data: { ...effectiveSearch, offset } }),
-		});
-
-	return (
-		<div className="min-h-screen bg-background text-foreground">
-			<PageHeader
-				title={t("library.title")}
-				right={
-					<>
-						<SearchInput
-							value={search.titleQuery ?? ""}
-							navigateTo="/library"
-						/>
-						<FilterAndSortButton
-							filterAndSortChoices={effectiveSearch}
-							isFilterAndSortPopupOpen={isFilterOpen}
-							setIsFilterAndSortPopupOpen={setIsFilterOpen}
-							navigateTo="/library"
-						/>
-					</>
-				}
-			/>
-
-			<main className="px-4 md:px-6 py-6">
-				<MediaItemList items={allItems} />
-				<div ref={sentinelRef} className="h-1" />
-				<InfiniteScrollLoader isLoading={isLoadingMore} />
-			</main>
-		</div>
-	);
-}
