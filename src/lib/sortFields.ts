@@ -8,6 +8,7 @@ export const ITEM_SORT_FIELDS = [
 	"status",
 	"rating",
 	"completedAt",
+	"releaseDate",
 	"updatedAt",
 ] as const satisfies readonly ItemSortField[];
 

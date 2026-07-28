@@ -292,6 +292,14 @@ function buildItemSortClauses(
 				...bySeriesThenTitle,
 			];
 
+		case "releaseDate":
+			return [
+				sortDirection === "asc"
+					? sql`${mediaItemMetadata.releaseDate} ASC NULLS LAST`
+					: sql`${mediaItemMetadata.releaseDate} DESC NULLS LAST`,
+				...bySeriesThenTitle,
+			];
+
 		default:
 			return [dir(mediaItemMetadata.sortTitle)];
 	}

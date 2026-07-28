@@ -235,6 +235,7 @@ describe("normalizeSortField", () => {
 			"series",
 			"rating",
 			"completedAt",
+			"releaseDate",
 		] as const;
 		for (const field of fields) {
 			expect(normalizeSortField(field)).toBe(field);

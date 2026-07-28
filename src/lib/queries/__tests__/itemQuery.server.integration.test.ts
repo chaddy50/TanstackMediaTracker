@@ -21,6 +21,7 @@ import {
 	insertInstance,
 	insertMediaItem,
 	insertMetadata,
+	insertSeries,
 	insertTag,
 	linkTag,
 	truncateAll,
@@ -570,6 +571,266 @@ describe("sort by completedAt", () => {
 
 		expect(result.items[0].title).toBe("Recent");
 		expect(result.items[1].title).toBe("Old");
+	});
+});
+
+describe("sort by releaseDate", () => {
+	it("returns items in ascending order, oldest release first", async () => {
+		await insertItem({ title: "Middle", releaseDate: "2010-06-15" });
+		await insertItem({ title: "Newest", releaseDate: "2024-12-31" });
+		await insertItem({ title: "Oldest", releaseDate: "1999-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Oldest",
+			"Middle",
+			"Newest",
+		]);
+	});
+
+	it("returns items in descending order, newest release first", async () => {
+		await insertItem({ title: "Middle", releaseDate: "2010-06-15" });
+		await insertItem({ title: "Newest", releaseDate: "2024-12-31" });
+		await insertItem({ title: "Oldest", releaseDate: "1999-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "desc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Newest",
+			"Middle",
+			"Oldest",
+		]);
+	});
+
+	it("places items with no release date last when sorting ascending", async () => {
+		await insertItem({ title: "Undated" });
+		await insertItem({ title: "Dated", releaseDate: "2005-03-03" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Dated",
+			"Undated",
+		]);
+	});
+
+	it("places items with no release date last when sorting descending", async () => {
+		await insertItem({ title: "Undated" });
+		await insertItem({ title: "Dated", releaseDate: "2005-03-03" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "desc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Dated",
+			"Undated",
+		]);
+	});
+
+	it("ignores metadata firstPublishedAt when the release date is set", async () => {
+		await insertItem({
+			title: "Both",
+			releaseDate: "2020-01-01",
+			metadata: { firstPublishedAt: "1900-01-01" },
+		});
+		await insertItem({ title: "Earlier", releaseDate: "1950-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		// Ordered by 2020, not the 1900 firstPublishedAt, so "Both" sorts last.
+		expect(result.items.map((item) => item.title)).toEqual(["Earlier", "Both"]);
+	});
+
+	it("places an item with neither release date nor firstPublishedAt last in both directions", async () => {
+		await insertItem({ title: "Neither", metadata: {} });
+		await insertItem({ title: "Dated", releaseDate: "2001-01-01" });
+
+		const ascending = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+		const descending = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "desc" },
+			USER,
+		);
+
+		expect(ascending.items.map((item) => item.title)).toEqual([
+			"Dated",
+			"Neither",
+		]);
+		expect(descending.items.map((item) => item.title)).toEqual([
+			"Dated",
+			"Neither",
+		]);
+	});
+
+	it("falls through to the series then title tiebreak when release dates match", async () => {
+		const seriesId = await insertSeries({
+			userId: USER,
+			name: "Bravo Series",
+			type: MediaItemType.BOOK,
+		});
+		await insertItem({
+			title: "Second Book",
+			releaseDate: "2001-01-01",
+			seriesId,
+			metadata: { series: "Bravo Series", seriesBookNumber: "2" },
+		});
+		await insertItem({
+			title: "First Book",
+			releaseDate: "2001-01-01",
+			seriesId,
+			metadata: { series: "Bravo Series", seriesBookNumber: "1" },
+		});
+		await insertItem({ title: "Alpha Standalone", releaseDate: "2001-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		// All three tie on release date, so bySeriesThenTitle decides: the
+		// standalone's series key is its own sortTitle ("Alpha Standalone"),
+		// which precedes "Bravo Series"; within the series, book 1 precedes book 2.
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Alpha Standalone",
+			"First Book",
+			"Second Book",
+		]);
+	});
+
+	it("orders BC release dates before AD ones when ascending", async () => {
+		await insertItem({ title: "Modern", releaseDate: "2020-01-01" });
+		await insertItem({ title: "Older BC", releaseDate: "1200-01-01 BC" });
+		await insertItem({ title: "Newer BC", releaseDate: "0800-01-01 BC" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Older BC",
+			"Newer BC",
+			"Modern",
+		]);
+	});
+
+	it("orders BC release dates after AD ones when descending", async () => {
+		await insertItem({ title: "Modern", releaseDate: "2020-01-01" });
+		await insertItem({ title: "Older BC", releaseDate: "1200-01-01 BC" });
+		await insertItem({ title: "Newer BC", releaseDate: "0800-01-01 BC" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "desc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Modern",
+			"Newer BC",
+			"Older BC",
+		]);
+	});
+
+	it("does not fail the query when firstPublishedAt is not a parseable date", async () => {
+		await insertItem({
+			title: "Malformed",
+			metadata: { firstPublishedAt: "unknown" },
+		});
+		await insertItem({ title: "Dated", releaseDate: "2001-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		// Guards against reintroducing a metadata cast into ORDER BY: casting this
+		// row's "unknown" to a date would raise and take the whole query down.
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Dated",
+			"Malformed",
+		]);
+	});
+
+	it("returns only items belonging to the requesting user", async () => {
+		await insertItem({ title: "Mine", releaseDate: "2001-01-01" });
+		await insertItem({
+			title: "Theirs",
+			releaseDate: "1990-01-01",
+			userId: "other-user",
+		});
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items).toHaveLength(1);
+		expect(result.items[0].title).toBe("Mine");
+	});
+
+	it("paginates by offset while preserving release date order", async () => {
+		await insertItem({ title: "Oldest", releaseDate: "1990-01-01" });
+		await insertItem({ title: "Middle", releaseDate: "2000-01-01" });
+		await insertItem({ title: "Newest", releaseDate: "2010-01-01" });
+
+		const result = await runItemQuery(
+			{ sortBy: "releaseDate", sortDirection: "asc" },
+			USER,
+			1,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Middle",
+			"Newest",
+		]);
+		expect(result.hasMore).toBe(false);
+	});
+
+	it("leaves the series sort unchanged when release dates are present", async () => {
+		const seriesId = await insertSeries({
+			userId: USER,
+			name: "Charlie Series",
+			type: MediaItemType.BOOK,
+		});
+		await insertItem({
+			title: "Later Entry",
+			releaseDate: "2005-01-01",
+			seriesId,
+			metadata: { series: "Charlie Series" },
+		});
+		await insertItem({
+			title: "Earlier Entry",
+			releaseDate: "2001-01-01",
+			seriesId,
+			metadata: { series: "Charlie Series" },
+		});
+
+		const result = await runItemQuery(
+			{ sortBy: "series", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Earlier Entry",
+			"Later Entry",
+		]);
 	});
 });
 

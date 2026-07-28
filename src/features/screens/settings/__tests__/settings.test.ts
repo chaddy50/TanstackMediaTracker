@@ -50,6 +50,25 @@ describe("applyLibrarySortDefaults", () => {
 		expect(result.sortDirection).toBe("asc");
 	});
 
+	it("applies releaseDate as the library default sort", () => {
+		const settings = {
+			defaultLibrarySortBy: "releaseDate",
+			defaultLibrarySortDirection: "desc",
+		} as UserSettings;
+		const result = applyLibrarySortDefaults({}, settings);
+		expect(result.sortBy).toBe("releaseDate");
+		expect(result.sortDirection).toBe("desc");
+	});
+
+	it("URL param sortBy overrides a releaseDate settings default", () => {
+		const settings = {
+			defaultLibrarySortBy: "releaseDate",
+			defaultLibrarySortDirection: "desc",
+		} as UserSettings;
+		const result = applyLibrarySortDefaults({ sortBy: "title" }, settings);
+		expect(result.sortBy).toBe("title");
+	});
+
 	it("preserves other search fields unchanged", () => {
 		const result = applyLibrarySortDefaults(
 			{ statuses: ["done"], mediaTypes: ["book"] },

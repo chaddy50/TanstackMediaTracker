@@ -336,6 +336,7 @@ export const en = {
 				title: "Title",
 				rating: "Rating",
 				completedAt: "Completed date",
+				releaseDate: "Release date",
 				name: "Name",
 				itemCount: "Item count",
 				creator: "Creator",

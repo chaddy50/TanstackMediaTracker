@@ -125,7 +125,8 @@ export type ItemSortField =
 	| "creator"
 	| "series"
 	| "status"
-	| "director";
+	| "director"
+	| "releaseDate";
 export type SeriesSortField =
 	| "name"
 	| "updatedAt"
