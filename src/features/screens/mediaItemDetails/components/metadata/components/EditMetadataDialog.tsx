@@ -21,6 +21,7 @@ import {
 } from "#/features/screens/mediaItemDetails/mediaItemDetails";
 import { MediaItemType } from "#/lib/enums";
 import { saveMediaItemGenre } from "#/lib/genres/genres";
+import { getReleaseYear, releaseYearToDate } from "#/lib/releaseDate";
 import { saveMediaItemTags } from "#/lib/tags";
 import { BookFields } from "./editMetadata/BookFields";
 import {
@@ -64,11 +65,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 		mediaItemDetails.coverImageUrl ?? "",
 	);
 	const [releaseYear, setReleaseYear] = useState(
-		mediaItemDetails.releaseDate
-			? new Date(`${mediaItemDetails.releaseDate}T00:00:00`)
-					.getFullYear()
-					.toString()
-			: "",
+		getReleaseYear(mediaItemDetails.releaseDate)?.toString() ?? "",
 	);
 	const [typeMetadata, setTypeMetadata] =
 		useState<Record<string, unknown>>(rawMetadata);
@@ -114,7 +111,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					title,
 					description: description || undefined,
 					coverImageUrl: coverImageUrl || undefined,
-					releaseDate: releaseYear ? `${releaseYear}-01-01` : undefined,
+					releaseDate: releaseYearToDate(Number(releaseYear)),
 					metadata: typeMetadata,
 				},
 			});
@@ -214,7 +211,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 						<FormField label={t("mediaItemDetails.releaseDate")}>
 							<Input
 								type="number"
-								min={1800}
+								min={-4712}
 								max={new Date().getFullYear() + 5}
 								placeholder={new Date().getFullYear().toString()}
 								value={releaseYear}

@@ -5,7 +5,10 @@ import { SearchResults } from "#/features/mediaItemSearch/components/searchResul
 import type { SearchResultWithStatus } from "#/features/mediaItemSearch/types";
 
 vi.mock("react-i18next", () => ({
-	useTranslation: () => ({ t: (key: string) => key }),
+	useTranslation: () => ({
+		t: (key: string, options?: { year: number }) =>
+			key === "time.yearBC" ? `${options?.year} BC` : key,
+	}),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -60,5 +63,38 @@ describe("SearchResults", () => {
 		renderSearchResults({ query: "dune", results });
 		expect(screen.queryByText("search.noResults")).not.toBeInTheDocument();
 		expect(screen.queryByText("search.prompt")).not.toBeInTheDocument();
+	});
+
+	it("shows a pre-0 AD release year with a BC suffix", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "The Epic of Gilgamesh",
+				externalId: "785115",
+				externalSource: "hardcover",
+				type: "book",
+				releaseDate: "1200-01-01 BC",
+				metadata: {},
+			},
+		];
+		renderSearchResults({ query: "gilgamesh", results });
+
+		expect(screen.getByText("1200 BC")).toBeInTheDocument();
+		expect(screen.queryByText("-120")).not.toBeInTheDocument();
+	});
+
+	it("shows an AD release year as a bare year", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Dune",
+				externalId: "1",
+				externalSource: "hardcover",
+				type: "book",
+				releaseDate: "2020-01-01",
+				metadata: {},
+			},
+		];
+		renderSearchResults({ query: "dune", results });
+
+		expect(screen.getByText("2020")).toBeInTheDocument();
 	});
 });

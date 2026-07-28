@@ -1,3 +1,4 @@
+import { releaseYearToDate } from "#/lib/releaseDate";
 import type { ExternalSearchResult } from "./types";
 
 export class RateLimitError extends Error {
@@ -198,7 +199,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 			title: hit.title,
 			description: hit.description,
 			coverImageUrl: imageById.get(hit.id),
-			releaseDate: hit.release_year ? `${hit.release_year}-01-01` : undefined,
+			releaseDate: releaseYearToDate(hit.release_year),
 			metadata,
 		};
 	});

@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import type { SearchResultWithStatus } from "#/features/mediaItemSearch/types";
+import { formatReleaseYear } from "#/lib/releaseDate";
 import { ActionButton } from "./components/ActionButton";
 import { Details } from "./components/Details";
 import { Thumbnail } from "./components/Thumbnail";
@@ -10,6 +12,7 @@ interface SearchResultProps {
 
 export function SearchResult(props: SearchResultProps) {
 	const { result, onClose } = props;
+	const { t } = useTranslation();
 
 	return (
 		<div
@@ -21,7 +24,7 @@ export function SearchResult(props: SearchResultProps) {
 
 			<Details
 				title={result.title}
-				year={result.releaseDate?.slice(0, 4)}
+				year={formatReleaseYear(result.releaseDate, t) ?? undefined}
 				type={result.type}
 			/>
 

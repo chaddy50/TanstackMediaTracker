@@ -29,7 +29,7 @@ vi.mock("#/features/mediaItemSearch/api/igdb", () => ({
 	search: vi.fn().mockResolvedValue([]),
 }));
 
-import { count, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import {
 	creators,
 	mediaItemMetadata,
@@ -138,5 +138,63 @@ describe("handleAddToLibrary", () => {
 
 		expect(updated?.seriesId).not.toBeNull();
 		expect(updated?.creatorId).not.toBeNull();
+	});
+
+	it("stores a pre-0 AD release date", async () => {
+		await handleAddToLibrary(
+			{ ...BASE_BOOK_INPUT, releaseDate: "1200-01-01 BC" },
+			USER,
+		);
+
+		const [stored] = await testDb
+			.select({ releaseDate: mediaItemMetadata.releaseDate })
+			.from(mediaItemMetadata);
+
+		expect(stored?.releaseDate).toBe("1200-01-01 BC");
+	});
+
+	// Documents why pre-0 AD years are stored in era notation: Postgres reads the
+	// leading "-1200" as a timezone displacement and rejects the whole value.
+	it("rejects a negative-year release date", async () => {
+		const insertNegativeYear = handleAddToLibrary(
+			{ ...BASE_BOOK_INPUT, releaseDate: "-1200-01-01" },
+			USER,
+		);
+
+		// Drizzle wraps the driver error, so the SQLSTATE lives on the cause
+		await expect(insertNegativeYear).rejects.toMatchObject({
+			cause: { code: "22009" },
+		});
+	});
+});
+
+describe("release date ordering", () => {
+	it("sorts pre-0 AD dates before AD dates, oldest first", async () => {
+		await insertMetadata({
+			type: MediaItemType.BOOK,
+			title: "Modern",
+			releaseDate: "2020-01-01",
+		});
+		await insertMetadata({
+			type: MediaItemType.BOOK,
+			title: "Gilgamesh",
+			releaseDate: "1200-01-01 BC",
+		});
+		await insertMetadata({
+			type: MediaItemType.BOOK,
+			title: "Iliad",
+			releaseDate: "0800-01-01 BC",
+		});
+
+		const rows = await testDb
+			.select({ title: mediaItemMetadata.title })
+			.from(mediaItemMetadata)
+			.orderBy(asc(mediaItemMetadata.releaseDate));
+
+		expect(rows.map((row) => row.title)).toEqual([
+			"Gilgamesh",
+			"Iliad",
+			"Modern",
+		]);
 	});
 });

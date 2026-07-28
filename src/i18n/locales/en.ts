@@ -202,6 +202,7 @@ export const en = {
 		hour: "hr",
 		hours: "hrs",
 		min: "min",
+		yearBC: "{{year}} BC",
 	},
 	timeToBeat: {
 		hastily: "Rushed",

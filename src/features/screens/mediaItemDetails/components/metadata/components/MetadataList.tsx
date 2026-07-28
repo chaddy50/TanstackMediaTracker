@@ -5,6 +5,7 @@ import { SeriesLink } from "#/components/SeriesLink";
 import { CreatorLink } from "#/features/screens/mediaItemDetails/components/metadata/components/CreatorLink";
 import type { MediaItemDetails } from "#/features/screens/mediaItemDetails/mediaItemDetails";
 import { MediaItemType } from "#/lib/enums";
+import { formatReleaseYear } from "#/lib/releaseDate";
 import { formatHours, formatMinutes } from "#/lib/utils";
 
 export function MetadataList({
@@ -38,10 +39,11 @@ export function MetadataList({
 		shouldCreatorBeLink?: boolean;
 	}> = [];
 
-	if (releaseDate) {
+	const releaseYear = formatReleaseYear(releaseDate, t);
+	if (releaseYear) {
 		fields.push({
 			label: t("mediaItemDetails.releaseDate"),
-			value: new Date(`${releaseDate}T00:00:00`).getFullYear().toString(),
+			value: releaseYear,
 		});
 	}
 

@@ -25,6 +25,7 @@ import { GameFields } from "#/features/screens/mediaItemDetails/components/metad
 import { MovieFields } from "#/features/screens/mediaItemDetails/components/metadata/components/editMetadata/MovieFields";
 import { TvShowFields } from "#/features/screens/mediaItemDetails/components/metadata/components/editMetadata/TvShowFields";
 import { MediaItemType } from "#/lib/enums";
+import { releaseYearToDate } from "#/lib/releaseDate";
 import { toTitleCase } from "#/lib/utils";
 
 interface CreateCustomItemDialogProps {
@@ -86,7 +87,7 @@ export function CreateCustomItemDialog({
 					title: title.trim(),
 					description: description || undefined,
 					coverImageUrl: coverImageUrl || undefined,
-					releaseDate: releaseYear ? `${releaseYear}-01-01` : undefined,
+					releaseDate: releaseYearToDate(Number(releaseYear)),
 					metadata: typeMetadata,
 				},
 			});
@@ -164,7 +165,7 @@ export function CreateCustomItemDialog({
 					<FormField label={t("mediaItemDetails.releaseDate")}>
 						<Input
 							type="number"
-							min={1800}
+							min={-4712}
 							max={new Date().getFullYear() + 5}
 							placeholder={new Date().getFullYear().toString()}
 							value={releaseYear}
