@@ -188,59 +188,61 @@ export function DashboardReport({ initialReport }: Props) {
 			const genreData = data as GenreDataPoint[];
 			const total = genreData.reduce((sum, d) => sum + d.value, 0);
 			return (
-				<ResponsiveContainer width="100%" height={220}>
-					<PieChart>
-						<Pie
-							data={genreData}
-							cx="50%"
-							cy="50%"
-							innerRadius={65}
-							outerRadius={90}
-							dataKey="value"
-							nameKey="genre"
-							style={{ cursor: "pointer" }}
-						>
-							<Label
-								content={({ viewBox }) => {
-									const { cx, cy } = viewBox as { cx: number; cy: number };
-									return (
-										<text textAnchor="middle">
-											<tspan
-												x={cx}
-												y={cy - 6}
-												fontSize={24}
-												fontWeight="bold"
-												fill="var(--card-foreground)"
-											>
-												{total}
-											</tspan>
-											<tspan
-												x={cx}
-												y={cy + 16}
-												fontSize={12}
-												fill="var(--muted-foreground)"
-											>
-												{t("dashboard.report.progressLabels.items")}
-											</tspan>
-										</text>
-									);
-								}}
-							/>
-							{genreData.map((entry, index) => (
-								<Cell
-									key={entry.genre}
-									fill={PIE_COLORS[index % PIE_COLORS.length]}
-									onClick={() => navigateToDrillDown(entry.genre)}
+				<div className="h-55 md:h-[clamp(140px,20vh,220px)]">
+					<ResponsiveContainer width="100%" height="100%">
+						<PieChart>
+							<Pie
+								data={genreData}
+								cx="50%"
+								cy="50%"
+								innerRadius="59%"
+								outerRadius="82%"
+								dataKey="value"
+								nameKey="genre"
+								style={{ cursor: "pointer" }}
+							>
+								<Label
+									content={({ viewBox }) => {
+										const { cx, cy } = viewBox as { cx: number; cy: number };
+										return (
+											<text textAnchor="middle">
+												<tspan
+													x={cx}
+													y={cy - 6}
+													fontSize={24}
+													fontWeight="bold"
+													fill="var(--card-foreground)"
+												>
+													{total}
+												</tspan>
+												<tspan
+													x={cx}
+													y={cy + 16}
+													fontSize={12}
+													fill="var(--muted-foreground)"
+												>
+													{t("dashboard.report.progressLabels.items")}
+												</tspan>
+											</text>
+										);
+									}}
 								/>
-							))}
-						</Pie>
-						<Tooltip
-							formatter={(value, name) => [value, name]}
-							contentStyle={TOOLTIP_CONTENT_STYLE}
-							itemStyle={{ color: "var(--card-foreground)" }}
-						/>
-					</PieChart>
-				</ResponsiveContainer>
+								{genreData.map((entry, index) => (
+									<Cell
+										key={entry.genre}
+										fill={PIE_COLORS[index % PIE_COLORS.length]}
+										onClick={() => navigateToDrillDown(entry.genre)}
+									/>
+								))}
+							</Pie>
+							<Tooltip
+								formatter={(value, name) => [value, name]}
+								contentStyle={TOOLTIP_CONTENT_STYLE}
+								itemStyle={{ color: "var(--card-foreground)" }}
+							/>
+						</PieChart>
+					</ResponsiveContainer>
+				</div>
 			);
 		}
 
@@ -321,57 +323,59 @@ export function DashboardReport({ initialReport }: Props) {
 				: t("dashboard.report.progressLabels.items");
 
 		return (
-			<ResponsiveContainer width="100%" height={220}>
-				<LineChart
-					data={timeData}
-					margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-				>
-					<CartesianGrid
-						strokeDasharray="3 3"
-						stroke="var(--border)"
-						vertical={false}
-					/>
-					<XAxis
-						dataKey="month"
-						tickFormatter={formatTick}
-						tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-						axisLine={false}
-						tickLine={false}
-					/>
-					<YAxis
-						allowDecimals={false}
-						tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-						axisLine={false}
-						tickLine={false}
-						width={36}
-					/>
-					<Tooltip
-						formatter={(value) => [value, progressLabel]}
-						labelFormatter={(label) => formatTooltipLabel(String(label))}
-						contentStyle={TOOLTIP_CONTENT_STYLE}
-						itemStyle={{ color: "var(--card-foreground)" }}
-						cursor={{ stroke: "var(--border)" }}
-					/>
-					<Line
-						type="monotone"
-						dataKey="value"
-						stroke="#69359c"
-						strokeWidth={2}
-						dot={{ r: 4, fill: "#69359c", strokeWidth: 0 }}
-						activeDot={{
-							r: 6,
-							fill: "#69359c",
-							strokeWidth: 0,
-							style: { cursor: "pointer" },
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
-							onClick: (_event: any, payload: any) =>
-								navigateToDrillDown(
-									(payload as { payload: ReportDataPoint }).payload.month,
-								),
-						}}
-					/>
-				</LineChart>
-			</ResponsiveContainer>
+			<div className="h-55 md:h-[clamp(140px,20vh,220px)]">
+				<ResponsiveContainer width="100%" height="100%">
+					<LineChart
+						data={timeData}
+						margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+					>
+						<CartesianGrid
+							strokeDasharray="3 3"
+							stroke="var(--border)"
+							vertical={false}
+						/>
+						<XAxis
+							dataKey="month"
+							tickFormatter={formatTick}
+							tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+							axisLine={false}
+							tickLine={false}
+						/>
+						<YAxis
+							allowDecimals={false}
+							tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+							axisLine={false}
+							tickLine={false}
+							width={36}
+						/>
+						<Tooltip
+							formatter={(value) => [value, progressLabel]}
+							labelFormatter={(label) => formatTooltipLabel(String(label))}
+							contentStyle={TOOLTIP_CONTENT_STYLE}
+							itemStyle={{ color: "var(--card-foreground)" }}
+							cursor={{ stroke: "var(--border)" }}
+						/>
+						<Line
+							type="monotone"
+							dataKey="value"
+							stroke="#69359c"
+							strokeWidth={2}
+							dot={{ r: 4, fill: "#69359c", strokeWidth: 0 }}
+							activeDot={{
+								r: 6,
+								fill: "#69359c",
+								strokeWidth: 0,
+								style: { cursor: "pointer" },
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+								onClick: (_event: any, payload: any) =>
+									navigateToDrillDown(
+										(payload as { payload: ReportDataPoint }).payload.month,
+									),
+							}}
+						/>
+					</LineChart>
+				</ResponsiveContainer>
+			</div>
 		);
 	}
 
