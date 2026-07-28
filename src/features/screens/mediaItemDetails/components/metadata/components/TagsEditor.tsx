@@ -42,6 +42,7 @@ export function TagsEditor({
 		setInputValue("");
 		setIsShowingSuggestions(false);
 		inputRef.current?.focus();
+		inputRef.current?.scrollIntoView({ block: "nearest" });
 	}
 
 	function removeTag(name: string) {
@@ -64,6 +65,27 @@ export function TagsEditor({
 			<span className="text-sm text-muted-foreground">
 				{t("mediaItem.tags")}
 			</span>
+
+			{pendingTags.length > 0 && (
+				<div className="flex flex-wrap gap-1.5">
+					{pendingTags.map((tag) => (
+						<span
+							key={tag}
+							className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-sm"
+						>
+							{tag}
+							<button
+								type="button"
+								onClick={() => removeTag(tag)}
+								className="text-muted-foreground hover:text-foreground transition-colors"
+								aria-label={t("mediaItem.removeTag", { tag })}
+							>
+								<X className="size-3" />
+							</button>
+						</span>
+					))}
+				</div>
+			)}
 
 			<div className="relative">
 				<Input
@@ -98,27 +120,6 @@ export function TagsEditor({
 					</ul>
 				)}
 			</div>
-
-			{pendingTags.length > 0 && (
-				<div className="flex flex-wrap gap-1.5">
-					{pendingTags.map((tag) => (
-						<span
-							key={tag}
-							className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-sm"
-						>
-							{tag}
-							<button
-								type="button"
-								onClick={() => removeTag(tag)}
-								className="text-muted-foreground hover:text-foreground transition-colors"
-								aria-label={t("mediaItem.removeTag", { tag })}
-							>
-								<X className="size-3" />
-							</button>
-						</span>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }
