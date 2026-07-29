@@ -1,7 +1,12 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useUserSettings } from "#/components/hooks/useUserSettings";
-import { InstanceEditForm } from "#/features/screens/mediaItemDetails/components/history/components/instance/InstanceEditForm";
+import type { FictionRating } from "#/database/schema";
+import {
+	InstanceEditForm,
+	type InstanceEditFormHandle,
+} from "#/features/screens/mediaItemDetails/components/history/components/instance/InstanceEditForm";
 import { MediaItemType } from "#/lib/enums";
 
 type MockedUserSettings = ReturnType<typeof useUserSettings>;
@@ -197,5 +202,224 @@ describe("InstanceEditForm", () => {
 		expect(
 			screen.getByText("mediaItemDetails.removeEntry"),
 		).toBeInTheDocument();
+	});
+});
+
+const savedInstance = {
+	id: 42,
+	rating: 0,
+	fictionRating: null,
+	seasonReviews: null,
+	consumptionInfo: null,
+	reviewText: "First impressions",
+	startedAt: "2024-01-01",
+	completedAt: null,
+};
+
+function fictionRating(): FictionRating {
+	return {
+		setting: { rating: 4 },
+		character: { rating: 4 },
+		plot: { rating: 4 },
+		enjoyment: { rating: 4 },
+		depth: { rating: 4 },
+	};
+}
+
+describe("InstanceEditForm unsaved changes", () => {
+	it("reports a freshly opened new entry as clean despite the pre-filled start date", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(<InstanceEditForm {...baseProps} ref={handleRef} />);
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
+	});
+
+	it("reports a freshly opened existing entry as clean", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
+	});
+
+	it("stays clean when user settings fill in the default consumption method", async () => {
+		const { useUserSettings } = await import(
+			"#/components/hooks/useUserSettings"
+		);
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		const { rerender } = render(
+			<InstanceEditForm {...baseProps} ref={handleRef} />,
+		);
+
+		vi.mocked(useUserSettings).mockReturnValue({
+			data: { defaultBookConsumptionMethod: "audiobook" },
+		} as unknown as MockedUserSettings);
+		rerender(<InstanceEditForm {...baseProps} ref={handleRef} />);
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
+	});
+
+	it("becomes dirty once the review text is edited", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.review"), {
+			target: { value: "Changed my mind" },
+		});
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(true);
+	});
+
+	it("becomes dirty once a date is edited", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.started"), {
+			target: { value: "2024-03-03" },
+		});
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(true);
+	});
+
+	it("becomes clean again when an edit is reverted", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		const reviewField = screen.getByLabelText("mediaItemDetails.review");
+
+		fireEvent.change(reviewField, { target: { value: "Changed my mind" } });
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(true);
+
+		fireEvent.change(reviewField, { target: { value: "First impressions" } });
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
+	});
+
+	it("becomes dirty once a season review is added", () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				mediaItemType={MediaItemType.TV_SHOW}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.click(screen.getByText("mediaItemDetails.addSeasonReview"));
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(true);
+	});
+
+	it("refuses to save and skips the server when the date range is invalid", async () => {
+		const { saveInstance } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(saveInstance).mockClear();
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(<InstanceEditForm {...baseProps} ref={handleRef} />);
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.started"), {
+			target: { value: "2024-06-01" },
+		});
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.completed"), {
+			target: { value: "2024-01-01" },
+		});
+
+		await expect(handleRef.current?.save()).resolves.toBe(false);
+		expect(saveInstance).not.toHaveBeenCalled();
+		expect(screen.getByTestId("date-error")).toBeInTheDocument();
+	});
+
+	it("saves through the handle and reports success", async () => {
+		const { saveInstance } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(saveInstance).mockClear();
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.review"), {
+			target: { value: "Changed my mind" },
+		});
+
+		await expect(handleRef.current?.save()).resolves.toBe(true);
+		expect(saveInstance).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(saveInstance).mock.calls[0][0].data.reviewText).toBe(
+			"Changed my mind",
+		);
+	});
+
+	it("is clean again after a successful save", async () => {
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={savedInstance}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.review"), {
+			target: { value: "Changed my mind" },
+		});
+		await handleRef.current?.save();
+
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
+	});
+
+	it("is clean again after removing the detailed rating saves immediately", async () => {
+		const { saveInstance } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(saveInstance).mockClear();
+		const handleRef = createRef<InstanceEditFormHandle>();
+
+		render(
+			<InstanceEditForm
+				{...baseProps}
+				instance={{
+					...savedInstance,
+					rating: 4,
+					fictionRating: fictionRating(),
+				}}
+				ref={handleRef}
+			/>,
+		);
+		fireEvent.click(screen.getByText("mediaItemDetails.removeDetailedRating"));
+
+		await vi.waitFor(() => expect(saveInstance).toHaveBeenCalledTimes(1));
+		expect(handleRef.current?.hasUnsavedChanges()).toBe(false);
 	});
 });

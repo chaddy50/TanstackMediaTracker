@@ -7,6 +7,44 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+/**
+ * Structural comparison for plain data — primitives, arrays, and plain objects.
+ * Object key order is ignored. `Date`, `Map`, `Set`, and class instances are out
+ * of contract and compare by reference.
+ */
+export function isDeepEqual(a: unknown, b: unknown): boolean {
+	if (Object.is(a, b)) {
+		return true;
+	}
+
+	if (
+		a === null ||
+		b === null ||
+		typeof a !== "object" ||
+		typeof b !== "object"
+	) {
+		return false;
+	}
+
+	if (Array.isArray(a) || Array.isArray(b)) {
+		if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+			return false;
+		}
+		return a.every((element, index) => isDeepEqual(element, b[index]));
+	}
+
+	const aEntries = Object.entries(a);
+	if (aEntries.length !== Object.keys(b).length) {
+		return false;
+	}
+
+	return aEntries.every(
+		([key, value]) =>
+			Object.hasOwn(b, key) &&
+			isDeepEqual(value, (b as Record<string, unknown>)[key]),
+	);
+}
+
 export function toTitleCase(text: string): string {
 	return text
 		.split(" ")

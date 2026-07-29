@@ -1,5 +1,3 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { DeleteButton } from "#/components/DeleteButton";
 import { useUserSettings } from "#/components/hooks/useUserSettings";
@@ -21,6 +19,21 @@ import {
 	saveInstance,
 } from "#/features/screens/mediaItemDetails/mediaItemDetails";
 import { GameControlMethod, MediaItemType } from "#/lib/enums";
+import { isDeepEqual } from "#/lib/utils";
+import {
+	type Ref,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+
+export interface InstanceEditFormHandle {
+	hasUnsavedChanges: () => boolean;
+	save: () => Promise<boolean>;
+}
 
 interface InstanceEditFormProps {
 	instance?: MediaItemDetails["instances"][number];
@@ -29,6 +42,18 @@ interface InstanceEditFormProps {
 	totalSeasons?: number;
 	onSave: () => void;
 	onCancel: () => void;
+	ref?: Ref<InstanceEditFormHandle>;
+}
+
+/** The persisted fields of the form, compared against a baseline to detect edits. */
+interface InstanceFormValues {
+	rating: number;
+	fictionRating: FictionRating | null;
+	reviewText: string;
+	startedAt: string;
+	completedAt: string;
+	consumptionInfo: ConsumptionInfo | null;
+	seasonReviews: SeasonReview[];
 }
 
 function emptySeasonReview(season: number): SeasonReview {
@@ -65,6 +90,7 @@ export function InstanceEditForm({
 	totalSeasons,
 	onSave,
 	onCancel,
+	ref,
 }: InstanceEditFormProps) {
 	const { t } = useTranslation();
 	const { data: settings } = useUserSettings();
@@ -84,21 +110,43 @@ export function InstanceEditForm({
 			getInitialConsumptionInfo(mediaItemType, instance, null),
 		);
 
-	useEffect(() => {
-		if (
-			settings !== undefined &&
-			!hasInitializedConsumption.current &&
-			(instance === undefined || !instance.consumptionInfo)
-		) {
-			hasInitializedConsumption.current = true;
-			setConsumptionInfo(
-				getInitialConsumptionInfo(mediaItemType, instance, settings),
-			);
-		}
-	}, [settings, instance, mediaItemType]);
 	const [seasonReviews, setSeasonReviews] = useState<SeasonReview[]>(
 		instance?.seasonReviews ?? [],
 	);
+
+	const currentValues: InstanceFormValues = {
+		rating,
+		fictionRating,
+		reviewText,
+		startedAt,
+		completedAt,
+		consumptionInfo,
+		seasonReviews,
+	};
+	const baselineRef = useRef(currentValues);
+
+	useEffect(() => {
+		if (settings === undefined || hasInitializedConsumption.current) {
+			return;
+		}
+		if (instance?.consumptionInfo) {
+			return;
+		}
+
+		hasInitializedConsumption.current = true;
+		const defaultConsumptionInfo = getInitialConsumptionInfo(
+			mediaItemType,
+			instance,
+			settings,
+		);
+		setConsumptionInfo(defaultConsumptionInfo);
+		// The form filled this in from user settings, not the user
+		baselineRef.current = {
+			...baselineRef.current,
+			consumptionInfo: defaultConsumptionInfo,
+		};
+	}, [settings, instance, mediaItemType]);
+
 	const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(
 		new Set(),
 	);
@@ -187,6 +235,7 @@ export function InstanceEditForm({
 					consumptionInfo: consumptionInfo ?? undefined,
 				},
 			});
+			baselineRef.current = currentValues;
 			onSave();
 		} finally {
 			setSaving(false);
@@ -194,26 +243,43 @@ export function InstanceEditForm({
 	}
 
 	async function onRemoveDetailedRating() {
-		if (instance?.id) {
-			setSaving(true);
-			try {
-				await saveInstance({
-					data: {
-						mediaItemId,
-						instanceId: instance.id,
-						rating: "0",
-						reviewText: reviewText || undefined,
-						startedAt: startedAt || undefined,
-						completedAt: completedAt || undefined,
-						seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
-						consumptionInfo: consumptionInfo ?? undefined,
-					},
-				});
-			} finally {
-				setSaving(false);
-			}
+		if (!instance?.id) {
+			return;
+		}
+		setSaving(true);
+		try {
+			await saveInstance({
+				data: {
+					mediaItemId,
+					instanceId: instance.id,
+					rating: "0",
+					reviewText: reviewText || undefined,
+					startedAt: startedAt || undefined,
+					completedAt: completedAt || undefined,
+					seasonReviews: seasonReviews.length > 0 ? seasonReviews : undefined,
+					consumptionInfo: consumptionInfo ?? undefined,
+				},
+			});
+			baselineRef.current = {
+				...currentValues,
+				rating: 0,
+				fictionRating: null,
+			};
+		} finally {
+			setSaving(false);
 		}
 	}
+
+	useImperativeHandle(ref, () => ({
+		hasUnsavedChanges: () => !isDeepEqual(currentValues, baselineRef.current),
+		save: async () => {
+			if (dateError) {
+				return false;
+			}
+			await onSaveInstance();
+			return true;
+		},
+	}));
 
 	async function onDeleteInstance() {
 		if (!instance) return;

@@ -54,6 +54,14 @@ export const en = {
 		save: "Save",
 		cancel: "Cancel",
 	},
+	unsavedChanges: {
+		title: "Unsaved Changes",
+		description:
+			"You have unsaved changes. What would you like to do before leaving?",
+		keepEditing: "Keep Editing",
+		discard: "Discard Changes",
+		saveAndContinue: "Save & Continue",
+	},
 	mediaItem: {
 		tags: "Tags",
 		addTag: "Add tag...",

@@ -1,19 +1,30 @@
 import { useRouter } from "@tanstack/react-router";
-import type { SetStateAction } from "react";
+import type { Ref, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import type { MediaItemDetails } from "#/features/screens/mediaItemDetails/mediaItemDetails";
 import { MediaItemType } from "#/lib/enums";
-import { InstanceEditForm } from "./InstanceEditForm";
+import {
+	InstanceEditForm,
+	type InstanceEditFormHandle,
+} from "./InstanceEditForm";
 import { InstanceRow } from "./InstanceRow";
 
 interface InstanceListProps {
 	mediaItemDetails: MediaItemDetails;
 	idBeingEdited: number | "new" | null;
 	setIdBeingEdited: (value: SetStateAction<number | "new" | null>) => void;
+	startEditing: (id: number | "new") => void;
+	editorRef: Ref<InstanceEditFormHandle>;
 }
 
 export function InstanceList(props: InstanceListProps) {
-	const { mediaItemDetails, idBeingEdited, setIdBeingEdited } = props;
+	const {
+		mediaItemDetails,
+		idBeingEdited,
+		setIdBeingEdited,
+		startEditing,
+		editorRef,
+	} = props;
 	const router = useRouter();
 	const { t } = useTranslation();
 
@@ -40,6 +51,7 @@ export function InstanceList(props: InstanceListProps) {
 		<div className="flex flex-col gap-3">
 			{idBeingEdited === "new" && (
 				<InstanceEditForm
+					ref={editorRef}
 					mediaItemId={mediaItemDetails.id}
 					mediaItemType={mediaItemType}
 					totalSeasons={totalSeasons}
@@ -52,6 +64,7 @@ export function InstanceList(props: InstanceListProps) {
 				idBeingEdited === instance.id ? (
 					<InstanceEditForm
 						key={instance.id}
+						ref={editorRef}
 						instance={instance}
 						mediaItemId={mediaItemDetails.id}
 						mediaItemType={mediaItemType}
@@ -64,7 +77,7 @@ export function InstanceList(props: InstanceListProps) {
 						key={instance.id}
 						index={idx + 1}
 						instance={instance}
-						onEdit={() => setIdBeingEdited(instance.id)}
+						onEdit={() => startEditing(instance.id)}
 					/>
 				),
 			)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateRange } from "../utils";
+import { formatDateRange, isDeepEqual } from "../utils";
 
 describe("formatDateRange", () => {
 	it("returns null when both are null", () => {
@@ -30,5 +30,95 @@ describe("formatDateRange", () => {
 
 	it("returns just the end date when only completedAt is set", () => {
 		expect(formatDateRange(null, "2024-06-15")).toBe("Jun 15, 2024");
+	});
+});
+
+describe("isDeepEqual", () => {
+	it("returns true for equal primitives of the same type", () => {
+		expect(isDeepEqual(1, 1)).toBe(true);
+		expect(isDeepEqual("a", "a")).toBe(true);
+		expect(isDeepEqual(true, true)).toBe(true);
+	});
+
+	it("returns false for unequal primitives", () => {
+		expect(isDeepEqual(1, 2)).toBe(false);
+		expect(isDeepEqual("a", "b")).toBe(false);
+	});
+
+	it("returns false for primitives of differing type", () => {
+		expect(isDeepEqual(1, "1")).toBe(false);
+		expect(isDeepEqual(0, false)).toBe(false);
+		expect(isDeepEqual("", null)).toBe(false);
+	});
+
+	it("returns true for null vs null and undefined vs undefined", () => {
+		expect(isDeepEqual(null, null)).toBe(true);
+		expect(isDeepEqual(undefined, undefined)).toBe(true);
+	});
+
+	it("returns false for null vs undefined", () => {
+		expect(isDeepEqual(null, undefined)).toBe(false);
+	});
+
+	it("returns false when comparing null against an object in either direction", () => {
+		expect(isDeepEqual(null, {})).toBe(false);
+		expect(isDeepEqual({}, null)).toBe(false);
+	});
+
+	it("returns true for arrays with identical elements in the same order", () => {
+		expect(isDeepEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+	});
+
+	it("returns false for arrays with the same elements in a different order", () => {
+		expect(isDeepEqual([1, 2], [2, 1])).toBe(false);
+	});
+
+	it("returns false for arrays of differing length", () => {
+		expect(isDeepEqual([1, 2], [1, 2, 3])).toBe(false);
+	});
+
+	it("returns false when comparing an array against a plain object", () => {
+		expect(isDeepEqual([], {})).toBe(false);
+	});
+
+	it("returns true for plain objects whose keys were inserted in a different order", () => {
+		expect(isDeepEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true);
+	});
+
+	it("returns false for plain objects with differing key counts in either direction", () => {
+		expect(isDeepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+		expect(isDeepEqual({ a: 1, b: 2 }, { a: 1 })).toBe(false);
+	});
+
+	it("compares nested objects and arrays matching the instance form baseline shape", () => {
+		const baseline = {
+			rating: 4.5,
+			fictionRating: { setting: 4, character: 5, plot: 4 },
+			seasonReviews: [
+				{ season: 1, startedAt: "2024-01-01", completedAt: "", rating: 4 },
+			],
+			consumptionInfo: { method: "audiobook", controlMethod: null },
+		};
+		const identical = {
+			rating: 4.5,
+			fictionRating: { setting: 4, character: 5, plot: 4 },
+			seasonReviews: [
+				{ season: 1, startedAt: "2024-01-01", completedAt: "", rating: 4 },
+			],
+			consumptionInfo: { method: "audiobook", controlMethod: null },
+		};
+		const oneNestedLeafChanged = {
+			...identical,
+			seasonReviews: [
+				{ season: 1, startedAt: "2024-01-02", completedAt: "", rating: 4 },
+			],
+		};
+
+		expect(isDeepEqual(baseline, identical)).toBe(true);
+		expect(isDeepEqual(baseline, oneNestedLeafChanged)).toBe(false);
+	});
+
+	it("treats a key holding undefined as different from an absent key", () => {
+		expect(isDeepEqual({ a: undefined }, {})).toBe(false);
 	});
 });
