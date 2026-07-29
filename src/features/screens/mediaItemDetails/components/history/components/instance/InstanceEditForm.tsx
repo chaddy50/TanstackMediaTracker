@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { DeleteButton } from "#/components/DeleteButton";
 import { useUserSettings } from "#/components/hooks/useUserSettings";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
 import type {
 	ConsumptionInfo,
 	FictionRating,
@@ -285,12 +285,12 @@ export function InstanceEditForm({
 				<label className="text-sm text-muted-foreground" htmlFor={reviewTextId}>
 					{t("mediaItemDetails.review")}
 				</label>
-				<Textarea
+				<AutoResizeTextarea
 					id={reviewTextId}
 					value={reviewText}
 					onChange={(e) => setReviewText(e.target.value)}
 					placeholder="Write your review..."
-					rows={3}
+					minRows={6}
 				/>
 			</div>
 

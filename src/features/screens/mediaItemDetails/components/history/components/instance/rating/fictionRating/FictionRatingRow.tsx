@@ -1,6 +1,4 @@
-import { Pencil } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -10,7 +8,9 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Textarea } from "#/components/ui/textarea";
+import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { RatingStars } from "../ratingStars/RatingStars";
 
 type FictionRatingRowProps = {
@@ -84,10 +84,11 @@ export function FictionRatingRow({
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
-				<Textarea
+				<AutoResizeTextarea
 					value={draft}
 					onChange={(e) => setDraft(e.target.value)}
-					rows={3}
+					minRows={4}
+					maxRows={12}
 					autoFocus
 				/>
 				<DialogFooter>

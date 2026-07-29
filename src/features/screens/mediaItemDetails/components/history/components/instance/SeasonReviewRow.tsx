@@ -1,10 +1,10 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { DeleteButton } from "#/components/DeleteButton";
 import { MarkdownTextBlock } from "#/components/MarkdownTextBlock";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
 import type { SeasonReview } from "#/database/schema";
 import { FictionRatingComments } from "#/features/screens/mediaItemDetails/components/history/components/instance/rating/fictionRating/FictionRatingComments";
 import { RatingEditor } from "#/features/screens/mediaItemDetails/components/history/components/instance/rating/RatingEditor";
@@ -161,12 +161,12 @@ export function SeasonReviewRow({
 				<label className="text-sm text-muted-foreground" htmlFor={reviewTextId}>
 					{t("mediaItemDetails.review")}
 				</label>
-				<Textarea
+				<AutoResizeTextarea
 					id={reviewTextId}
 					value={seasonReview.reviewText}
 					onChange={(e) => onChange({ reviewText: e.target.value })}
 					placeholder="Write your season review..."
-					rows={2}
+					minRows={4}
 				/>
 			</div>
 		</div>

@@ -9,7 +9,7 @@ export default defineConfig({
 			["src/components/**", "jsdom"],
 			["src/features/**", "jsdom"],
 		],
-		setupFiles: ["./src/test-setup.ts"],
+		setupFiles: ["./src/tests/setup.ts"],
 		exclude: ["**/*.integration.test.ts", "**/node_modules/**"],
 	},
 });

@@ -127,6 +127,55 @@ describe("InstanceEditForm", () => {
 		expect(callData.consumptionInfo).toMatchObject({ method: "audiobook" });
 	});
 
+	it("renders the review field large enough to write in", () => {
+		render(<InstanceEditForm {...baseProps} />);
+
+		const reviewField = screen.getByLabelText("mediaItemDetails.review");
+		expect(reviewField).toHaveAttribute("rows", "6");
+	});
+
+	it("renders the review field as auto-resizing rather than hand-draggable", () => {
+		render(<InstanceEditForm {...baseProps} />);
+
+		expect(screen.getByLabelText("mediaItemDetails.review")).toHaveClass(
+			"resize-none",
+			"field-sizing-fixed",
+		);
+	});
+
+	it("saves the text typed into the review field", async () => {
+		const { saveInstance } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(saveInstance).mockClear();
+		render(<InstanceEditForm {...baseProps} />);
+
+		fireEvent.change(screen.getByLabelText("mediaItemDetails.review"), {
+			target: { value: "A great read" },
+		});
+		fireEvent.click(screen.getByText("mediaItemDetails.save"));
+
+		await vi.waitFor(() => expect(saveInstance).toHaveBeenCalled());
+		expect(vi.mocked(saveInstance).mock.calls[0][0].data.reviewText).toBe(
+			"A great read",
+		);
+	});
+
+	it("saves an untouched review field as undefined", async () => {
+		const { saveInstance } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(saveInstance).mockClear();
+		render(<InstanceEditForm {...baseProps} />);
+
+		fireEvent.click(screen.getByText("mediaItemDetails.save"));
+
+		await vi.waitFor(() => expect(saveInstance).toHaveBeenCalled());
+		expect(
+			vi.mocked(saveInstance).mock.calls[0][0].data.reviewText,
+		).toBeUndefined();
+	});
+
 	it("shows delete button only when an existing instance is provided", () => {
 		const instance = {
 			id: 42,
