@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe("hardcover.search", () => {
-	it("converts a pre-0 AD release year into a storable date", async () => {
+	it("converts a pre-0 CE release year into a storable date", async () => {
 		const [result] = await searchWithHit({
 			id: "785115",
 			title: "The Epic of Gilgamesh",
@@ -50,7 +50,7 @@ describe("hardcover.search", () => {
 		expect(result?.releaseDate).toBe("1200-01-01 BC");
 	});
 
-	it("converts an AD release year into a plain date", async () => {
+	it("converts a CE release year into a plain date", async () => {
 		const [result] = await searchWithHit({
 			id: "551643",
 			title: "The Iliad",

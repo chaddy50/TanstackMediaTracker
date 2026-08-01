@@ -7,7 +7,7 @@ import { MediaItemType } from "#/lib/enums";
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({
 		t: (key: string, options?: { year: number }) =>
-			key === "time.yearBC" ? `${options?.year} BC` : key,
+			key === "time.yearBCE" ? `${options?.year} BCE` : key,
 	}),
 }));
 
@@ -28,14 +28,14 @@ function renderMetadataList(releaseDate: string | null) {
 afterEach(cleanup);
 
 describe("MetadataList", () => {
-	it("shows a pre-0 AD release year with a BC suffix", () => {
+	it("shows a pre-0 CE release year with a BCE suffix", () => {
 		renderMetadataList("1200-01-01 BC");
 
-		expect(screen.getByText("1200 BC")).toBeInTheDocument();
+		expect(screen.getByText("1200 BCE")).toBeInTheDocument();
 		expect(screen.queryByText("NaN")).not.toBeInTheDocument();
 	});
 
-	it("shows an AD release year as a bare year", () => {
+	it("shows a CE release year as a bare year", () => {
 		renderMetadataList("2020-01-01");
 
 		expect(screen.getByText("2020")).toBeInTheDocument();

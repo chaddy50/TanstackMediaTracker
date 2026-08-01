@@ -7,7 +7,7 @@ import type { SearchResultWithStatus } from "#/features/mediaItemSearch/types";
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({
 		t: (key: string, options?: { year: number }) =>
-			key === "time.yearBC" ? `${options?.year} BC` : key,
+			key === "time.yearBCE" ? `${options?.year} BCE` : key,
 	}),
 }));
 
@@ -65,7 +65,7 @@ describe("SearchResults", () => {
 		expect(screen.queryByText("search.prompt")).not.toBeInTheDocument();
 	});
 
-	it("shows a pre-0 AD release year with a BC suffix", () => {
+	it("shows a pre-0 CE release year with a BCE suffix", () => {
 		const results: SearchResultWithStatus[] = [
 			{
 				title: "The Epic of Gilgamesh",
@@ -78,11 +78,11 @@ describe("SearchResults", () => {
 		];
 		renderSearchResults({ query: "gilgamesh", results });
 
-		expect(screen.getByText("1200 BC")).toBeInTheDocument();
+		expect(screen.getByText("1200 BCE")).toBeInTheDocument();
 		expect(screen.queryByText("-120")).not.toBeInTheDocument();
 	});
 
-	it("shows an AD release year as a bare year", () => {
+	it("shows a CE release year as a bare year", () => {
 		const results: SearchResultWithStatus[] = [
 			{
 				title: "Dune",

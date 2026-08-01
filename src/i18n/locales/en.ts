@@ -210,7 +210,7 @@ export const en = {
 		hour: "hr",
 		hours: "hrs",
 		min: "min",
-		yearBC: "{{year}} BC",
+		yearBCE: "{{year}} BCE",
 	},
 	timeToBeat: {
 		hastily: "Rushed",

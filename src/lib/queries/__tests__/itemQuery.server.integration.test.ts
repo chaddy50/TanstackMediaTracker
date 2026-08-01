@@ -711,10 +711,10 @@ describe("sort by releaseDate", () => {
 		]);
 	});
 
-	it("orders BC release dates before AD ones when ascending", async () => {
+	it("orders BCE release dates before CE ones when ascending", async () => {
 		await insertItem({ title: "Modern", releaseDate: "2020-01-01" });
-		await insertItem({ title: "Older BC", releaseDate: "1200-01-01 BC" });
-		await insertItem({ title: "Newer BC", releaseDate: "0800-01-01 BC" });
+		await insertItem({ title: "Older BCE", releaseDate: "1200-01-01 BC" });
+		await insertItem({ title: "Newer BCE", releaseDate: "0800-01-01 BC" });
 
 		const result = await runItemQuery(
 			{ sortBy: "releaseDate", sortDirection: "asc" },
@@ -722,16 +722,16 @@ describe("sort by releaseDate", () => {
 		);
 
 		expect(result.items.map((item) => item.title)).toEqual([
-			"Older BC",
-			"Newer BC",
+			"Older BCE",
+			"Newer BCE",
 			"Modern",
 		]);
 	});
 
-	it("orders BC release dates after AD ones when descending", async () => {
+	it("orders BCE release dates after CE ones when descending", async () => {
 		await insertItem({ title: "Modern", releaseDate: "2020-01-01" });
-		await insertItem({ title: "Older BC", releaseDate: "1200-01-01 BC" });
-		await insertItem({ title: "Newer BC", releaseDate: "0800-01-01 BC" });
+		await insertItem({ title: "Older BCE", releaseDate: "1200-01-01 BC" });
+		await insertItem({ title: "Newer BCE", releaseDate: "0800-01-01 BC" });
 
 		const result = await runItemQuery(
 			{ sortBy: "releaseDate", sortDirection: "desc" },
@@ -740,8 +740,8 @@ describe("sort by releaseDate", () => {
 
 		expect(result.items.map((item) => item.title)).toEqual([
 			"Modern",
-			"Newer BC",
-			"Older BC",
+			"Newer BCE",
+			"Older BCE",
 		]);
 	});
 

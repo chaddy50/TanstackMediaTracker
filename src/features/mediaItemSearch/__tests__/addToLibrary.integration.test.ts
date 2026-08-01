@@ -131,7 +131,7 @@ describe("handleAddToLibrary", () => {
 		expect(updated?.creatorId).not.toBeNull();
 	});
 
-	it("stores a pre-0 AD release date", async () => {
+	it("stores a pre-0 CE release date", async () => {
 		await handleAddToLibrary(
 			{ ...BASE_BOOK_INPUT, releaseDate: "1200-01-01 BC" },
 			USER,
@@ -144,7 +144,7 @@ describe("handleAddToLibrary", () => {
 		expect(stored?.releaseDate).toBe("1200-01-01 BC");
 	});
 
-	// Documents why pre-0 AD years are stored in era notation: Postgres reads the
+	// Documents why pre-0 CE years are stored in era notation: Postgres reads the
 	// leading "-1200" as a timezone displacement and rejects the whole value.
 	it("rejects a negative-year release date", async () => {
 		const insertNegativeYear = handleAddToLibrary(
@@ -160,7 +160,7 @@ describe("handleAddToLibrary", () => {
 });
 
 describe("release date ordering", () => {
-	it("sorts pre-0 AD dates before AD dates, oldest first", async () => {
+	it("sorts pre-0 CE dates before CE dates, oldest first", async () => {
 		await insertMediaItem({
 			userId: USER,
 			type: MediaItemType.BOOK,

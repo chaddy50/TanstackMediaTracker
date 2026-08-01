@@ -9,22 +9,24 @@ import {
 // The real t() interpolates; the component-level mocks elsewhere do not, so
 // this stub keeps the assertions about the rendered text meaningful.
 const t = ((key: string, options?: { year: number }) =>
-	key === "time.yearBC" ? `${options?.year} BC` : key) as unknown as TFunction;
+	key === "time.yearBCE"
+		? `${options?.year} BCE`
+		: key) as unknown as TFunction;
 
 describe("releaseYearToDate", () => {
-	it("converts a pre-0 AD year into era notation", () => {
+	it("converts a pre-0 CE year into era notation", () => {
 		expect(releaseYearToDate(-1200)).toBe("1200-01-01 BC");
 	});
 
-	it("pads pre-0 AD years to four digits", () => {
+	it("pads pre-0 CE years to four digits", () => {
 		expect(releaseYearToDate(-800)).toBe("0800-01-01 BC");
 	});
 
-	it("converts an AD year into a plain date", () => {
+	it("converts a CE year into a plain date", () => {
 		expect(releaseYearToDate(2020)).toBe("2020-01-01");
 	});
 
-	it("pads AD years to four digits", () => {
+	it("pads CE years to four digits", () => {
 		expect(releaseYearToDate(801)).toBe("0801-01-01");
 	});
 
@@ -37,15 +39,15 @@ describe("releaseYearToDate", () => {
 });
 
 describe("getReleaseYear", () => {
-	it("reads a pre-0 AD year back as a negative number", () => {
+	it("reads a pre-0 CE year back as a negative number", () => {
 		expect(getReleaseYear("1200-01-01 BC")).toBe(-1200);
 	});
 
-	it("reads a zero-padded pre-0 AD year back as a negative number", () => {
+	it("reads a zero-padded pre-0 CE year back as a negative number", () => {
 		expect(getReleaseYear("0800-01-01 BC")).toBe(-800);
 	});
 
-	it("reads an AD year back as a positive number", () => {
+	it("reads a CE year back as a positive number", () => {
 		expect(getReleaseYear("2020-01-01")).toBe(2020);
 	});
 
@@ -61,11 +63,11 @@ describe("getReleaseYear", () => {
 });
 
 describe("formatReleaseYear", () => {
-	it("formats a pre-0 AD year with a BC suffix", () => {
-		expect(formatReleaseYear("1200-01-01 BC", t)).toBe("1200 BC");
+	it("formats a pre-0 CE year with a BCE suffix", () => {
+		expect(formatReleaseYear("1200-01-01 BC", t)).toBe("1200 BCE");
 	});
 
-	it("formats an AD year as a bare year", () => {
+	it("formats a CE year as a bare year", () => {
 		expect(formatReleaseYear("2020-01-01", t)).toBe("2020");
 	});
 

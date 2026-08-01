@@ -1,12 +1,12 @@
 import type { TFunction } from "i18next";
 
-// Postgres stores pre-0 AD dates in era notation ("1200-01-01 BC"). A negative
+// Postgres stores pre-0 CE dates in era notation ("1200-01-01 BC"). A negative
 // year such as "-1200-01-01" is read as a timezone displacement and rejected.
 const RELEASE_DATE_PATTERN = /^(\d+)-\d{2}-\d{2}( BC)?$/;
 
 /**
  * Converts a signed release year into a date string Postgres can store.
- * Negative years are pre-0 AD. There is no year 0, so it means "unknown".
+ * Negative years are pre-0 CE. There is no year 0, so it means "unknown".
  */
 export function releaseYearToDate(
 	year: number | null | undefined,
@@ -23,7 +23,7 @@ export function releaseYearToDate(
 	return `${paddedYear}-01-01`;
 }
 
-/** Reads the year back out of a stored release date, negative for pre-0 AD. */
+/** Reads the year back out of a stored release date, negative for pre-0 CE. */
 export function getReleaseYear(
 	releaseDate: string | null | undefined,
 ): number | null {
@@ -40,7 +40,7 @@ export function getReleaseYear(
 	return match[2] ? -year : year;
 }
 
-/** Formats a stored release date for display, e.g. "2020" or "1200 BC". */
+/** Formats a stored release date for display, e.g. "2020" or "1200 BCE". */
 export function formatReleaseYear(
 	releaseDate: string | null | undefined,
 	t: TFunction,
@@ -51,7 +51,7 @@ export function formatReleaseYear(
 	}
 
 	if (year < 0) {
-		return t("time.yearBC", { year: Math.abs(year) });
+		return t("time.yearBCE", { year: Math.abs(year) });
 	}
 	return String(year);
 }
