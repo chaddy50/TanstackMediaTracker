@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { filterAndSortOptionsSchema } from "#/lib/filterAndSort";
+import { PurchaseStatus } from "#/lib/enums";
+import {
+	filterAndSortOptionsSchema,
+	isFilteredToSinglePurchaseStatus,
+} from "#/lib/filterAndSort";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 
 describe("filterAndSortOptionsSchema sortBy", () => {
@@ -40,5 +44,53 @@ describe("filterAndSortOptionsSchema sortBy", () => {
 		};
 
 		expect(filterAndSortOptionsSchema.parse(filters)).toEqual(filters);
+	});
+});
+
+describe("isFilteredToSinglePurchaseStatus", () => {
+	it("is false when no purchase filter is set", () => {
+		expect(isFilteredToSinglePurchaseStatus(undefined)).toBe(false);
+	});
+
+	it("is false when the purchase filter is null", () => {
+		expect(isFilteredToSinglePurchaseStatus(null)).toBe(false);
+	});
+
+	it("is false when the purchase filter is empty", () => {
+		expect(isFilteredToSinglePurchaseStatus([])).toBe(false);
+	});
+
+	it("is true when pinned to purchased", () => {
+		expect(isFilteredToSinglePurchaseStatus([PurchaseStatus.PURCHASED])).toBe(
+			true,
+		);
+	});
+
+	// The rule is "exactly one status", not "purchased only".
+	it("is true when pinned to want to buy", () => {
+		expect(isFilteredToSinglePurchaseStatus([PurchaseStatus.WANT_TO_BUY])).toBe(
+			true,
+		);
+	});
+
+	it("is true when pinned to not purchased", () => {
+		expect(
+			isFilteredToSinglePurchaseStatus([PurchaseStatus.NOT_PURCHASED]),
+		).toBe(true);
+	});
+
+	it("is false when two statuses are selected", () => {
+		expect(
+			isFilteredToSinglePurchaseStatus([
+				PurchaseStatus.PURCHASED,
+				PurchaseStatus.WANT_TO_BUY,
+			]),
+		).toBe(false);
+	});
+
+	it("is false when every status is selected", () => {
+		expect(
+			isFilteredToSinglePurchaseStatus(Object.values(PurchaseStatus)),
+		).toBe(false);
 	});
 });

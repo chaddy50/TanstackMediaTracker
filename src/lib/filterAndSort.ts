@@ -5,6 +5,7 @@ import {
 	mediaTypeEnum,
 	purchaseStatusEnum,
 } from "#/database/schema";
+import type { PurchaseStatus } from "#/lib/enums";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 
 /**
@@ -28,3 +29,14 @@ export const filterAndSortOptionsSchema = z.object({
 	titleQuery: z.string().optional(),
 	creatorQuery: z.string().optional(),
 });
+
+/**
+ * True when a view's filters pin its results to exactly one purchase status.
+ * Every card on screen then shares that status, so callers suppress the
+ * purchase badge as redundant.
+ */
+export function isFilteredToSinglePurchaseStatus(
+	purchaseStatuses: PurchaseStatus[] | null | undefined,
+): boolean {
+	return purchaseStatuses?.length === 1;
+}

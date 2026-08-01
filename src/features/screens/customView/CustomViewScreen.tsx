@@ -13,6 +13,7 @@ import { TopBar } from "#/features/navigation/topBar/TopBar";
 import { EditViewDialog } from "#/features/screens/customView/EditViewDialog";
 import type { LibraryItem } from "#/features/screens/library/library";
 import type { SeriesListItem } from "#/features/screens/series/series";
+import { isFilteredToSinglePurchaseStatus } from "#/lib/filterAndSort";
 import { deleteView, getViewResults, type View } from "./view";
 
 type PaginatedResult<T> = { items: T[]; hasMore: boolean };
@@ -29,6 +30,9 @@ export function ViewScreen() {
 	const [_isDeleting, setIsDeleting] = useState(false);
 
 	const isItemView = view.subject === "items";
+	const shouldShowPurchaseStatus = !isFilteredToSinglePurchaseStatus(
+		view.filters?.purchaseStatuses,
+	);
 	const paginatedResults = results as
 		| PaginatedResult<LibraryItem>
 		| PaginatedResult<SeriesListItem>;
@@ -90,7 +94,10 @@ export function ViewScreen() {
 
 			<main className="px-4 md:px-6 py-6">
 				{isItemView ? (
-					<MediaItemList items={allItems as LibraryItem[]} />
+					<MediaItemList
+						items={allItems as LibraryItem[]}
+						shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+					/>
 				) : (
 					<SeriesList items={allItems as SeriesListItem[]} />
 				)}

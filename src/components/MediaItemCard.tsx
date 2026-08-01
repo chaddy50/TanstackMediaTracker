@@ -27,7 +27,7 @@ export function MediaItemCard({
 	mediaItem,
 	shouldShowType = true,
 	shouldShowRating = true,
-	shouldShowPurchaseStatus = false,
+	shouldShowPurchaseStatus = true,
 }: MediaItemCardProps) {
 	const shouldShowRatingStars =
 		shouldShowRating && mediaItem.status === MediaItemStatus.COMPLETED;

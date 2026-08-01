@@ -61,12 +61,22 @@ function renderMediaItemCard(
 afterEach(cleanup);
 
 describe("MediaItemCard", () => {
-	it("does not show purchased badge by default", () => {
+	it("shows purchased badge by default when the item is purchased", () => {
 		renderMediaItemCard({ purchaseStatus: PurchaseStatus.PURCHASED });
+		expect(screen.getByTestId("purchased-badge")).toBeInTheDocument();
+	});
+
+	it("does not show purchased badge by default when the item is only wanted", () => {
+		renderMediaItemCard({ purchaseStatus: PurchaseStatus.WANT_TO_BUY });
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 	});
 
-	it("shows purchased badge when the item is purchased", () => {
+	it("does not show purchased badge by default when the item is not purchased", () => {
+		renderMediaItemCard({ purchaseStatus: PurchaseStatus.NOT_PURCHASED });
+		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
+	});
+
+	it("shows purchased badge when explicitly enabled", () => {
 		renderMediaItemCard({
 			shouldShowPurchaseStatus: true,
 			purchaseStatus: PurchaseStatus.PURCHASED,
@@ -74,7 +84,7 @@ describe("MediaItemCard", () => {
 		expect(screen.getByTestId("purchased-badge")).toBeInTheDocument();
 	});
 
-	it("does not show purchased badge when the item is only wanted", () => {
+	it("does not show purchased badge when explicitly enabled but only wanted", () => {
 		renderMediaItemCard({
 			shouldShowPurchaseStatus: true,
 			purchaseStatus: PurchaseStatus.WANT_TO_BUY,
@@ -82,10 +92,19 @@ describe("MediaItemCard", () => {
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 	});
 
-	it("does not show purchased badge when the item is not purchased", () => {
+	it("does not show purchased badge when explicitly enabled but not purchased", () => {
 		renderMediaItemCard({
 			shouldShowPurchaseStatus: true,
 			purchaseStatus: PurchaseStatus.NOT_PURCHASED,
+		});
+		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
+	});
+
+	// The opt-out the dashboard relies on to keep its sections badge-free.
+	it("does not show purchased badge when explicitly disabled", () => {
+		renderMediaItemCard({
+			shouldShowPurchaseStatus: false,
+			purchaseStatus: PurchaseStatus.PURCHASED,
 		});
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 	});

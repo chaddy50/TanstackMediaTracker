@@ -3,13 +3,21 @@ import { MediaItemCard } from "./MediaItemCard";
 
 interface MediaItemListProps {
 	items: LibraryItem[];
+	shouldShowPurchaseStatus?: boolean;
 }
 
-export function MediaItemList({ items }: MediaItemListProps) {
+export function MediaItemList({
+	items,
+	shouldShowPurchaseStatus,
+}: MediaItemListProps) {
 	return (
 		<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 			{items.map((item) => (
-				<MediaItemCard key={item.id} mediaItem={item} />
+				<MediaItemCard
+					key={item.id}
+					mediaItem={item}
+					shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+				/>
 			))}
 		</div>
 	);

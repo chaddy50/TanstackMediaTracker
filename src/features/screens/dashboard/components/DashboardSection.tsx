@@ -18,7 +18,7 @@ export function DashboardSection({
 	variant = "grid",
 	cardWidth = "w-28",
 	shouldShowRating,
-	shouldShowPurchaseStatus,
+	shouldShowPurchaseStatus = false,
 }: DashboardSectionProps) {
 	return (
 		<section className="flex flex-col gap-2 w-full">
