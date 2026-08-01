@@ -28,6 +28,19 @@ function makePurchasedItem(): DashboardItem {
 	};
 }
 
+function makeInProgressItem(): DashboardItem {
+	return { ...makePurchasedItem(), status: MediaItemStatus.IN_PROGRESS };
+}
+
+const NON_BACKLOG_STATUSES = [
+	MediaItemStatus.NEXT_UP,
+	MediaItemStatus.IN_PROGRESS,
+	MediaItemStatus.ON_HOLD,
+	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+	MediaItemStatus.COMPLETED,
+	MediaItemStatus.DROPPED,
+];
+
 function renderDashboardSection(
 	options: {
 		variant?: "grid" | "scroll";
@@ -88,5 +101,39 @@ describe("DashboardSection", () => {
 		expect(screen.getByText("dashboard.emptyNextInSeries")).toBeInTheDocument();
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 		expect(screen.queryByTestId("type-badge")).not.toBeInTheDocument();
+	});
+});
+
+describe("DashboardSection status badge exception", () => {
+	it("shows no status badge in the grid variant", () => {
+		renderDashboardSection({ variant: "grid", items: [makeInProgressItem()] });
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	// The two branches forward at separate call sites.
+	it("shows no status badge in the scroll variant", () => {
+		renderDashboardSection({
+			variant: "scroll",
+			items: [makeInProgressItem()],
+		});
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	it("shows no status badge even when purchase badges are enabled", () => {
+		renderDashboardSection({
+			shouldShowPurchaseStatus: true,
+			items: [{ ...makePurchasedItem(), status: MediaItemStatus.NEXT_UP }],
+		});
+
+		expect(screen.getByTestId("purchased-badge")).toBeInTheDocument();
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	it.each(NON_BACKLOG_STATUSES)("shows no status badge for %s", (status) => {
+		renderDashboardSection({
+			variant: "grid",
+			items: [{ ...makePurchasedItem(), status }],
+		});
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
 	});
 });

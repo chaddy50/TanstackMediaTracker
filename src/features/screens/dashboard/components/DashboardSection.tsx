@@ -33,6 +33,7 @@ export function DashboardSection({
 								mediaItem={item}
 								shouldShowRating={shouldShowRating}
 								shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+								shouldShowStatus={false}
 							/>
 						</div>
 					))}
@@ -44,6 +45,7 @@ export function DashboardSection({
 							key={item.id}
 							mediaItem={item}
 							shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+							shouldShowStatus={false}
 						/>
 					))}
 				</div>

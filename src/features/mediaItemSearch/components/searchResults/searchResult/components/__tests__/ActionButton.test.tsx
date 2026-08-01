@@ -52,6 +52,19 @@ describe("ActionButton", () => {
 		).not.toBeInTheDocument();
 	});
 
+	// Only MediaItemCard opts into the translucent variant.
+	it("keeps solid status colors on the search result badge", () => {
+		renderActionButton({
+			...baseResult,
+			mediaItemId: 42,
+			status: MediaItemStatus.IN_PROGRESS,
+		});
+
+		const badge = screen.getByTestId("status-badge");
+		expect(badge).toHaveClass("bg-blue-600");
+		expect(badge).not.toHaveClass("bg-black/60");
+	});
+
 	it("shows Add to Library button when result is not in the library", () => {
 		renderActionButton(baseResult);
 		expect(

@@ -5,7 +5,7 @@ import {
 	mediaTypeEnum,
 	purchaseStatusEnum,
 } from "#/database/schema";
-import type { PurchaseStatus } from "#/lib/enums";
+import type { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 
 /**
@@ -39,4 +39,15 @@ export function isFilteredToSinglePurchaseStatus(
 	purchaseStatuses: PurchaseStatus[] | null | undefined,
 ): boolean {
 	return purchaseStatuses?.length === 1;
+}
+
+/**
+ * True when a view's filters pin its results to exactly one status. Every card
+ * on screen then shares that status, so callers suppress the status badge as
+ * redundant.
+ */
+export function isFilteredToSingleStatus(
+	statuses: MediaItemStatus[] | null | undefined,
+): boolean {
+	return statuses?.length === 1;
 }

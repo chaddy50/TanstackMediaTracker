@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { RatingStars } from "#/features/screens/mediaItemDetails/components/history/components/instance/rating/ratingStars/RatingStars";
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
 import { PurchasedBadge } from "./PurchasedBadge";
+import { StatusBadge } from "./StatusBadge";
 import { TypeBadge } from "./TypeBadge";
 
 type MediaItemCardItem = {
@@ -12,15 +13,27 @@ type MediaItemCardItem = {
 	type: MediaItemType;
 	coverImageUrl: string | null;
 	rating: number;
+	// Dashboard queries do not select this column, so it stays optional.
+	expectedReleaseDate?: string | null;
 	seriesId?: number | null | undefined;
 	seriesName?: string | null | undefined;
 };
+
+// Reaching any of these statuses means the item is already in hand, so whether
+// it was purchased is no longer worth surfacing.
+const STATUSES_IMPLYING_OWNERSHIP: MediaItemStatus[] = [
+	MediaItemStatus.IN_PROGRESS,
+	MediaItemStatus.ON_HOLD,
+	MediaItemStatus.COMPLETED,
+	MediaItemStatus.DROPPED,
+];
 
 interface MediaItemCardProps {
 	mediaItem: MediaItemCardItem;
 	shouldShowType?: boolean;
 	shouldShowRating?: boolean;
 	shouldShowPurchaseStatus?: boolean;
+	shouldShowStatus?: boolean;
 }
 
 export function MediaItemCard({
@@ -28,12 +41,17 @@ export function MediaItemCard({
 	shouldShowType = true,
 	shouldShowRating = true,
 	shouldShowPurchaseStatus = true,
+	shouldShowStatus = true,
 }: MediaItemCardProps) {
 	const shouldShowRatingStars =
 		shouldShowRating && mediaItem.status === MediaItemStatus.COMPLETED;
 	const shouldShowPurchasedBadge =
 		shouldShowPurchaseStatus &&
-		mediaItem.purchaseStatus === PurchaseStatus.PURCHASED;
+		mediaItem.purchaseStatus === PurchaseStatus.PURCHASED &&
+		!STATUSES_IMPLYING_OWNERSHIP.includes(mediaItem.status);
+	// Backlog is the default resting status, so it would badge nearly every card.
+	const shouldShowStatusBadge =
+		shouldShowStatus && mediaItem.status !== MediaItemStatus.BACKLOG;
 	const isPodcast = mediaItem.type === MediaItemType.PODCAST;
 
 	return (
@@ -63,11 +81,21 @@ export function MediaItemCard({
 				)}
 
 				<div className="absolute inset-x-0 bottom-0 flex flex-col items-end">
-					{(shouldShowPurchasedBadge || shouldShowType) && (
+					{(shouldShowStatusBadge ||
+						shouldShowPurchasedBadge ||
+						shouldShowType) && (
 						<div className="flex flex-row items-center gap-1.5 mr-1.5 mb-1.5">
 							{shouldShowPurchasedBadge && (
 								<PurchasedBadge
 									purchaseStatus={mediaItem.purchaseStatus}
+									isOnDarkBackground
+								/>
+							)}
+
+							{shouldShowStatusBadge && (
+								<StatusBadge
+									status={mediaItem.status}
+									expectedReleaseDate={mediaItem.expectedReleaseDate}
 									isOnDarkBackground
 								/>
 							)}

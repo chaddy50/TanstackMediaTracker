@@ -8,7 +8,10 @@ import { FilterAndSortButton } from "#/features/filterAndSort/FilterAndSortButto
 import { SearchInput } from "#/features/navigation/topBar/components/SearchInput";
 import { TopBar } from "#/features/navigation/topBar/TopBar";
 import { applyLibrarySortDefaults } from "#/features/screens/settings/settings";
-import { isFilteredToSinglePurchaseStatus } from "#/lib/filterAndSort";
+import {
+	isFilteredToSinglePurchaseStatus,
+	isFilteredToSingleStatus,
+} from "#/lib/filterAndSort";
 import { getLibrary, type LibraryItem } from "./library";
 
 const route = getRouteApi("/_authenticated/_app/library");
@@ -23,6 +26,7 @@ export function LibraryScreen() {
 	const shouldShowPurchaseStatus = !isFilteredToSinglePurchaseStatus(
 		effectiveSearch.purchaseStatuses,
 	);
+	const shouldShowStatus = !isFilteredToSingleStatus(effectiveSearch.statuses);
 
 	const { allItems, isLoadingMore, sentinelRef } =
 		useInfiniteScroll<LibraryItem>({
@@ -56,6 +60,7 @@ export function LibraryScreen() {
 				<MediaItemList
 					items={allItems}
 					shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+					shouldShowStatus={shouldShowStatus}
 				/>
 				<div ref={sentinelRef} className="h-1" />
 				<InfiniteScrollLoader isLoading={isLoadingMore} />

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FilterAndSortOptions, ViewSubject } from "#/database/schema";
 import { ViewScreen } from "#/features/screens/customView/CustomViewScreen";
-import { MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -32,12 +32,17 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 let capturedShouldShowPurchaseStatus: boolean | undefined;
+let capturedShouldShowStatus: boolean | undefined;
 let wasMediaItemListRendered = false;
 
 vi.mock("#/components/MediaItemList", () => ({
-	MediaItemList: (props: { shouldShowPurchaseStatus?: boolean }) => {
+	MediaItemList: (props: {
+		shouldShowPurchaseStatus?: boolean;
+		shouldShowStatus?: boolean;
+	}) => {
 		wasMediaItemListRendered = true;
 		capturedShouldShowPurchaseStatus = props.shouldShowPurchaseStatus;
+		capturedShouldShowStatus = props.shouldShowStatus;
 		return null;
 	},
 }));
@@ -71,6 +76,7 @@ afterEach(cleanup);
 beforeEach(() => {
 	view = { id: 1, name: "Owned books", subject: "items" };
 	capturedShouldShowPurchaseStatus = undefined;
+	capturedShouldShowStatus = undefined;
 	wasMediaItemListRendered = false;
 });
 
@@ -118,5 +124,53 @@ describe("ViewScreen purchase badge visibility", () => {
 		render(<ViewScreen />);
 
 		expect(wasMediaItemListRendered).toBe(false);
+	});
+});
+
+describe("ViewScreen status badge visibility", () => {
+	it("hides the badge when the saved view pins one status", () => {
+		view.filters = { statuses: [MediaItemStatus.IN_PROGRESS] };
+
+		render(<ViewScreen />);
+
+		expect(capturedShouldShowStatus).toBe(false);
+	});
+
+	it("shows the badge when the saved view allows two statuses", () => {
+		view.filters = {
+			statuses: [MediaItemStatus.IN_PROGRESS, MediaItemStatus.COMPLETED],
+		};
+
+		render(<ViewScreen />);
+
+		expect(capturedShouldShowStatus).toBe(true);
+	});
+
+	it("shows the badge when the saved filters omit statuses", () => {
+		view.filters = { mediaTypes: [MediaItemType.BOOK] };
+
+		render(<ViewScreen />);
+
+		expect(capturedShouldShowStatus).toBe(true);
+	});
+
+	it("shows the badge when the view has no filters at all", () => {
+		view.filters = undefined;
+
+		render(<ViewScreen />);
+
+		expect(capturedShouldShowStatus).toBe(true);
+	});
+
+	it("derives the status and purchase flags independently", () => {
+		view.filters = {
+			statuses: [MediaItemStatus.IN_PROGRESS],
+			purchaseStatuses: [],
+		};
+
+		render(<ViewScreen />);
+
+		expect(capturedShouldShowStatus).toBe(false);
+		expect(capturedShouldShowPurchaseStatus).toBe(true);
 	});
 });

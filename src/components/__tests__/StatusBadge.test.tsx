@@ -9,8 +9,10 @@ vi.mock("react-i18next", () => ({
 }));
 
 function renderStatusBadge(props: {
-	status: MediaItemStatus;
+	status: MediaItemStatus | undefined;
 	expectedReleaseDate?: string | null;
+	isOnDarkBackground?: boolean;
+	onClick?: () => void;
 }) {
 	return render(
 		<TooltipProvider>
@@ -54,5 +56,68 @@ describe("StatusBadge", () => {
 			"data-slot",
 			"tooltip-trigger",
 		);
+	});
+
+	it("applies translucent classes when isOnDarkBackground is true", () => {
+		renderStatusBadge({
+			status: MediaItemStatus.IN_PROGRESS,
+			isOnDarkBackground: true,
+		});
+		expect(screen.getByTestId("status-badge")).toHaveClass(
+			"bg-black/60",
+			"text-white",
+			"backdrop-blur-sm",
+		);
+	});
+
+	// The translucent classes replace the status color rather than stacking with it.
+	it("drops the solid status color when isOnDarkBackground is true", () => {
+		renderStatusBadge({
+			status: MediaItemStatus.IN_PROGRESS,
+			isOnDarkBackground: true,
+		});
+		expect(screen.getByTestId("status-badge")).not.toHaveClass("bg-blue-600");
+	});
+
+	it("keeps solid status colors when the prop is omitted", () => {
+		renderStatusBadge({ status: MediaItemStatus.IN_PROGRESS });
+		expect(screen.getByTestId("status-badge")).toHaveClass(
+			"bg-blue-600",
+			"text-blue-100",
+		);
+	});
+
+	it("keeps solid status colors when isOnDarkBackground is false", () => {
+		renderStatusBadge({
+			status: MediaItemStatus.IN_PROGRESS,
+			isOnDarkBackground: false,
+		});
+		expect(screen.getByTestId("status-badge")).toHaveClass("bg-blue-600");
+	});
+
+	it("applies translucent classes to the clickable variant", () => {
+		renderStatusBadge({
+			status: MediaItemStatus.IN_PROGRESS,
+			isOnDarkBackground: true,
+			onClick: vi.fn(),
+		});
+		expect(screen.getByTestId("status-badge")).toHaveClass("bg-black/60");
+	});
+
+	it("keeps the tooltip trigger while translucent", () => {
+		renderStatusBadge({
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+			expectedReleaseDate: "2024-06-01",
+			isOnDarkBackground: true,
+		});
+
+		const badge = screen.getByTestId("status-badge");
+		expect(badge).toHaveAttribute("data-slot", "tooltip-trigger");
+		expect(badge).toHaveClass("bg-black/60");
+	});
+
+	it("renders nothing when status is undefined", () => {
+		renderStatusBadge({ status: undefined, isOnDarkBackground: true });
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
 	});
 });

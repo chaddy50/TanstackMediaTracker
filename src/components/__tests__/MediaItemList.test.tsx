@@ -38,12 +38,14 @@ function makeItem(overrides: Partial<LibraryItem> = {}): LibraryItem {
 function renderMediaItemList(
 	items: LibraryItem[],
 	shouldShowPurchaseStatus?: boolean,
+	shouldShowStatus?: boolean,
 ) {
 	return render(
 		<TooltipProvider>
 			<MediaItemList
 				items={items}
 				shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+				shouldShowStatus={shouldShowStatus}
 			/>
 		</TooltipProvider>,
 	);
@@ -98,6 +100,76 @@ describe("MediaItemList", () => {
 		);
 
 		expect(screen.getAllByTestId("purchased-badge")).toHaveLength(1);
+	});
+
+	it("shows status badges when the prop is omitted", () => {
+		renderMediaItemList([
+			makeItem({ id: 1, status: MediaItemStatus.IN_PROGRESS }),
+			makeItem({ id: 2, status: MediaItemStatus.IN_PROGRESS }),
+		]);
+
+		expect(screen.getAllByTestId("status-badge")).toHaveLength(2);
+	});
+
+	it("shows status badges when the prop is true", () => {
+		renderMediaItemList(
+			[
+				makeItem({ id: 1, status: MediaItemStatus.IN_PROGRESS }),
+				makeItem({ id: 2, status: MediaItemStatus.IN_PROGRESS }),
+			],
+			undefined,
+			true,
+		);
+
+		expect(screen.getAllByTestId("status-badge")).toHaveLength(2);
+	});
+
+	it("hides status badges when the prop is false", () => {
+		renderMediaItemList(
+			[
+				makeItem({ id: 1, status: MediaItemStatus.IN_PROGRESS }),
+				makeItem({ id: 2, status: MediaItemStatus.IN_PROGRESS }),
+			],
+			undefined,
+			false,
+		);
+
+		expect(screen.queryAllByTestId("status-badge")).toHaveLength(0);
+	});
+
+	it("forwards the status and purchase flags independently", () => {
+		renderMediaItemList(
+			[
+				makeItem({
+					id: 1,
+					status: MediaItemStatus.NEXT_UP,
+					purchaseStatus: PurchaseStatus.PURCHASED,
+				}),
+				makeItem({
+					id: 2,
+					status: MediaItemStatus.NEXT_UP,
+					purchaseStatus: PurchaseStatus.PURCHASED,
+				}),
+			],
+			false,
+			true,
+		);
+
+		expect(screen.getAllByTestId("status-badge")).toHaveLength(2);
+		expect(screen.queryAllByTestId("purchased-badge")).toHaveLength(0);
+	});
+
+	it("shows no status badge for backlog items even when enabled", () => {
+		renderMediaItemList(
+			[
+				makeItem({ id: 1, status: MediaItemStatus.BACKLOG }),
+				makeItem({ id: 2, status: MediaItemStatus.BACKLOG }),
+			],
+			undefined,
+			true,
+		);
+
+		expect(screen.queryAllByTestId("status-badge")).toHaveLength(0);
 	});
 
 	it("renders one card per item", () => {

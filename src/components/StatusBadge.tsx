@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import {
 	Tooltip,
 	TooltipContent,
@@ -7,6 +6,7 @@ import {
 } from "#/components/ui/tooltip";
 import { MediaItemStatus } from "#/lib/enums";
 import { formatDate } from "#/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {
 	want_to: "bg-gray-600 text-gray-200",
@@ -19,19 +19,31 @@ const STATUS_CLASSES: Record<string, string> = {
 	waiting_for_next_release: "bg-sky-700 text-sky-100",
 };
 
+const DARK_BACKGROUND_CLASSES = "bg-black/60 text-white backdrop-blur-sm";
+
 interface StatusBadgeProps {
 	status: MediaItemStatus | undefined;
 	expectedReleaseDate?: string | null;
+	isOnDarkBackground?: boolean;
 	onClick?: () => void;
 	disabled?: boolean;
 }
 
 export function StatusBadge(props: StatusBadgeProps) {
-	const { status, expectedReleaseDate, onClick, disabled } = props;
+	const {
+		status,
+		expectedReleaseDate,
+		isOnDarkBackground = false,
+		onClick,
+		disabled,
+	} = props;
 	const { t } = useTranslation();
 	if (!status) return null;
 
-	const commonClasses = `text-xs px-2 py-0.5 rounded-full ${STATUS_CLASSES[status]}`;
+	const colorClasses = isOnDarkBackground
+		? DARK_BACKGROUND_CLASSES
+		: STATUS_CLASSES[status];
+	const commonClasses = `inline-flex items-center h-6.5 text-xs px-2 rounded-full ${colorClasses}`;
 	const isWaiting = status === MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
 	const formattedExpectedReleaseDate =
 		isWaiting && expectedReleaseDate ? formatDate(expectedReleaseDate) : null;

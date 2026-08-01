@@ -21,6 +21,7 @@ type BaseItem = {
 	rating: number;
 	purchaseStatus: PurchaseStatus;
 	status: MediaItemStatus;
+	expectedReleaseDate?: string | null;
 };
 
 const baseItem: BaseItem = {
@@ -38,12 +39,14 @@ function renderMediaItemCard(
 		shouldShowType?: boolean;
 		shouldShowRating?: boolean;
 		shouldShowPurchaseStatus?: boolean;
+		shouldShowStatus?: boolean;
 	} = {},
 ) {
 	const {
 		shouldShowType,
 		shouldShowRating,
 		shouldShowPurchaseStatus,
+		shouldShowStatus,
 		...itemOverrides
 	} = overrides;
 	return render(
@@ -53,10 +56,20 @@ function renderMediaItemCard(
 				shouldShowType={shouldShowType}
 				shouldShowRating={shouldShowRating}
 				shouldShowPurchaseStatus={shouldShowPurchaseStatus}
+				shouldShowStatus={shouldShowStatus}
 			/>
 		</TooltipProvider>,
 	);
 }
+
+const NON_BACKLOG_STATUSES = [
+	MediaItemStatus.NEXT_UP,
+	MediaItemStatus.IN_PROGRESS,
+	MediaItemStatus.ON_HOLD,
+	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+	MediaItemStatus.COMPLETED,
+	MediaItemStatus.DROPPED,
+];
 
 afterEach(cleanup);
 
@@ -109,6 +122,25 @@ describe("MediaItemCard", () => {
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 	});
 
+	it.each([
+		MediaItemStatus.IN_PROGRESS,
+		MediaItemStatus.ON_HOLD,
+		MediaItemStatus.COMPLETED,
+		MediaItemStatus.DROPPED,
+	])("hides the purchased badge for %s, which implies ownership", (status) => {
+		renderMediaItemCard({ status, purchaseStatus: PurchaseStatus.PURCHASED });
+		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
+	});
+
+	it.each([
+		MediaItemStatus.BACKLOG,
+		MediaItemStatus.NEXT_UP,
+		MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+	])("shows the purchased badge for %s, which does not", (status) => {
+		renderMediaItemCard({ status, purchaseStatus: PurchaseStatus.PURCHASED });
+		expect(screen.getByTestId("purchased-badge")).toBeInTheDocument();
+	});
+
 	it("shows rating stars when status is COMPLETED", () => {
 		renderMediaItemCard({ status: MediaItemStatus.COMPLETED });
 		expect(screen.getByTestId("rating-stars")).toBeInTheDocument();
@@ -119,9 +151,118 @@ describe("MediaItemCard", () => {
 		expect(screen.queryByTestId("rating-stars")).not.toBeInTheDocument();
 	});
 
-	it("never shows a status badge", () => {
+	it("shows the status badge by default", () => {
 		renderMediaItemCard({ status: MediaItemStatus.IN_PROGRESS });
+		expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+	});
+
+	it.each(NON_BACKLOG_STATUSES)("shows the status badge for %s", (status) => {
+		renderMediaItemCard({ status });
+		expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+	});
+
+	it("shows no status badge for a backlog item", () => {
+		renderMediaItemCard({ status: MediaItemStatus.BACKLOG });
 		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	// Backlog is excluded unconditionally, so it outranks the visibility flag.
+	it("shows no status badge for a backlog item even when explicitly enabled", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.BACKLOG,
+			shouldShowStatus: true,
+		});
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	it("shows no status badge when shouldShowStatus is false", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.IN_PROGRESS,
+			shouldShowStatus: false,
+		});
+		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
+	});
+
+	it("shows the status badge when explicitly enabled", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.IN_PROGRESS,
+			shouldShowStatus: true,
+		});
+		expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+	});
+
+	it("renders the status badge translucent on the card", () => {
+		renderMediaItemCard({ status: MediaItemStatus.IN_PROGRESS });
+
+		const badge = screen.getByTestId("status-badge");
+		expect(badge).toHaveClass("bg-black/60", "text-white", "backdrop-blur-sm");
+		expect(badge).not.toHaveClass("bg-blue-600");
+	});
+
+	// The badge row is gated on a combined condition; status alone must open it.
+	it("shows the status badge when it is the only badge in the row", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.IN_PROGRESS,
+			purchaseStatus: PurchaseStatus.NOT_PURCHASED,
+			shouldShowType: false,
+		});
+		expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+	});
+
+	it("renders the status badge between the purchased and type badges", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.NEXT_UP,
+			purchaseStatus: PurchaseStatus.PURCHASED,
+		});
+
+		const statusBadge = screen.getByTestId("status-badge");
+		expect(
+			statusBadge.compareDocumentPosition(
+				screen.getByTestId("purchased-badge"),
+			) & Node.DOCUMENT_POSITION_PRECEDING,
+		).toBeTruthy();
+		expect(
+			statusBadge.compareDocumentPosition(screen.getByTestId("type-badge")) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("matches the icon badges' height so the row lines up", () => {
+		renderMediaItemCard({ status: MediaItemStatus.IN_PROGRESS });
+		expect(screen.getByTestId("status-badge")).toHaveClass(
+			"h-6.5",
+			"inline-flex",
+			"items-center",
+		);
+	});
+
+	it("wraps the status badge in a tooltip trigger for a waiting item with a date", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+			expectedReleaseDate: "2024-06-01",
+		});
+
+		const badge = screen.getByTestId("status-badge");
+		expect(badge).toHaveAttribute("data-slot", "tooltip-trigger");
+		expect(badge).toHaveClass("bg-black/60");
+	});
+
+	// Dashboard-shaped items omit the column entirely.
+	it("renders a waiting item with no expected release date", () => {
+		renderMediaItemCard({
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+
+		const badge = screen.getByTestId("status-badge");
+		expect(badge).toBeInTheDocument();
+		expect(badge).not.toHaveAttribute("data-slot", "tooltip-trigger");
+	});
+
+	it("shows the status badge alongside the rating stars for a completed item", () => {
+		renderMediaItemCard({ status: MediaItemStatus.COMPLETED });
+
+		expect(screen.getByTestId("status-badge")).toBeInTheDocument();
+		expect(screen.getByTestId("rating-stars")).toBeInTheDocument();
 	});
 
 	it("does not show type badge when shouldShowType is false", () => {

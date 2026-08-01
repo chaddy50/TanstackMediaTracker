@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import {
 	filterAndSortOptionsSchema,
 	isFilteredToSinglePurchaseStatus,
+	isFilteredToSingleStatus,
 } from "#/lib/filterAndSort";
 import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
 
@@ -92,5 +93,43 @@ describe("isFilteredToSinglePurchaseStatus", () => {
 		expect(
 			isFilteredToSinglePurchaseStatus(Object.values(PurchaseStatus)),
 		).toBe(false);
+	});
+});
+
+describe("isFilteredToSingleStatus", () => {
+	it("is false when no status filter is set", () => {
+		expect(isFilteredToSingleStatus(undefined)).toBe(false);
+	});
+
+	it("is false when the status filter is null", () => {
+		expect(isFilteredToSingleStatus(null)).toBe(false);
+	});
+
+	it("is false when the status filter is empty", () => {
+		expect(isFilteredToSingleStatus([])).toBe(false);
+	});
+
+	it("is true when pinned to in progress", () => {
+		expect(isFilteredToSingleStatus([MediaItemStatus.IN_PROGRESS])).toBe(true);
+	});
+
+	// The rule is "exactly one status", independent of which one.
+	it("is true when pinned to backlog", () => {
+		expect(isFilteredToSingleStatus([MediaItemStatus.BACKLOG])).toBe(true);
+	});
+
+	it("is false when two statuses are selected", () => {
+		expect(
+			isFilteredToSingleStatus([
+				MediaItemStatus.IN_PROGRESS,
+				MediaItemStatus.ON_HOLD,
+			]),
+		).toBe(false);
+	});
+
+	it("is false when every status is selected", () => {
+		expect(isFilteredToSingleStatus(Object.values(MediaItemStatus))).toBe(
+			false,
+		);
 	});
 });
