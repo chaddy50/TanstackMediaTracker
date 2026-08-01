@@ -2,12 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/database/index";
-import {
-	mediaItemMetadata,
-	mediaItems,
-	mediaTypeEnum,
-	series,
-} from "#/database/schema";
+import { mediaItems, mediaTypeEnum, series } from "#/database/schema";
 import * as hardcover from "#/features/mediaItemSearch/api/hardcover";
 import * as igdb from "#/features/mediaItemSearch/api/igdb";
 import * as itunes from "#/features/mediaItemSearch/api/itunes";
@@ -40,31 +35,24 @@ export function collectApiResults(
  */
 export function attachLibraryStatus(
 	results: ExternalSearchResult[],
-	existingMetadata: Array<{
+	existingItems: Array<{
 		id: number;
 		externalId: string;
 		externalSource: string;
-	}>,
-	existingItems: Array<{
-		id: number;
-		mediaItemMetadataId: number;
 		status: MediaItemStatus;
 	}>,
 ): SearchResultWithStatus[] {
-	const metadataByExternalKey = new Map(
-		existingMetadata.map((m) => [`${m.externalId}:${m.externalSource}`, m]),
-	);
-	const itemByMetadataId = new Map(
-		existingItems.map((item) => [item.mediaItemMetadataId, item]),
+	const itemByExternalKey = new Map(
+		existingItems.map((item) => [
+			`${item.externalId}:${item.externalSource}`,
+			item,
+		]),
 	);
 
 	return results.map((result): SearchResultWithStatus => {
-		const meta = metadataByExternalKey.get(
+		const item = itemByExternalKey.get(
 			`${result.externalId}:${result.externalSource}`,
 		);
-		if (!meta) return result;
-
-		const item = itemByMetadataId.get(meta.id);
 		if (!item) return result;
 
 		return { ...result, mediaItemId: item.id, status: item.status };
@@ -103,34 +91,22 @@ export async function performMediaSearch(
 
 	// Check which results are already in this user's library
 	const externalIds = externalResults.map((r) => r.externalId);
-	const existingMetadata = await db
+	const existingItems = await db
 		.select({
-			id: mediaItemMetadata.id,
-			externalId: mediaItemMetadata.externalId,
-			externalSource: mediaItemMetadata.externalSource,
+			id: mediaItems.id,
+			externalId: mediaItems.externalId,
+			externalSource: mediaItems.externalSource,
+			status: mediaItems.status,
 		})
-		.from(mediaItemMetadata)
-		.where(inArray(mediaItemMetadata.externalId, externalIds));
+		.from(mediaItems)
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				inArray(mediaItems.externalId, externalIds),
+			),
+		);
 
-	const metadataIds = existingMetadata.map((m) => m.id);
-	const existingItems =
-		metadataIds.length > 0
-			? await db
-					.select({
-						id: mediaItems.id,
-						mediaItemMetadataId: mediaItems.mediaItemMetadataId,
-						status: mediaItems.status,
-					})
-					.from(mediaItems)
-					.where(
-						and(
-							inArray(mediaItems.mediaItemMetadataId, metadataIds),
-							eq(mediaItems.userId, userId),
-						),
-					)
-			: [];
-
-	return attachLibraryStatus(externalResults, existingMetadata, existingItems);
+	return attachLibraryStatus(externalResults, existingItems);
 }
 
 export type AddToLibraryInput = {
@@ -154,7 +130,6 @@ export async function handleAddToLibrary(
 		data.type,
 		data.metadata,
 	);
-	const metadataId = await upsertMediaMetadata(data, metadata);
 
 	const seriesName =
 		typeof metadata.series === "string" ? metadata.series : null;
@@ -187,8 +162,9 @@ export async function handleAddToLibrary(
 		.from(mediaItems)
 		.where(
 			and(
-				eq(mediaItems.mediaItemMetadataId, metadataId),
 				eq(mediaItems.userId, userId),
+				eq(mediaItems.externalId, data.externalId),
+				eq(mediaItems.externalSource, data.externalSource),
 			),
 		);
 
@@ -205,7 +181,16 @@ export async function handleAddToLibrary(
 
 	const mediaItemId = await insertLibraryEntry(
 		userId,
-		metadataId,
+		{
+			type: data.type,
+			title: data.title,
+			description: data.description ?? null,
+			coverImageUrl: data.coverImageUrl ?? null,
+			releaseDate: data.releaseDate ?? null,
+			externalId: data.externalId,
+			externalSource: data.externalSource,
+			metadata,
+		},
 		seriesId,
 		creatorId,
 	);
@@ -292,41 +277,15 @@ export async function handleAddPodcastArc(
 		? `itunes-arc-guids:${[...data.arcMetadata.episodeGuids].sort().join(",")}`
 		: `itunes-arc:${data.podcastTitle}:${data.arcTitle}`;
 
-	const inserted = await db
-		.insert(mediaItemMetadata)
-		.values({
-			externalId,
-			externalSource: "itunes",
-			type: MediaItemType.PODCAST,
-			title: data.arcTitle,
-			description: null,
-			coverImageUrl: data.podcastCoverImageUrl ?? null,
-			releaseDate: data.arcMetadata.firstPublishedAt ?? null,
-			metadata: data.arcMetadata,
-		})
-		.onConflictDoNothing()
-		.returning({ id: mediaItemMetadata.id });
-
-	let metadataId: number;
-	if (inserted.length > 0 && inserted[0]) {
-		metadataId = inserted[0].id;
-	} else {
-		const [existing] = await db
-			.select({ id: mediaItemMetadata.id })
-			.from(mediaItemMetadata)
-			.where(eq(mediaItemMetadata.externalId, externalId));
-		if (!existing) throw new Error("Failed to find or create arc metadata");
-		metadataId = existing.id;
-	}
-
 	// Return early if the user already has this arc in their library
 	const [existingItem] = await db
 		.select({ id: mediaItems.id })
 		.from(mediaItems)
 		.where(
 			and(
-				eq(mediaItems.mediaItemMetadataId, metadataId),
 				eq(mediaItems.userId, userId),
+				eq(mediaItems.externalId, externalId),
+				eq(mediaItems.externalSource, "itunes"),
 			),
 		);
 
@@ -336,13 +295,86 @@ export async function handleAddPodcastArc(
 
 	const mediaItemId = await insertLibraryEntry(
 		userId,
-		metadataId,
+		{
+			type: MediaItemType.PODCAST,
+			title: data.arcTitle,
+			description: null,
+			coverImageUrl: data.podcastCoverImageUrl ?? null,
+			releaseDate: data.arcMetadata.firstPublishedAt ?? null,
+			externalId,
+			externalSource: "itunes",
+			metadata: data.arcMetadata,
+		},
 		seriesId,
 		arcCreatorId,
 		data.status,
 	);
 	await syncSeriesStatus(seriesId, userId);
 	return { mediaItemId };
+}
+
+export type CreateCustomItemInput = {
+	type: MediaItemType;
+	title: string;
+	description?: string;
+	coverImageUrl?: string;
+	releaseDate?: string;
+	metadata: Record<string, unknown>;
+};
+
+export async function handleCreateCustomItem(
+	data: CreateCustomItemInput,
+	userId: string,
+): Promise<{ mediaItemId: number }> {
+	const mediaItemId = await insertLibraryEntry(
+		userId,
+		{
+			type: data.type,
+			title: data.title,
+			description: data.description ?? null,
+			coverImageUrl: data.coverImageUrl ?? null,
+			releaseDate: data.releaseDate ?? null,
+			// A fresh UUID per custom item, so two users' custom items never collide
+			// on the (userId, externalId, externalSource) unique index.
+			externalId: crypto.randomUUID(),
+			externalSource: "custom",
+			metadata: data.metadata,
+		},
+		null,
+		null,
+	);
+	return { mediaItemId };
+}
+
+export type UpdatePodcastArcEpisodesInput = {
+	mediaItemId: number;
+	arcTitle: string;
+	arcMetadata: PodcastArcMetadata;
+};
+
+export async function handleUpdatePodcastArcEpisodes(
+	data: UpdatePodcastArcEpisodesInput,
+	userId: string,
+): Promise<void> {
+	const [ownedItem] = await db
+		.select({ id: mediaItems.id })
+		.from(mediaItems)
+		.where(
+			and(eq(mediaItems.id, data.mediaItemId), eq(mediaItems.userId, userId)),
+		);
+
+	if (!ownedItem) throw new Error("Unauthorized");
+
+	await db
+		.update(mediaItems)
+		.set({
+			title: data.arcTitle,
+			releaseDate: data.arcMetadata.firstPublishedAt ?? null,
+			metadata: data.arcMetadata,
+		})
+		.where(
+			and(eq(mediaItems.id, data.mediaItemId), eq(mediaItems.userId, userId)),
+		);
 }
 
 // ---- Private helpers
@@ -362,38 +394,6 @@ export async function enrichTmdbMetadata(
 		return { ...metadata, ...details };
 	}
 	return metadata;
-}
-
-async function upsertMediaMetadata(
-	data: AddToLibraryInput,
-	metadata: Record<string, unknown>,
-): Promise<number> {
-	const inserted = await db
-		.insert(mediaItemMetadata)
-		.values({
-			externalId: data.externalId,
-			externalSource: data.externalSource,
-			type: data.type,
-			title: data.title,
-			description: data.description ?? null,
-			coverImageUrl: data.coverImageUrl ?? null,
-			releaseDate: data.releaseDate ?? null,
-			metadata,
-		})
-		.onConflictDoNothing()
-		.returning({ id: mediaItemMetadata.id });
-
-	if (inserted.length > 0 && inserted[0]) {
-		return inserted[0].id;
-	}
-
-	// Already exists — fetch the existing row
-	const [existing] = await db
-		.select({ id: mediaItemMetadata.id })
-		.from(mediaItemMetadata)
-		.where(eq(mediaItemMetadata.externalId, data.externalId));
-	if (!existing) throw new Error("Failed to find or create metadata");
-	return existing.id;
 }
 
 async function findOrCreateSeriesForItem(
@@ -500,9 +500,21 @@ async function backfillMissingRelations(
 	}
 }
 
+/** The item's descriptive half, as seeded from an external API. */
+type ItemMetadataValues = {
+	type: MediaItemType;
+	title: string;
+	description: string | null;
+	coverImageUrl: string | null;
+	releaseDate: string | null;
+	externalId: string;
+	externalSource: string;
+	metadata: Record<string, unknown>;
+};
+
 async function insertLibraryEntry(
 	userId: string,
-	metadataId: number,
+	values: ItemMetadataValues,
 	seriesId: number | null,
 	creatorId: number | null,
 	status: MediaItemStatus = MediaItemStatus.BACKLOG,
@@ -511,12 +523,27 @@ async function insertLibraryEntry(
 		.insert(mediaItems)
 		.values({
 			userId,
-			mediaItemMetadataId: metadataId,
+			...values,
 			status,
 			seriesId,
 			creatorId,
 		})
+		.onConflictDoNothing()
 		.returning({ id: mediaItems.id });
-	if (!newItem) throw new Error("Failed to create library entry");
-	return newItem.id;
+
+	if (newItem) return newItem.id;
+
+	// Lost a race against a concurrent add of the same external item.
+	const [existing] = await db
+		.select({ id: mediaItems.id })
+		.from(mediaItems)
+		.where(
+			and(
+				eq(mediaItems.userId, userId),
+				eq(mediaItems.externalId, values.externalId),
+				eq(mediaItems.externalSource, values.externalSource),
+			),
+		);
+	if (!existing) throw new Error("Failed to create library entry");
+	return existing.id;
 }

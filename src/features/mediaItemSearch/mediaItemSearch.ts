@@ -1,17 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { db } from "#/database/index";
-import {
-	mediaItemMetadata,
-	mediaItems,
-	mediaTypeEnum,
-} from "#/database/schema";
+import { mediaTypeEnum } from "#/database/schema";
 import * as itunes from "#/features/mediaItemSearch/api/itunes";
 import {
 	handleAddPodcastArc,
 	handleAddToLibrary,
+	handleCreateCustomItem,
+	handleUpdatePodcastArcEpisodes,
 	performMediaSearch,
 	typeSchema,
 } from "#/features/mediaItemSearch/mediaItemSearch.server";
@@ -43,37 +39,7 @@ export const createCustomItem = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-		const externalId = crypto.randomUUID();
-		const externalSource = "custom";
-
-		const [inserted] = await db
-			.insert(mediaItemMetadata)
-			.values({
-				externalId,
-				externalSource,
-				type: data.type,
-				title: data.title,
-				description: data.description ?? null,
-				coverImageUrl: data.coverImageUrl ?? null,
-				releaseDate: data.releaseDate ?? null,
-				metadata: data.metadata,
-			})
-			.returning({ id: mediaItemMetadata.id });
-
-		if (!inserted) throw new Error("Failed to create metadata");
-
-		const [newItem] = await db
-			.insert(mediaItems)
-			.values({
-				userId: user.id,
-				mediaItemMetadataId: inserted.id,
-				status: MediaItemStatus.BACKLOG,
-				seriesId: null,
-			})
-			.returning({ id: mediaItems.id });
-
-		if (!newItem) throw new Error("Failed to create library entry");
-		return { mediaItemId: newItem.id };
+		return handleCreateCustomItem(data, user.id);
 	});
 
 export const fetchEpisodesForFeed = createServerFn({ method: "GET" })
@@ -130,35 +96,14 @@ const arcMetadataSchema = z.object({
 export const updatePodcastArcEpisodes = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
-			metadataId: z.number(),
+			mediaItemId: z.number(),
 			arcTitle: z.string().min(1),
 			arcMetadata: arcMetadataSchema,
 		}),
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-
-		// Verify the user owns an item with this metadataId before updating
-		const [ownedItem] = await db
-			.select({ id: mediaItems.id })
-			.from(mediaItems)
-			.where(
-				and(
-					eq(mediaItems.mediaItemMetadataId, data.metadataId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		if (!ownedItem) throw new Error("Unauthorized");
-
-		await db
-			.update(mediaItemMetadata)
-			.set({
-				title: data.arcTitle,
-				releaseDate: data.arcMetadata.firstPublishedAt ?? null,
-				metadata: data.arcMetadata,
-			})
-			.where(eq(mediaItemMetadata.id, data.metadataId));
+		return handleUpdatePodcastArcEpisodes(data, user.id);
 	});
 
 export const addToLibrary = createServerFn({ method: "POST" })

@@ -15,13 +15,16 @@ vi.mock("#/features/mediaItemSearch/api/itunes", () => ({
 	searchPodcasts: vi.fn().mockResolvedValue([]),
 }));
 
-import { count } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 
-import { mediaItemMetadata, mediaItems, series } from "#/database/schema";
+import { mediaItems, series } from "#/database/schema";
 import { MediaItemStatus } from "#/lib/enums";
 import { testDb } from "#/tests/integration/db";
 import { truncateAll } from "#/tests/integration/helpers";
-import { handleAddPodcastArc } from "../mediaItemSearch.server";
+import {
+	handleAddPodcastArc,
+	handleUpdatePodcastArcEpisodes,
+} from "../mediaItemSearch.server";
 
 const USER = "test-user";
 
@@ -46,7 +49,7 @@ describe("handleAddPodcastArc", () => {
 		const [seriesCount] = await testDb.select({ count: count() }).from(series);
 		const [metadataCount] = await testDb
 			.select({ count: count() })
-			.from(mediaItemMetadata);
+			.from(mediaItems);
 		const [itemsCount] = await testDb
 			.select({ count: count() })
 			.from(mediaItems);
@@ -66,7 +69,100 @@ describe("handleAddPodcastArc", () => {
 
 		const [metadataCount] = await testDb
 			.select({ count: count() })
-			.from(mediaItemMetadata);
+			.from(mediaItems);
 		expect(metadataCount?.count).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Per-user ownership of the same arc
+// ---------------------------------------------------------------------------
+
+const USER_B = "test-user-b";
+
+describe("two users adding the same podcast arc", () => {
+	it("gives each user their own arc item", async () => {
+		const forA = await handleAddPodcastArc(BASE_ARC_INPUT, USER);
+		const forB = await handleAddPodcastArc(BASE_ARC_INPUT, USER_B);
+
+		expect(forA.mediaItemId).not.toBe(forB.mediaItemId);
+
+		const rows = await testDb
+			.select({
+				userId: mediaItems.userId,
+				externalId: mediaItems.externalId,
+			})
+			.from(mediaItems)
+			.orderBy(asc(mediaItems.userId));
+
+		expect(rows).toHaveLength(2);
+		expect(rows.map((row) => row.userId)).toEqual([USER, USER_B]);
+		// The deterministic GUID-derived externalId is identical for both.
+		expect(rows[0].externalId).toBe(rows[1].externalId);
+	});
+
+	it("does not let one user's add overwrite the other's retitled arc", async () => {
+		const { mediaItemId } = await handleAddPodcastArc(BASE_ARC_INPUT, USER);
+		await testDb
+			.update(mediaItems)
+			.set({ title: "A's own arc name" })
+			.where(eq(mediaItems.id, mediaItemId));
+
+		await handleAddPodcastArc(BASE_ARC_INPUT, USER_B);
+
+		const [rowA] = await testDb
+			.select({ title: mediaItems.title })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, mediaItemId));
+		expect(rowA?.title).toBe("A's own arc name");
+	});
+});
+
+describe("handleUpdatePodcastArcEpisodes", () => {
+	it("retitles the caller's arc without touching the other user's", async () => {
+		const forA = await handleAddPodcastArc(BASE_ARC_INPUT, USER);
+		const forB = await handleAddPodcastArc(BASE_ARC_INPUT, USER_B);
+
+		await handleUpdatePodcastArcEpisodes(
+			{
+				mediaItemId: forA.mediaItemId,
+				arcTitle: "Season One, revised",
+				arcMetadata: { ...BASE_ARC_INPUT.arcMetadata },
+			},
+			USER,
+		);
+
+		const [rowA] = await testDb
+			.select({ title: mediaItems.title })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, forA.mediaItemId));
+		const [rowB] = await testDb
+			.select({ title: mediaItems.title })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, forB.mediaItemId));
+
+		expect(rowA?.title).toBe("Season One, revised");
+		expect(rowB?.title).toBe("Season 1");
+	});
+
+	it("refuses a mediaItemId the caller does not own", async () => {
+		const forB = await handleAddPodcastArc(BASE_ARC_INPUT, USER_B);
+
+		await expect(
+			handleUpdatePodcastArcEpisodes(
+				{
+					mediaItemId: forB.mediaItemId,
+					arcTitle: "Hijacked",
+					arcMetadata: { ...BASE_ARC_INPUT.arcMetadata },
+				},
+				USER,
+			),
+		).rejects.toThrow("Unauthorized");
+
+		const [rowB] = await testDb
+			.select({ title: mediaItems.title })
+			.from(mediaItems)
+			.where(eq(mediaItems.id, forB.mediaItemId));
+		expect(rowB?.title).toBe("Season 1");
 	});
 });

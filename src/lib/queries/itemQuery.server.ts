@@ -21,7 +21,6 @@ import {
 	genres,
 	type ItemSortField,
 	mediaItemInstances,
-	mediaItemMetadata,
 	mediaItems,
 	mediaItemTags,
 	series,
@@ -88,7 +87,7 @@ function buildItemFilterConditions(
 	return [
 		eq(mediaItems.userId, userId),
 		filters.mediaTypes?.length
-			? inArray(mediaItemMetadata.type, filters.mediaTypes)
+			? inArray(mediaItems.type, filters.mediaTypes)
 			: undefined,
 		filters.statuses?.length
 			? inArray(mediaItems.status, filters.statuses)
@@ -101,19 +100,19 @@ function buildItemFilterConditions(
 		buildGenreCondition(filters.genres),
 		filters.titleQuery
 			? or(
-					ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
+					ilike(mediaItems.title, `%${filters.titleQuery}%`),
 					ilike(series.name, `%${filters.titleQuery}%`),
-					sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
-					sql`${mediaItemMetadata.metadata}->>'series' ILIKE ${`%${filters.titleQuery}%`}`,
+					sql`${mediaItems.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
+					sql`${mediaItems.metadata}->>'series' ILIKE ${`%${filters.titleQuery}%`}`,
 				)
 			: undefined,
 		filters.creatorQuery
 			? or(
 					ilike(creators.name, `%${filters.creatorQuery}%`),
-					sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.creatorQuery}%`}`,
-					sql`${mediaItemMetadata.metadata}->>'director' ILIKE ${`%${filters.creatorQuery}%`}`,
-					sql`${mediaItemMetadata.metadata}->>'creator' ILIKE ${`%${filters.creatorQuery}%`}`,
-					sql`${mediaItemMetadata.metadata}->>'developer' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItems.metadata}->>'author' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItems.metadata}->>'director' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItems.metadata}->>'creator' ILIKE ${`%${filters.creatorQuery}%`}`,
+					sql`${mediaItems.metadata}->>'developer' ILIKE ${`%${filters.creatorQuery}%`}`,
 				)
 			: undefined,
 	].filter((c) => c !== undefined);
@@ -222,18 +221,18 @@ function buildItemSortClauses(
 ): SQL[] {
 	const dir = sortDirection === "asc" ? asc : desc;
 
-	const seriesKey = sql`COALESCE(${series.sortName}, ${mediaItemMetadata.seriesSortName}, ${mediaItemMetadata.sortTitle})`;
+	const seriesKey = sql`COALESCE(${series.sortName}, ${mediaItems.seriesSortName}, ${mediaItems.sortTitle})`;
 	const bySeriesThenTitle: SQL[] = [
 		sql`${seriesKey} ASC`,
-		sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
-		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
-		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
-		asc(mediaItemMetadata.sortTitle),
+		sql`(NULLIF(${mediaItems.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItems.releaseDate} END ASC NULLS LAST`,
+		sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItems.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
+		asc(mediaItems.sortTitle),
 	];
 
 	switch (sortBy) {
 		case "title":
-			return [dir(mediaItemMetadata.sortTitle)];
+			return [dir(mediaItems.sortTitle)];
 
 		case "updatedAt":
 			return [dir(mediaItems.updatedAt), ...bySeriesThenTitle];
@@ -244,7 +243,7 @@ function buildItemSortClauses(
 		case "creator": {
 			// Fall back to JSONB fields for items not yet linked to a creator entity.
 			// biome-ignore format: long SQL expression
-			const creatorSortName = sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItemMetadata.metadata}->>'author', ${mediaItemMetadata.metadata}->>'director', ${mediaItemMetadata.metadata}->>'creator', ${mediaItemMetadata.metadata}->>'developer'), '^.* ', ''))`;
+			const creatorSortName = sql`COALESCE(${creators.sortName}, REGEXP_REPLACE(COALESCE(${mediaItems.metadata}->>'author', ${mediaItems.metadata}->>'director', ${mediaItems.metadata}->>'creator', ${mediaItems.metadata}->>'developer'), '^.* ', ''))`;
 			return [
 				sortDirection === "asc"
 					? sql`${creatorSortName} ASC NULLS LAST`
@@ -256,8 +255,8 @@ function buildItemSortClauses(
 		case "director":
 			return [
 				sortDirection === "asc"
-					? sql`${mediaItemMetadata.metadata}->>'director' ASC NULLS LAST`
-					: sql`${mediaItemMetadata.metadata}->>'director' DESC NULLS LAST`,
+					? sql`${mediaItems.metadata}->>'director' ASC NULLS LAST`
+					: sql`${mediaItems.metadata}->>'director' DESC NULLS LAST`,
 				...bySeriesThenTitle,
 			];
 
@@ -265,15 +264,15 @@ function buildItemSortClauses(
 			return sortDirection === "asc"
 				? [
 						sql`${seriesKey} ASC`,
-						sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
-						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END ASC NULLS LAST`,
-						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
+						sql`(NULLIF(${mediaItems.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItems.releaseDate} END ASC NULLS LAST`,
+						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItems.metadata}->>'firstPublishedAt')::timestamp END ASC NULLS LAST`,
 					]
 				: [
 						sql`${seriesKey} DESC`,
-						sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
-						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItemMetadata.releaseDate} END DESC NULLS LAST`,
-						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItemMetadata.metadata}->>'firstPublishedAt')::timestamp END DESC NULLS LAST`,
+						sql`(NULLIF(${mediaItems.metadata}->>'seriesBookNumber', ''))::float DESC NULLS LAST`,
+						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN ${mediaItems.releaseDate} END DESC NULLS LAST`,
+						sql`CASE WHEN ${mediaItems.seriesId} IS NOT NULL THEN (${mediaItems.metadata}->>'firstPublishedAt')::timestamp END DESC NULLS LAST`,
 					];
 
 		case "rating":
@@ -295,13 +294,13 @@ function buildItemSortClauses(
 		case "releaseDate":
 			return [
 				sortDirection === "asc"
-					? sql`${mediaItemMetadata.releaseDate} ASC NULLS LAST`
-					: sql`${mediaItemMetadata.releaseDate} DESC NULLS LAST`,
+					? sql`${mediaItems.releaseDate} ASC NULLS LAST`
+					: sql`${mediaItems.releaseDate} DESC NULLS LAST`,
 				...bySeriesThenTitle,
 			];
 
 		default:
-			return [dir(mediaItemMetadata.sortTitle)];
+			return [dir(mediaItems.sortTitle)];
 	}
 }
 
@@ -314,7 +313,6 @@ export type ItemQueryItem = {
 	status: MediaItemStatus;
 	purchaseStatus: PurchaseStatus;
 	expectedReleaseDate: string | null;
-	mediaItemId: number;
 	title: string;
 	type: MediaItemType;
 	coverImageUrl: string | null;
@@ -357,10 +355,9 @@ export async function runItemQuery(
 			status: mediaItems.status,
 			purchaseStatus: mediaItems.purchaseStatus,
 			expectedReleaseDate: mediaItems.expectedReleaseDate,
-			mediaItemId: mediaItemMetadata.id,
-			title: mediaItemMetadata.title,
-			type: mediaItemMetadata.type,
-			coverImageUrl: mediaItemMetadata.coverImageUrl,
+			title: mediaItems.title,
+			type: mediaItems.type,
+			coverImageUrl: mediaItems.coverImageUrl,
 			seriesId: mediaItems.seriesId,
 			seriesName: series.name,
 			creatorId: mediaItems.creatorId,
@@ -371,10 +368,6 @@ export async function runItemQuery(
 			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 		.leftJoin(genres, eq(mediaItems.genreId, genres.id))

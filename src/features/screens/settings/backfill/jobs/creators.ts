@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { mediaItemMetadata, mediaItems } from "#/database/schema";
+import { mediaItems } from "#/database/schema";
 import * as hardcover from "#/features/mediaItemSearch/api/hardcover";
 import * as igdb from "#/features/mediaItemSearch/api/igdb";
 import * as itunes from "#/features/mediaItemSearch/api/itunes";
@@ -29,17 +29,12 @@ export async function runCreatorsBackfillJob(
 	const unlinkedItems = await db
 		.select({
 			id: mediaItems.id,
-			metadataId: mediaItemMetadata.id,
-			externalId: mediaItemMetadata.externalId,
-			externalSource: mediaItemMetadata.externalSource,
-			type: mediaItemMetadata.type,
-			metadata: mediaItemMetadata.metadata,
+			externalId: mediaItems.externalId,
+			externalSource: mediaItems.externalSource,
+			type: mediaItems.type,
+			metadata: mediaItems.metadata,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(and(eq(mediaItems.userId, userId), isNull(mediaItems.creatorId)));
 
 	// Extract creator name (and feedUrl for podcasts) per type from JSONB.
@@ -49,12 +44,10 @@ export async function runCreatorsBackfillJob(
 	const itemsWithName: UnlinkedItem[] = [];
 	const moviesNeedingDirector: {
 		id: number;
-		metadataId: number;
 		externalId: string;
 	}[] = [];
 	const gamesNeedingDeveloper: {
 		id: number;
-		metadataId: number;
 		externalId: string;
 	}[] = [];
 
@@ -72,7 +65,6 @@ export async function runCreatorsBackfillJob(
 				if (!name && item.externalSource === "tmdb" && item.externalId) {
 					moviesNeedingDirector.push({
 						id: item.id,
-						metadataId: item.metadataId,
 						externalId: item.externalId,
 					});
 				}
@@ -89,7 +81,6 @@ export async function runCreatorsBackfillJob(
 				if (!name && item.externalSource === "igdb" && item.externalId) {
 					gamesNeedingDeveloper.push({
 						id: item.id,
-						metadataId: item.metadataId,
 						externalId: item.externalId,
 					});
 				}
@@ -102,16 +93,16 @@ export async function runCreatorsBackfillJob(
 	}
 
 	// Re-fetch director from TMDB for movies that don't have it stored.
-	// Also patch the shared metadata row so future runs skip this step.
+	// Also patch the user's own metadata so future runs skip this step.
 	for (const movie of moviesNeedingDirector) {
 		const details = await tmdb.fetchMovieDetails(movie.externalId);
 		if (details.director) {
 			await db
-				.update(mediaItemMetadata)
+				.update(mediaItems)
 				.set({
-					metadata: sql`${mediaItemMetadata.metadata} || jsonb_build_object('director', ${details.director}::text)`,
+					metadata: sql`${mediaItems.metadata} || jsonb_build_object('director', ${details.director}::text)`,
 				})
-				.where(eq(mediaItemMetadata.id, movie.metadataId));
+				.where(and(eq(mediaItems.id, movie.id), eq(mediaItems.userId, userId)));
 			itemsWithName.push({
 				id: movie.id,
 				name: details.director,
@@ -123,16 +114,16 @@ export async function runCreatorsBackfillJob(
 	}
 
 	// Re-fetch developer from IGDB for games that don't have it stored.
-	// Also patch the shared metadata row so future runs skip this step.
+	// Also patch the user's own metadata so future runs skip this step.
 	for (const game of gamesNeedingDeveloper) {
 		const result = await igdb.fetchGameDeveloper(game.externalId);
 		if (result) {
 			await db
-				.update(mediaItemMetadata)
+				.update(mediaItems)
 				.set({
-					metadata: sql`${mediaItemMetadata.metadata} || jsonb_build_object('developer', ${result.developer}::text)`,
+					metadata: sql`${mediaItems.metadata} || jsonb_build_object('developer', ${result.developer}::text)`,
 				})
-				.where(eq(mediaItemMetadata.id, game.metadataId));
+				.where(and(eq(mediaItems.id, game.id), eq(mediaItems.userId, userId)));
 			itemsWithName.push({
 				id: game.id,
 				name: result.developer,

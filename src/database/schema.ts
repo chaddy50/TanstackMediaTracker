@@ -349,20 +349,30 @@ export const genres = pgTable(
 export type Genre = typeof genres.$inferSelect;
 
 /**
- * Stores media data fetched from external APIs (TMDB, IGDB, Open Library).
- * Acts as a local cache — once fetched, never fetched again.
+ * One row per media item the user is tracking — one user's own copy of one item.
+ *
+ * Holds both halves of an item: the descriptive data seeded from an external API
+ * (TMDB, IGDB, Hardcover, iTunes) and freely editable thereafter, and the user's
+ * tracking state. The two used to live in a separate shared `media_metadata`
+ * table; because the descriptive half is user-editable, sharing it let one user's
+ * edit overwrite another's, so it lives here where it is private by construction.
+ *
+ * Represents the "shelf" — what status is this item at right now?
+ * Re-reads/re-watches keep status as "in_progress"; the UI derives the
+ * "re-doing" label by checking for prior completed instances.
  */
-export const mediaItemMetadata = pgTable(
-	"media_metadata",
+export const mediaItems = pgTable(
+	"media_items",
 	{
 		id: serial("id").primaryKey(),
+		userId: text("user_id").notNull(),
 		type: mediaTypeEnum("type").notNull(),
 		title: text("title").notNull(),
 		description: text("description"),
 		coverImageUrl: text("cover_image_url"),
 		releaseDate: date("release_date"),
 		externalId: text("external_id").notNull(),
-		externalSource: text("external_source").notNull(), // e.g. "tmdb", "igdb", "openlibrary"
+		externalSource: text("external_source").notNull(), // e.g. "tmdb", "igdb", "hardcover", "itunes", "custom"
 		metadata: jsonb("metadata").$type<MediaMetadata>(),
 		sortTitle: text("sort_title").generatedAlwaysAs(
 			sql`CASE
@@ -380,31 +390,6 @@ export const mediaItemMetadata = pgTable(
 				ELSE metadata->>'series'
 			END`,
 		),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-	},
-	(t) => [
-		// Prevents caching the same external item twice
-		uniqueIndex("media_item_metadata_external_unique").on(
-			t.externalId,
-			t.externalSource,
-		),
-	],
-);
-
-/**
- * One row per media item the user is tracking.
- * Represents the "shelf" — what status is this item at right now?
- * Re-reads/re-watches keep status as "in_progress"; the UI derives the
- * "re-doing" label by checking for prior completed instances.
- */
-export const mediaItems = pgTable(
-	"media_items",
-	{
-		id: serial("id").primaryKey(),
-		userId: text("user_id").notNull(),
-		mediaItemMetadataId: integer("media_item_metadata_id")
-			.notNull()
-			.references(() => mediaItemMetadata.id, { onDelete: "cascade" }),
 		seriesId: integer("series_id").references(() => series.id, {
 			onDelete: "set null",
 		}),
@@ -442,6 +427,13 @@ export const mediaItems = pgTable(
 		index("media_items_userId_updatedAt_idx").on(table.userId, table.updatedAt),
 		// Filter by user + status (used by library filters and view queries)
 		index("media_items_userId_status_idx").on(table.userId, table.status),
+		// One row per user per external item — the idempotency guarantee for adds,
+		// replacing the old global uniqueness on (external_id, external_source).
+		uniqueIndex("media_items_user_external_unique").on(
+			table.userId,
+			table.externalId,
+			table.externalSource,
+		),
 	],
 );
 

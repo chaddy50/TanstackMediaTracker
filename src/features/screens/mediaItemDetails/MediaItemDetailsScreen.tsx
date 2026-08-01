@@ -24,7 +24,7 @@ export function MediaItemDetailsScreen() {
 		setIsDeleting(true);
 		try {
 			await removeFromLibrary({
-				data: { metadataId: mediaItemDetails.metadataId },
+				data: { mediaItemId: mediaItemDetails.id },
 			});
 			await navigate({ to: "/" });
 		} finally {

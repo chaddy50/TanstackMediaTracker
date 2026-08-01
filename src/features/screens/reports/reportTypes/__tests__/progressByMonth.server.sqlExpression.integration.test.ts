@@ -14,8 +14,10 @@ vi.mock("#/features/screens/auth/session", () => ({
 }));
 
 import { testDb } from "#/tests/integration/db";
-import { insertMetadata, truncateAll } from "#/tests/integration/helpers";
+import { insertMediaItem, truncateAll } from "#/tests/integration/helpers";
 import { getProgressByMonthSqlExpression } from "../progressByMonth.server";
+
+const USER = "test-user";
 
 beforeEach(() => truncateAll());
 
@@ -23,9 +25,14 @@ async function evalMetric(
 	mediaType: MediaItemType,
 	metadata: Record<string, unknown>,
 ): Promise<number> {
-	const metadataId = await insertMetadata({ type: mediaType, metadata });
+	const mediaItemId = await insertMediaItem({
+		userId: USER,
+		type: mediaType,
+		metadata,
+	});
+	// The expression reads from the `mi` (media_items) alias.
 	const rows = await testDb.execute<{ value: number }>(
-		sql`SELECT ${getProgressByMonthSqlExpression(mediaType)} AS value FROM media_metadata mim WHERE mim.id = ${metadataId}`,
+		sql`SELECT ${getProgressByMonthSqlExpression(mediaType)} AS value FROM media_items mi WHERE mi.id = ${mediaItemId}`,
 	);
 	return Number(rows.rows[0]?.value ?? 0);
 }

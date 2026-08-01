@@ -1,7 +1,7 @@
+import type * as React from "react";
 import { useAutoResizeTextarea } from "#/components/hooks/useAutoResizeTextarea";
 import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
-import type * as React from "react";
 
 interface AutoResizeTextareaProps
 	extends Omit<React.ComponentProps<"textarea">, "rows"> {

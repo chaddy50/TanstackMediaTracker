@@ -6,7 +6,6 @@ import { db } from "#/database/index";
 import {
 	creators,
 	mediaItemInstances,
-	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
 	mediaTypeEnum,
@@ -14,6 +13,7 @@ import {
 	series,
 } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
+import { updateSeriesMetadata as updateSeriesMetadataForUser } from "#/features/screens/seriesDetails/seriesDetails.server";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 
 export const getSeriesListByType = createServerFn({ method: "GET" })
@@ -44,27 +44,22 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 				status: mediaItems.status,
 				purchaseStatus: mediaItems.purchaseStatus,
 				expectedReleaseDate: mediaItems.expectedReleaseDate,
-				mediaItemMetadataId: mediaItemMetadata.id,
-				title: mediaItemMetadata.title,
-				type: mediaItemMetadata.type,
-				coverImageUrl: mediaItemMetadata.coverImageUrl,
-				metadata: mediaItemMetadata.metadata,
+				title: mediaItems.title,
+				type: mediaItems.type,
+				coverImageUrl: mediaItems.coverImageUrl,
+				metadata: mediaItems.metadata,
 				creatorId: mediaItems.creatorId,
 				creatorName: creators.name,
 			})
 			.from(mediaItems)
-			.innerJoin(
-				mediaItemMetadata,
-				eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-			)
 			.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 			.where(and(eq(mediaItems.seriesId, id), eq(mediaItems.userId, user.id)))
 			.orderBy(
 				sql`
-					NULLIF(media_metadata.metadata->>'seriesBookNumber', '')::numeric
+					NULLIF(media_items.metadata->>'seriesBookNumber', '')::numeric
 					NULLS LAST
 			  	`,
-				mediaItemMetadata.releaseDate,
+				mediaItems.releaseDate,
 			);
 
 		if (items.length === 0) {
@@ -177,41 +172,9 @@ export const updateSeriesMetadata = createServerFn({ method: "POST" })
 			isComplete: z.boolean(),
 		}),
 	)
-	.handler(async ({ data: { seriesId, name, description, isComplete } }) => {
+	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-		const [currentSeries] = await db
-			.select({ name: series.name })
-			.from(series)
-			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
-
-		await db
-			.update(series)
-			.set({ name, description: description || null, isComplete })
-			.where(and(eq(series.id, seriesId), eq(series.userId, user.id)));
-
-		// If the name changed, sync it into each item's metadata JSONB so the
-		// series name shown on media item detail pages stays consistent.
-		if (currentSeries && currentSeries.name !== name) {
-			await db
-				.update(mediaItemMetadata)
-				.set({
-					metadata: sql`jsonb_set(${mediaItemMetadata.metadata}, '{series}', ${JSON.stringify(name)}::jsonb)`,
-				})
-				.where(
-					inArray(
-						mediaItemMetadata.id,
-						db
-							.select({ id: mediaItems.mediaItemMetadataId })
-							.from(mediaItems)
-							.where(
-								and(
-									eq(mediaItems.seriesId, seriesId),
-									eq(mediaItems.userId, user.id),
-								),
-							),
-					),
-				);
-		}
+		return updateSeriesMetadataForUser(data, user.id);
 	});
 
 export const deleteSeries = createServerFn({ method: "POST" })

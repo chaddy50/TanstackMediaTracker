@@ -30,17 +30,11 @@ vi.mock("#/features/mediaItemSearch/api/igdb", () => ({
 }));
 
 import { asc, count, eq } from "drizzle-orm";
-import {
-	creators,
-	mediaItemMetadata,
-	mediaItems,
-	series,
-} from "#/database/schema";
+import { creators, mediaItems, series } from "#/database/schema";
 import { MediaItemType } from "#/lib/enums";
 import { testDb } from "#/tests/integration/db";
 import {
 	insertMediaItem,
-	insertMetadata,
 	insertSeries,
 	truncateAll,
 } from "#/tests/integration/helpers";
@@ -72,7 +66,7 @@ describe("handleAddToLibrary", () => {
 
 		const [metadataCount] = await testDb
 			.select({ count: count() })
-			.from(mediaItemMetadata);
+			.from(mediaItems);
 		const [seriesCount] = await testDb.select({ count: count() }).from(series);
 		const [creatorsCount] = await testDb
 			.select({ count: count() })
@@ -110,15 +104,12 @@ describe("handleAddToLibrary", () => {
 	});
 
 	it("backfills seriesId and creatorId on an existing item that had null values", async () => {
-		const metadataId = await insertMetadata({
+		const existingItemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			title: "Dune",
 			externalId: "hc-123",
 			externalSource: "hardcover",
-		});
-		const existingItemId = await insertMediaItem({
 			userId: USER,
-			metadataId,
 			seriesId: undefined,
 			creatorId: undefined,
 		});
@@ -147,8 +138,8 @@ describe("handleAddToLibrary", () => {
 		);
 
 		const [stored] = await testDb
-			.select({ releaseDate: mediaItemMetadata.releaseDate })
-			.from(mediaItemMetadata);
+			.select({ releaseDate: mediaItems.releaseDate })
+			.from(mediaItems);
 
 		expect(stored?.releaseDate).toBe("1200-01-01 BC");
 	});
@@ -170,31 +161,96 @@ describe("handleAddToLibrary", () => {
 
 describe("release date ordering", () => {
 	it("sorts pre-0 AD dates before AD dates, oldest first", async () => {
-		await insertMetadata({
+		await insertMediaItem({
+			userId: USER,
 			type: MediaItemType.BOOK,
 			title: "Modern",
 			releaseDate: "2020-01-01",
 		});
-		await insertMetadata({
+		await insertMediaItem({
+			userId: USER,
 			type: MediaItemType.BOOK,
 			title: "Gilgamesh",
 			releaseDate: "1200-01-01 BC",
 		});
-		await insertMetadata({
+		await insertMediaItem({
+			userId: USER,
 			type: MediaItemType.BOOK,
 			title: "Iliad",
 			releaseDate: "0800-01-01 BC",
 		});
 
 		const rows = await testDb
-			.select({ title: mediaItemMetadata.title })
-			.from(mediaItemMetadata)
-			.orderBy(asc(mediaItemMetadata.releaseDate));
+			.select({ title: mediaItems.title })
+			.from(mediaItems)
+			.orderBy(asc(mediaItems.releaseDate));
 
 		expect(rows.map((row) => row.title)).toEqual([
 			"Gilgamesh",
 			"Iliad",
 			"Modern",
 		]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Per-user ownership — the shape the shared-metadata schema could not express
+// ---------------------------------------------------------------------------
+
+const USER_B = "test-user-b";
+
+describe("two users adding the same external item", () => {
+	it("gives each user their own item row", async () => {
+		await handleAddToLibrary(BASE_BOOK_INPUT, USER);
+		await handleAddToLibrary(BASE_BOOK_INPUT, USER_B);
+
+		const rows = await testDb
+			.select({ userId: mediaItems.userId, externalId: mediaItems.externalId })
+			.from(mediaItems)
+			.orderBy(asc(mediaItems.userId));
+
+		expect(rows).toHaveLength(2);
+		expect(rows.map((row) => row.userId)).toEqual([USER, USER_B]);
+		// Same external identity, no unique violation.
+		expect(new Set(rows.map((row) => row.externalId))).toEqual(
+			new Set([BASE_BOOK_INPUT.externalId]),
+		);
+	});
+
+	it("does not let one user's add overwrite the other's edits", async () => {
+		const { mediaItemId } = await handleAddToLibrary(BASE_BOOK_INPUT, USER);
+		await testDb
+			.update(mediaItems)
+			.set({
+				title: "A's custom title",
+				description: "A's description",
+				coverImageUrl: "http://example.test/a.jpg",
+				metadata: { author: "A's correction" },
+			})
+			.where(eq(mediaItems.id, mediaItemId));
+
+		await handleAddToLibrary(BASE_BOOK_INPUT, USER_B);
+
+		const [rowA] = await testDb
+			.select()
+			.from(mediaItems)
+			.where(eq(mediaItems.id, mediaItemId));
+		expect(rowA?.title).toBe("A's custom title");
+		expect(rowA?.description).toBe("A's description");
+		expect(rowA?.coverImageUrl).toBe("http://example.test/a.jpg");
+		expect(rowA?.metadata).toEqual({ author: "A's correction" });
+	});
+
+	it("gives each user their own series and creator rows", async () => {
+		await handleAddToLibrary(BASE_BOOK_INPUT, USER);
+		await handleAddToLibrary(BASE_BOOK_INPUT, USER_B);
+
+		const [seriesCount] = await testDb.select({ count: count() }).from(series);
+		const [creatorsCount] = await testDb
+			.select({ count: count() })
+			.from(creators);
+
+		expect(seriesCount?.count).toBe(2);
+		expect(creatorsCount?.count).toBe(2);
 	});
 });

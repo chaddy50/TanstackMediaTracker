@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { mediaItemMetadata, mediaItems } from "#/database/schema";
+import { mediaItems } from "#/database/schema";
 import { MediaItemType } from "#/lib/enums";
 
 const TMDB_DELAY_MS = 100;
@@ -16,20 +16,15 @@ export async function runTimeToCompleteBackfill(
 	// Phase 1 — Movies (TMDB runtime)
 	const movieRows = await db
 		.selectDistinct({
-			metadataId: mediaItemMetadata.id,
-			externalId: mediaItemMetadata.externalId,
+			externalId: mediaItems.externalId,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(
 			and(
 				eq(mediaItems.userId, userId),
-				eq(mediaItemMetadata.type, MediaItemType.MOVIE),
-				eq(mediaItemMetadata.externalSource, "tmdb"),
-				sql`(${mediaItemMetadata.metadata}->>'runtime') IS NULL`,
+				eq(mediaItems.type, MediaItemType.MOVIE),
+				eq(mediaItems.externalSource, "tmdb"),
+				sql`(${mediaItems.metadata}->>'runtime') IS NULL`,
 			),
 		);
 
@@ -43,14 +38,20 @@ export async function runTimeToCompleteBackfill(
 			const details = await fetchMovieDetails(row.externalId);
 			if (typeof details.runtime === "number") {
 				await db
-					.update(mediaItemMetadata)
+					.update(mediaItems)
 					.set({
 						metadata: sql`
-							coalesce(${mediaItemMetadata.metadata}, '{}') ||
+							coalesce(${mediaItems.metadata}, '{}') ||
 							${JSON.stringify(details)}::jsonb
 						`,
 					})
-					.where(eq(mediaItemMetadata.id, row.metadataId));
+					.where(
+						and(
+							eq(mediaItems.userId, userId),
+							eq(mediaItems.externalId, row.externalId),
+							eq(mediaItems.externalSource, "tmdb"),
+						),
+					);
 				processedCount++;
 			}
 			if (index < movieRows.length - 1) {
@@ -62,20 +63,15 @@ export async function runTimeToCompleteBackfill(
 	// Phase 2 — TV Shows (TMDB episode runtime + count)
 	const tvRows = await db
 		.selectDistinct({
-			metadataId: mediaItemMetadata.id,
-			externalId: mediaItemMetadata.externalId,
+			externalId: mediaItems.externalId,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(
 			and(
 				eq(mediaItems.userId, userId),
-				eq(mediaItemMetadata.type, MediaItemType.TV_SHOW),
-				eq(mediaItemMetadata.externalSource, "tmdb"),
-				sql`(${mediaItemMetadata.metadata}->>'episodeRuntime') IS NULL`,
+				eq(mediaItems.type, MediaItemType.TV_SHOW),
+				eq(mediaItems.externalSource, "tmdb"),
+				sql`(${mediaItems.metadata}->>'episodeRuntime') IS NULL`,
 			),
 		);
 
@@ -89,14 +85,20 @@ export async function runTimeToCompleteBackfill(
 			const details = await fetchTvShowDetails(row.externalId);
 			if (typeof details.episodeRuntime === "number") {
 				await db
-					.update(mediaItemMetadata)
+					.update(mediaItems)
 					.set({
 						metadata: sql`
-							coalesce(${mediaItemMetadata.metadata}, '{}') ||
+							coalesce(${mediaItems.metadata}, '{}') ||
 							${JSON.stringify(details)}::jsonb
 						`,
 					})
-					.where(eq(mediaItemMetadata.id, row.metadataId));
+					.where(
+						and(
+							eq(mediaItems.userId, userId),
+							eq(mediaItems.externalId, row.externalId),
+							eq(mediaItems.externalSource, "tmdb"),
+						),
+					);
 				processedCount++;
 			}
 			if (index < tvRows.length - 1) {
@@ -108,20 +110,15 @@ export async function runTimeToCompleteBackfill(
 	// Phase 3 — Games (IGDB time to beat)
 	const gameRows = await db
 		.selectDistinct({
-			metadataId: mediaItemMetadata.id,
-			externalId: mediaItemMetadata.externalId,
+			externalId: mediaItems.externalId,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(
 			and(
 				eq(mediaItems.userId, userId),
-				eq(mediaItemMetadata.type, MediaItemType.VIDEO_GAME),
-				eq(mediaItemMetadata.externalSource, "igdb"),
-				sql`(${mediaItemMetadata.metadata}->>'timeToBeatFetchedAt') IS NULL`,
+				eq(mediaItems.type, MediaItemType.VIDEO_GAME),
+				eq(mediaItems.externalSource, "igdb"),
+				sql`(${mediaItems.metadata}->>'timeToBeatFetchedAt') IS NULL`,
 			),
 		);
 
@@ -151,14 +148,20 @@ export async function runTimeToCompleteBackfill(
 				}
 
 				await db
-					.update(mediaItemMetadata)
+					.update(mediaItems)
 					.set({
 						metadata: sql`
-							coalesce(${mediaItemMetadata.metadata}, '{}') ||
+							coalesce(${mediaItems.metadata}, '{}') ||
 							${JSON.stringify(times)}::jsonb
 						`,
 					})
-					.where(eq(mediaItemMetadata.id, row.metadataId));
+					.where(
+						and(
+							eq(mediaItems.userId, userId),
+							eq(mediaItems.externalId, row.externalId),
+							eq(mediaItems.externalSource, "igdb"),
+						),
+					);
 
 				processedCount++;
 			}

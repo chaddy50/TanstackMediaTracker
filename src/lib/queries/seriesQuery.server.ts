@@ -15,7 +15,6 @@ import { db } from "#/database/index";
 import {
 	type FilterAndSortOptions,
 	mediaItemInstances,
-	mediaItemMetadata,
 	mediaItems,
 	type SeriesSortField,
 	series,
@@ -67,20 +66,16 @@ export async function runSeriesQuery(
 						db
 							.select({ one: sql`1` })
 							.from(mediaItems)
-							.innerJoin(
-								mediaItemMetadata,
-								eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-							)
 							.where(
 								and(
 									eq(mediaItems.seriesId, series.id),
 									eq(mediaItems.userId, userId),
 									or(
-										ilike(mediaItemMetadata.title, `%${filters.titleQuery}%`),
-										sql`${mediaItemMetadata.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
-										sql`${mediaItemMetadata.metadata}->>'director' ILIKE ${`%${filters.titleQuery}%`}`,
-										sql`${mediaItemMetadata.metadata}->>'creator' ILIKE ${`%${filters.titleQuery}%`}`,
-										sql`${mediaItemMetadata.metadata}->>'developer' ILIKE ${`%${filters.titleQuery}%`}`,
+										ilike(mediaItems.title, `%${filters.titleQuery}%`),
+										sql`${mediaItems.metadata}->>'author' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItems.metadata}->>'director' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItems.metadata}->>'creator' ILIKE ${`%${filters.titleQuery}%`}`,
+										sql`${mediaItems.metadata}->>'developer' ILIKE ${`%${filters.titleQuery}%`}`,
 									),
 								),
 							),
@@ -208,17 +203,13 @@ export async function getNextItemInSeries(
 			purchaseStatus: mediaItems.purchaseStatus,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(
 			and(eq(mediaItems.seriesId, seriesId), eq(mediaItems.userId, userId)),
 		)
 		.orderBy(
-			sql`(NULLIF(${mediaItemMetadata.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
-			asc(mediaItemMetadata.releaseDate),
-			asc(mediaItemMetadata.sortTitle),
+			sql`(NULLIF(${mediaItems.metadata}->>'seriesBookNumber', ''))::float ASC NULLS LAST`,
+			asc(mediaItems.releaseDate),
+			asc(mediaItems.sortTitle),
 		);
 
 	return findNextSeriesItem(items);

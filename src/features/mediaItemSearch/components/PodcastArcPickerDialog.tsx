@@ -33,7 +33,7 @@ type AddMode = {
 
 type EditMode = {
 	mode: "edit";
-	metadataId: number;
+	mediaItemId: number;
 	currentArcTitle: string;
 	feedUrl: string;
 	currentEpisodeGuids: string[];

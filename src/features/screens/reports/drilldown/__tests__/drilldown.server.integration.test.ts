@@ -16,7 +16,6 @@ import {
 	insertGenre,
 	insertInstance,
 	insertMediaItem,
-	insertMetadata,
 	insertSeries,
 	truncateAll,
 } from "#/tests/integration/helpers";
@@ -26,6 +25,11 @@ import {
 } from "../drilldown.server";
 
 const USER = "test-user";
+// The same external item held by both users — impossible under the old schema.
+const SHARED_EXTERNAL = {
+	externalId: "shared-external-1",
+	externalSource: "test",
+} as const;
 const OTHER_USER = "other-user";
 
 beforeEach(() => truncateAll());
@@ -37,8 +41,10 @@ beforeEach(() => truncateAll());
 describe("fetchDrillDownItemsForMonth", () => {
 	describe("deduplication", () => {
 		it("item completed twice in the same month appears once with data from the most recent instance", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const itemId = await insertMediaItem({ userId: USER, metadataId });
+			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
+				userId: USER,
+			});
 			await insertInstance({
 				mediaItemId: itemId,
 				completedAt: "2024-03-05",
@@ -60,8 +66,10 @@ describe("fetchDrillDownItemsForMonth", () => {
 
 	describe("month scoping", () => {
 		it("excludes items completed in a different month", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const itemId = await insertMediaItem({ userId: USER, metadataId });
+			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
+				userId: USER,
+			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-02-15" });
 
 			const result = await fetchDrillDownItemsForMonth(USER, "2024-03");
@@ -72,17 +80,13 @@ describe("fetchDrillDownItemsForMonth", () => {
 
 	describe("media type filter", () => {
 		it("returns all types when no filter provided", async () => {
-			const bookMetadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const movieMetadataId = await insertMetadata({
-				type: MediaItemType.MOVIE,
-			});
 			const bookItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId: bookMetadataId,
 			});
 			const movieItemId = await insertMediaItem({
+				type: MediaItemType.MOVIE,
 				userId: USER,
-				metadataId: movieMetadataId,
 			});
 			await insertInstance({
 				mediaItemId: bookItemId,
@@ -99,17 +103,13 @@ describe("fetchDrillDownItemsForMonth", () => {
 		});
 
 		it("filters to the specified media type only", async () => {
-			const bookMetadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const movieMetadataId = await insertMetadata({
-				type: MediaItemType.MOVIE,
-			});
 			const bookItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId: bookMetadataId,
 			});
 			const movieItemId = await insertMediaItem({
+				type: MediaItemType.MOVIE,
 				userId: USER,
-				metadataId: movieMetadataId,
 			});
 			await insertInstance({
 				mediaItemId: bookItemId,
@@ -131,11 +131,13 @@ describe("fetchDrillDownItemsForMonth", () => {
 
 	describe("user scoping", () => {
 		it("only returns items for the requesting user", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const userItemId = await insertMediaItem({ userId: USER, metadataId });
+			const userItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
+				userId: USER,
+			});
 			const otherItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: OTHER_USER,
-				metadataId,
 			});
 			await insertInstance({
 				mediaItemId: userItemId,
@@ -164,10 +166,10 @@ describe("fetchDrillDownItemsForMonth", () => {
 				type: MediaItemType.BOOK,
 				name: "The Expanse",
 			});
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				seriesId,
 			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
@@ -179,8 +181,10 @@ describe("fetchDrillDownItemsForMonth", () => {
 		});
 
 		it("seriesName is null when the item has no series", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const itemId = await insertMediaItem({ userId: USER, metadataId });
+			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
+				userId: USER,
+			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 			const result = await fetchDrillDownItemsForMonth(USER, "2024-03");
@@ -198,11 +202,11 @@ describe("fetchDrillDownItemsForMonth", () => {
 describe("fetchDrillDownItemsForGenre", () => {
 	describe("deduplication", () => {
 		it("item completed twice within the date range appears once with data from the most recent instance", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				genreId,
 			});
 			await insertInstance({
@@ -231,11 +235,11 @@ describe("fetchDrillDownItemsForGenre", () => {
 
 	describe("date range", () => {
 		it("excludes items completed before startDate", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				genreId,
 			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2023-12-31" });
@@ -251,11 +255,11 @@ describe("fetchDrillDownItemsForGenre", () => {
 		});
 
 		it("excludes items completed after endDate", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				genreId,
 			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-16" });
@@ -273,11 +277,11 @@ describe("fetchDrillDownItemsForGenre", () => {
 
 	describe("genre filter", () => {
 		it("excludes items in a different genre", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const genreId = await insertGenre({ userId: USER, name: "History" });
 			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				genreId,
 			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
@@ -293,9 +297,11 @@ describe("fetchDrillDownItemsForGenre", () => {
 		});
 
 		it("excludes items with no genre", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			// No genreId
-			const itemId = await insertMediaItem({ userId: USER, metadataId });
+			const itemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
+				userId: USER,
+			});
 			await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 			const result = await fetchDrillDownItemsForGenre(
@@ -311,19 +317,17 @@ describe("fetchDrillDownItemsForGenre", () => {
 
 	describe("media type filter", () => {
 		it("filters to the specified media type only", async () => {
-			const bookMetadataId = await insertMetadata({ type: MediaItemType.BOOK });
-			const movieMetadataId = await insertMetadata({
-				type: MediaItemType.MOVIE,
-			});
 			const genreId = await insertGenre({ userId: USER, name: "Fiction" });
 			const bookItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId: bookMetadataId,
+
 				genreId,
 			});
 			const movieItemId = await insertMediaItem({
+				type: MediaItemType.MOVIE,
 				userId: USER,
-				metadataId: movieMetadataId,
+
 				genreId,
 			});
 			await insertInstance({
@@ -350,20 +354,21 @@ describe("fetchDrillDownItemsForGenre", () => {
 
 	describe("user scoping", () => {
 		it("only returns items for the requesting user", async () => {
-			const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
 			const userGenreId = await insertGenre({ userId: USER, name: "Fiction" });
 			const otherGenreId = await insertGenre({
 				userId: OTHER_USER,
 				name: "Fiction",
 			});
 			const userItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: USER,
-				metadataId,
+
 				genreId: userGenreId,
 			});
 			const otherItemId = await insertMediaItem({
+				type: MediaItemType.BOOK,
 				userId: OTHER_USER,
-				metadataId,
+
 				genreId: otherGenreId,
 			});
 			await insertInstance({
@@ -391,5 +396,29 @@ describe("fetchDrillDownItemsForGenre", () => {
 			expect(userResult).toHaveLength(1);
 			expect(otherResult).toHaveLength(1);
 		});
+	});
+});
+
+describe("cross-user isolation", () => {
+	it("excludes another user's item that shares the same external identity", async () => {
+		const mine = await insertMediaItem({
+			userId: USER,
+			type: MediaItemType.BOOK,
+			title: "Mine",
+			...SHARED_EXTERNAL,
+		});
+		const theirs = await insertMediaItem({
+			userId: OTHER_USER,
+			type: MediaItemType.BOOK,
+			title: "Theirs",
+			...SHARED_EXTERNAL,
+		});
+		await insertInstance({ mediaItemId: mine, completedAt: "2024-03-10" });
+		await insertInstance({ mediaItemId: theirs, completedAt: "2024-03-10" });
+
+		const result = await fetchDrillDownItemsForMonth(USER, "2024-03");
+
+		expect(result).toHaveLength(1);
+		expect(result[0].title).toBe("Mine");
 	});
 });

@@ -1,12 +1,7 @@
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import {
-	genres,
-	mediaItemInstances,
-	mediaItemMetadata,
-	mediaItems,
-} from "#/database/schema";
+import { genres, mediaItemInstances, mediaItems } from "#/database/schema";
 import type { MediaItemType } from "#/lib/enums";
 import type { GenreDataPoint } from "../types";
 
@@ -25,10 +20,6 @@ export async function fetchItemsCompletedByGenre(
 		})
 		.from(mediaItemInstances)
 		.innerJoin(mediaItems, eq(mediaItemInstances.mediaItemId, mediaItems.id))
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.innerJoin(genres, eq(mediaItems.genreId, genres.id))
 		.where(
 			and(
@@ -36,7 +27,7 @@ export async function fetchItemsCompletedByGenre(
 				isNotNull(mediaItemInstances.completedAt),
 				sql`${mediaItemInstances.completedAt} >= ${startDate}`,
 				sql`${mediaItemInstances.completedAt} <= ${endDate}`,
-				hasTypeFilter ? inArray(mediaItemMetadata.type, mediaTypes) : undefined,
+				hasTypeFilter ? inArray(mediaItems.type, mediaTypes) : undefined,
 			),
 		)
 		.groupBy(genres.name)

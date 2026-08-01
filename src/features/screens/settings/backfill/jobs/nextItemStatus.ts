@@ -29,12 +29,11 @@ export async function runNextItemStatusBackfill(
 				ROW_NUMBER() OVER (
 					PARTITION BY mi.series_id
 					ORDER BY
-						(NULLIF(mm.metadata->>'seriesBookNumber', ''))::float NULLS LAST,
-						mm.release_date NULLS LAST,
-						mm.sort_title
+						(NULLIF(mi.metadata->>'seriesBookNumber', ''))::float NULLS LAST,
+						mi.release_date NULLS LAST,
+						mi.sort_title
 				) AS rn
 			FROM media_items mi
-			JOIN media_metadata mm ON mi.media_item_metadata_id = mm.id
 			WHERE mi.series_id IN (
 				SELECT id FROM ${series}
 				WHERE user_id = ${userId}

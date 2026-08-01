@@ -103,39 +103,24 @@ describe("collectApiResults", () => {
 // ---------------------------------------------------------------------------
 
 describe("attachLibraryStatus", () => {
-	it("returns results unchanged when no metadata exists for them", () => {
-		const results = attachLibraryStatus([baseResult], [], []);
+	it("returns results unchanged when the user owns nothing", () => {
+		const results = attachLibraryStatus([baseResult], []);
 		expect(results).toHaveLength(1);
 		expect(results[0]).toEqual(baseResult);
 		expect(results[0].mediaItemId).toBeUndefined();
 		expect(results[0].status).toBeUndefined();
 	});
 
-	it("returns result unchanged when metadata matches but user does not have it in their library", () => {
-		const existingMetadata = [
-			{ id: 10, externalId: "42", externalSource: "tmdb" },
-		];
-		const results = attachLibraryStatus([baseResult], existingMetadata, []);
-		expect(results[0].mediaItemId).toBeUndefined();
-		expect(results[0].status).toBeUndefined();
-	});
-
 	it("attaches mediaItemId and status when result is in the user's library", () => {
-		const existingMetadata = [
-			{ id: 10, externalId: "42", externalSource: "tmdb" },
-		];
 		const existingItems = [
 			{
 				id: 99,
-				mediaItemMetadataId: 10,
+				externalId: "42",
+				externalSource: "tmdb",
 				status: MediaItemStatus.COMPLETED,
 			},
 		];
-		const results = attachLibraryStatus(
-			[baseResult],
-			existingMetadata,
-			existingItems,
-		);
+		const results = attachLibraryStatus([baseResult], existingItems);
 		expect(results[0].mediaItemId).toBe(99);
 		expect(results[0].status).toBe(MediaItemStatus.COMPLETED);
 	});
@@ -152,16 +137,17 @@ describe("attachLibraryStatus", () => {
 			title: "Arrival",
 		};
 
-		const existingMetadata = [
-			{ id: 10, externalId: "42", externalSource: "tmdb" },
-		];
 		const existingItems = [
-			{ id: 7, mediaItemMetadataId: 10, status: MediaItemStatus.IN_PROGRESS },
+			{
+				id: 7,
+				externalId: "42",
+				externalSource: "tmdb",
+				status: MediaItemStatus.IN_PROGRESS,
+			},
 		];
 
 		const results = attachLibraryStatus(
 			[libraryResult, newResult],
-			existingMetadata,
 			existingItems,
 		);
 
@@ -169,6 +155,45 @@ describe("attachLibraryStatus", () => {
 		expect(results[0].status).toBe(MediaItemStatus.IN_PROGRESS);
 		expect(results[1].mediaItemId).toBeUndefined();
 		expect(results[1].status).toBeUndefined();
+	});
+
+	// The map is keyed on both halves of the external identity: two providers can
+	// legitimately reuse the same externalId, and they must not cross-attach.
+	it("keys on externalId AND externalSource, not externalId alone", () => {
+		const tmdbResult: ExternalSearchResult = {
+			...baseResult,
+			externalId: "42",
+			externalSource: "tmdb",
+		};
+		const igdbResult: ExternalSearchResult = {
+			...baseResult,
+			externalId: "42",
+			externalSource: "igdb",
+		};
+
+		const existingItems = [
+			{
+				id: 7,
+				externalId: "42",
+				externalSource: "tmdb",
+				status: MediaItemStatus.IN_PROGRESS,
+			},
+		];
+
+		const results = attachLibraryStatus(
+			[tmdbResult, igdbResult],
+			existingItems,
+		);
+
+		expect(results[0].mediaItemId).toBe(7);
+		expect(results[1].mediaItemId).toBeUndefined();
+	});
+
+	// Regression guard for the collapse: the caller now passes user-scoped items
+	// straight from media_items, so there is no shared-metadata array that could
+	// let one user's row shadow another's.
+	it("takes only results and the caller's own items", () => {
+		expect(attachLibraryStatus.length).toBe(2);
 	});
 });
 

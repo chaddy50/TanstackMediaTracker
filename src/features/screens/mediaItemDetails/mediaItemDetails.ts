@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, count, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "#/database/index";
@@ -8,7 +8,6 @@ import {
 	creators,
 	genres,
 	mediaItemInstances,
-	mediaItemMetadata,
 	mediaItemStatusEnum,
 	mediaItems,
 	mediaItemTags,
@@ -17,6 +16,12 @@ import {
 	tags,
 } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
+import {
+	removeFromLibrary as removeFromLibraryForUser,
+	updateMediaItemCreator as updateMediaItemCreatorForUser,
+	updateMediaItemMetadata as updateMediaItemMetadataForUser,
+	updateMediaItemSeries as updateMediaItemSeriesForUser,
+} from "#/features/screens/mediaItemDetails/mediaItemDetails.server";
 import { MediaItemStatus, NextItemStatus, PurchaseStatus } from "#/lib/enums";
 import { transitionReleasedItems } from "#/lib/queries/itemQuery.server";
 import {
@@ -86,19 +91,14 @@ export const getMediaItemDetails = createServerFn({ method: "GET" })
 				creatorName: creators.name,
 				genreId: mediaItems.genreId,
 				genreName: genres.name,
-				metadataId: mediaItemMetadata.id,
-				title: mediaItemMetadata.title,
-				type: mediaItemMetadata.type,
-				description: mediaItemMetadata.description,
-				coverImageUrl: mediaItemMetadata.coverImageUrl,
-				releaseDate: mediaItemMetadata.releaseDate,
-				metadata: mediaItemMetadata.metadata,
+				title: mediaItems.title,
+				type: mediaItems.type,
+				description: mediaItems.description,
+				coverImageUrl: mediaItems.coverImageUrl,
+				releaseDate: mediaItems.releaseDate,
+				metadata: mediaItems.metadata,
 			})
 			.from(mediaItems)
-			.innerJoin(
-				mediaItemMetadata,
-				eq(mediaItemMetadata.id, mediaItems.mediaItemMetadataId),
-			)
 			.leftJoin(series, eq(mediaItems.seriesId, series.id))
 			.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 			.leftJoin(genres, eq(mediaItems.genreId, genres.id))
@@ -353,7 +353,7 @@ export const deleteInstance = createServerFn({ method: "POST" })
 export const updateMediaItemMetadata = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
-			metadataId: z.number(),
+			mediaItemId: z.number(),
 			title: z.string(),
 			description: z.string().optional(),
 			coverImageUrl: z.string().optional(),
@@ -362,23 +362,14 @@ export const updateMediaItemMetadata = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		await db
-			.update(mediaItemMetadata)
-			.set({
-				title: data.title,
-				description: data.description || null,
-				coverImageUrl: data.coverImageUrl || null,
-				releaseDate: data.releaseDate || null,
-				metadata: data.metadata,
-			})
-			.where(eq(mediaItemMetadata.id, data.metadataId));
+		const user = await getLoggedInUser();
+		return updateMediaItemMetadataForUser(data, user.id);
 	});
 
 export const updateMediaItemSeries = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			mediaItemId: z.number(),
-			metadataId: z.number(),
 			type: z.enum(mediaTypeEnum.enumValues),
 			seriesId: z.number().nullable(),
 			newSeriesName: z.string().optional(),
@@ -386,75 +377,13 @@ export const updateMediaItemSeries = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-		const [currentItem] = await db
-			.select({ seriesId: mediaItems.seriesId })
-			.from(mediaItems)
-			.where(
-				and(
-					eq(mediaItems.id, data.mediaItemId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		let resolvedSeriesId = data.seriesId;
-		let resolvedSeriesName: string | null = null;
-
-		if (data.newSeriesName) {
-			const [newSeries] = await db
-				.insert(series)
-				.values({ name: data.newSeriesName, type: data.type, userId: user.id })
-				.returning({ id: series.id });
-			if (!newSeries) throw new Error("Failed to create series");
-			resolvedSeriesId = newSeries.id;
-			resolvedSeriesName = data.newSeriesName;
-		} else if (data.seriesId !== null) {
-			const [existing] = await db
-				.select({ name: series.name })
-				.from(series)
-				.where(and(eq(series.id, data.seriesId), eq(series.userId, user.id)));
-			resolvedSeriesName = existing?.name ?? null;
-		}
-
-		await db
-			.update(mediaItems)
-			.set({ seriesId: resolvedSeriesId })
-			.where(
-				and(
-					eq(mediaItems.id, data.mediaItemId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		if (resolvedSeriesName) {
-			await db
-				.update(mediaItemMetadata)
-				.set({
-					metadata: sql`jsonb_set(coalesce(${mediaItemMetadata.metadata}, '{}'), '{series}', ${JSON.stringify(resolvedSeriesName)}::jsonb)`,
-				})
-				.where(eq(mediaItemMetadata.id, data.metadataId));
-		} else {
-			await db
-				.update(mediaItemMetadata)
-				.set({
-					metadata: sql`${mediaItemMetadata.metadata} - 'series'`,
-				})
-				.where(eq(mediaItemMetadata.id, data.metadataId));
-		}
-
-		// Sync the old series (item left) and new series (item joined)
-		if (currentItem?.seriesId) {
-			await syncSeriesStatus(currentItem.seriesId, user.id);
-		}
-		if (resolvedSeriesId && resolvedSeriesId !== currentItem?.seriesId) {
-			await syncSeriesStatus(resolvedSeriesId, user.id);
-		}
+		return updateMediaItemSeriesForUser(data, user.id);
 	});
 
 export const updateMediaItemCreator = createServerFn({ method: "POST" })
 	.inputValidator(
 		z.object({
 			mediaItemId: z.number(),
-			metadataId: z.number(),
 			type: z.enum(mediaTypeEnum.enumValues),
 			creatorId: z.number().nullable(),
 			newCreatorName: z.string().optional(),
@@ -462,79 +391,7 @@ export const updateMediaItemCreator = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-
-		// Validate user owns the item
-		const [currentItem] = await db
-			.select({ id: mediaItems.id })
-			.from(mediaItems)
-			.where(
-				and(
-					eq(mediaItems.id, data.mediaItemId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-		if (!currentItem) {
-			throw new Error("Unauthorized");
-		}
-
-		let resolvedCreatorId = data.creatorId;
-		let resolvedCreatorName: string | null = null;
-
-		if (data.newCreatorName) {
-			const [newCreator] = await db
-				.insert(creators)
-				.values({ name: data.newCreatorName, userId: user.id, biography: null })
-				.returning({ id: creators.id });
-			if (!newCreator) {
-				throw new Error("Failed to create creator");
-			}
-			resolvedCreatorId = newCreator.id;
-			resolvedCreatorName = data.newCreatorName;
-		} else if (data.creatorId !== null) {
-			const [existing] = await db
-				.select({ name: creators.name })
-				.from(creators)
-				.where(
-					and(eq(creators.id, data.creatorId), eq(creators.userId, user.id)),
-				);
-			resolvedCreatorName = existing?.name ?? null;
-		}
-
-		await db
-			.update(mediaItems)
-			.set({ creatorId: resolvedCreatorId })
-			.where(
-				and(
-					eq(mediaItems.id, data.mediaItemId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		// Sync the JSONB metadata field to match the resolved creator name
-		const metadataKey =
-			data.type === "book"
-				? "author"
-				: data.type === "movie"
-					? "director"
-					: data.type === "video_game"
-						? "developer"
-						: "creator"; // tv_show and podcast
-
-		if (resolvedCreatorName) {
-			await db
-				.update(mediaItemMetadata)
-				.set({
-					metadata: sql`jsonb_set(coalesce(${mediaItemMetadata.metadata}, '{}'), ${sql.raw(`'{${metadataKey}}'`)}, ${JSON.stringify(resolvedCreatorName)}::jsonb)`,
-				})
-				.where(eq(mediaItemMetadata.id, data.metadataId));
-		} else {
-			await db
-				.update(mediaItemMetadata)
-				.set({
-					metadata: sql`${mediaItemMetadata.metadata} - ${metadataKey}`,
-				})
-				.where(eq(mediaItemMetadata.id, data.metadataId));
-		}
+		return updateMediaItemCreatorForUser(data, user.id);
 	});
 
 export const setPurchaseStatus = createServerFn({ method: "POST" })
@@ -582,57 +439,8 @@ export const setPurchaseStatus = createServerFn({ method: "POST" })
 	});
 
 export const removeFromLibrary = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ metadataId: z.number() }))
-	.handler(async ({ data: { metadataId } }) => {
+	.inputValidator(z.object({ mediaItemId: z.number() }))
+	.handler(async ({ data: { mediaItemId } }) => {
 		const user = await getLoggedInUser();
-
-		// Find this user's media item for that metadata
-		const [item] = await db
-			.select({ id: mediaItems.id, seriesId: mediaItems.seriesId })
-			.from(mediaItems)
-			.where(
-				and(
-					eq(mediaItems.mediaItemMetadataId, metadataId),
-					eq(mediaItems.userId, user.id),
-				),
-			);
-
-		if (!item) return;
-
-		// Delete the user's media item row (cascades to instances)
-		await db.delete(mediaItems).where(eq(mediaItems.id, item.id));
-
-		// If the item belonged to a series, delete the series if now empty,
-		// otherwise sync the series status.
-		if (item.seriesId) {
-			const [remaining] = await db
-				.select({ itemCount: count() })
-				.from(mediaItems)
-				.where(
-					and(
-						eq(mediaItems.seriesId, item.seriesId),
-						eq(mediaItems.userId, user.id),
-					),
-				);
-
-			if (remaining?.itemCount === 0) {
-				await db
-					.delete(series)
-					.where(and(eq(series.id, item.seriesId), eq(series.userId, user.id)));
-			} else {
-				await syncSeriesStatus(item.seriesId, user.id);
-			}
-		}
-
-		// Clean up orphaned metadata if no other users have this item
-		const [otherItems] = await db
-			.select({ itemCount: count() })
-			.from(mediaItems)
-			.where(eq(mediaItems.mediaItemMetadataId, metadataId));
-
-		if (otherItems?.itemCount === 0) {
-			await db
-				.delete(mediaItemMetadata)
-				.where(eq(mediaItemMetadata.id, metadataId));
-		}
+		return removeFromLibraryForUser(mediaItemId, user.id);
 	});

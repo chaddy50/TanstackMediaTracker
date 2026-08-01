@@ -3,7 +3,6 @@ import {
 	creators,
 	genres,
 	mediaItemInstances,
-	mediaItemMetadata,
 	mediaItems,
 	mediaItemTags,
 	series,
@@ -24,8 +23,8 @@ import { testDb } from "./db";
  * Removes all rows from every app table and resets serial IDs.
  * Call this in beforeEach so each test starts with a clean slate.
  *
- * Note: `series`, `creators`, `genres`, `tags`, `media_metadata`,
- * `media_items`, `media_item_instances`, `media_item_tags`, and `views`
+ * Note: `series`, `creators`, `genres`, `tags`, `media_items`,
+ * `media_item_instances`, `media_item_tags`, and `views`
  * all use plain-text userId (no FK to `user`), so no auth rows are needed.
  */
 export async function truncateAll() {
@@ -34,7 +33,6 @@ export async function truncateAll() {
 			media_item_instances,
 			media_item_tags,
 			media_items,
-			media_metadata,
 			series,
 			creators,
 			genres,
@@ -48,38 +46,16 @@ export async function truncateAll() {
 // Row factories
 // ---------------------------------------------------------------------------
 
-type InsertMetadataOptions = {
-	type: MediaItemType;
-	title?: string;
-	externalId?: string;
-	externalSource?: string;
-	releaseDate?: string;
-	metadata?: Record<string, unknown>;
-};
-
-/** Inserts a `media_metadata` row and returns its id. */
-export async function insertMetadata(
-	options: InsertMetadataOptions,
-): Promise<number> {
-	const [row] = await testDb
-		.insert(mediaItemMetadata)
-		.values({
-			type: options.type,
-			title: options.title ?? "Test Title",
-			externalId: options.externalId ?? crypto.randomUUID(),
-			externalSource: options.externalSource ?? "test",
-			releaseDate: options.releaseDate ?? null,
-			metadata: options.metadata ?? {},
-		})
-		.returning({ id: mediaItemMetadata.id });
-
-	if (!row) throw new Error("insertMetadata failed");
-	return row.id;
-}
-
 type InsertMediaItemOptions = {
 	userId: string;
-	metadataId: number;
+	type: MediaItemType;
+	title?: string;
+	description?: string;
+	coverImageUrl?: string;
+	releaseDate?: string;
+	externalId?: string;
+	externalSource?: string;
+	metadata?: Record<string, unknown>;
 	status?: MediaItemStatus;
 	purchaseStatus?: PurchaseStatus;
 	seriesId?: number;
@@ -87,7 +63,7 @@ type InsertMediaItemOptions = {
 	genreId?: number;
 };
 
-/** Inserts a `media_items` row and returns its id. */
+/** Inserts a `media_items` row — descriptive data and all — and returns its id. */
 export async function insertMediaItem(
 	options: InsertMediaItemOptions,
 ): Promise<number> {
@@ -95,7 +71,17 @@ export async function insertMediaItem(
 		.insert(mediaItems)
 		.values({
 			userId: options.userId,
-			mediaItemMetadataId: options.metadataId,
+			type: options.type,
+			title: options.title ?? "Test Title",
+			description: options.description ?? null,
+			coverImageUrl: options.coverImageUrl ?? null,
+			releaseDate: options.releaseDate ?? null,
+			// A fresh UUID keeps the common case collision-free under the
+			// (userId, externalId, externalSource) unique index; pin it explicitly
+			// to seed two users holding the same external item.
+			externalId: options.externalId ?? crypto.randomUUID(),
+			externalSource: options.externalSource ?? "test",
+			metadata: options.metadata ?? {},
 			status: options.status ?? ("backlog" as MediaItemStatus),
 			purchaseStatus:
 				options.purchaseStatus ?? ("not_purchased" as PurchaseStatus),

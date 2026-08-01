@@ -107,7 +107,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 		try {
 			await updateMediaItemMetadata({
 				data: {
-					metadataId: mediaItemDetails.metadataId,
+					mediaItemId: mediaItemDetails.id,
 					title,
 					description: description || undefined,
 					coverImageUrl: coverImageUrl || undefined,
@@ -119,7 +119,6 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			await updateMediaItemSeries({
 				data: {
 					mediaItemId: mediaItemDetails.id,
-					metadataId: mediaItemDetails.metadataId,
 					type: mediaItemDetails.type,
 					seriesId:
 						seriesFieldValue.mode === "existing"
@@ -135,7 +134,6 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 			await updateMediaItemCreator({
 				data: {
 					mediaItemId: mediaItemDetails.id,
-					metadataId: mediaItemDetails.metadataId,
 					type: mediaItemDetails.type,
 					creatorId:
 						creatorFieldValue.mode === "existing"
@@ -313,7 +311,7 @@ export function EditMetadataDialog(props: EditMetadataDialogProps) {
 					isOpen={isArcDialogOpen}
 					onClose={() => setIsArcDialogOpen(false)}
 					mode="edit"
-					metadataId={mediaItemDetails.metadataId}
+					mediaItemId={mediaItemDetails.id}
 					currentArcTitle={mediaItemDetails.title ?? ""}
 					feedUrl={feedUrl}
 					currentEpisodeGuids={currentEpisodeGuids}

@@ -15,7 +15,6 @@ vi.mock("#/features/screens/auth/session", () => ({
 import {
 	insertInstance,
 	insertMediaItem,
-	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
 import { fetchProgressByMonth } from "../progressByMonth.server";
@@ -33,11 +32,11 @@ beforeEach(() => truncateAll());
 
 describe("deduplication", () => {
 	it("counts an item completed twice in the same month only once", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 200 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-01" });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
@@ -59,11 +58,11 @@ describe("deduplication", () => {
 
 describe("per-type metrics", () => {
 	it("book sums pageCount", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 300 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -76,11 +75,11 @@ describe("per-type metrics", () => {
 	});
 
 	it("movie sums runtime / 60", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.MOVIE,
 			metadata: { runtime: 120 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -93,11 +92,11 @@ describe("per-type metrics", () => {
 	});
 
 	it("tv_show sums numberOfEpisodes", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.TV_SHOW,
 			metadata: { numberOfEpisodes: 8 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -110,11 +109,11 @@ describe("per-type metrics", () => {
 	});
 
 	it("podcast sums totalDuration / 60", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.PODCAST,
 			metadata: { totalDuration: 180 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -127,11 +126,11 @@ describe("per-type metrics", () => {
 	});
 
 	it("video_game sums timeToBeatNormally", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.VIDEO_GAME,
 			metadata: { timeToBeatNormally: 40 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -144,11 +143,11 @@ describe("per-type metrics", () => {
 	});
 
 	it("video_game falls back to timeToBeatHastily when timeToBeatNormally is absent", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.VIDEO_GAME,
 			metadata: { timeToBeatHastily: 20 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchProgressByMonth(
@@ -167,11 +166,11 @@ describe("per-type metrics", () => {
 
 describe("date range", () => {
 	it("excludes items completed before the cutoff", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 400 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		// 4 months ago — outside the window
 		await insertInstance({ mediaItemId: itemId, completedAt: "2023-11-10" });
 
@@ -185,11 +184,11 @@ describe("date range", () => {
 	});
 
 	it("excludes future-dated items", async () => {
-		const metadataId = await insertMetadata({
+		const itemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 400 },
+			userId: USER,
 		});
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
 		await insertInstance({ mediaItemId: itemId, completedAt: "2025-01-01" });
 
 		const result = await fetchProgressByMonth(
@@ -202,21 +201,15 @@ describe("date range", () => {
 	});
 
 	it("sums multiple items completed in the same month", async () => {
-		const metadataId1 = await insertMetadata({
+		const itemId1 = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 100 },
-		});
-		const metadataId2 = await insertMetadata({
-			type: MediaItemType.BOOK,
-			metadata: { pageCount: 50 },
-		});
-		const itemId1 = await insertMediaItem({
 			userId: USER,
-			metadataId: metadataId1,
 		});
 		const itemId2 = await insertMediaItem({
+			type: MediaItemType.BOOK,
+			metadata: { pageCount: 50 },
 			userId: USER,
-			metadataId: metadataId2,
 		});
 		await insertInstance({ mediaItemId: itemId1, completedAt: "2024-03-05" });
 		await insertInstance({ mediaItemId: itemId2, completedAt: "2024-03-10" });
@@ -237,14 +230,15 @@ describe("date range", () => {
 
 describe("user scoping", () => {
 	it("only returns data for the requesting user", async () => {
-		const metadataId = await insertMetadata({
+		const userItemId = await insertMediaItem({
 			type: MediaItemType.BOOK,
 			metadata: { pageCount: 200 },
+			userId: USER,
 		});
-		const userItemId = await insertMediaItem({ userId: USER, metadataId });
 		const otherItemId = await insertMediaItem({
+			type: MediaItemType.BOOK,
+			metadata: { pageCount: 200 },
 			userId: OTHER_USER,
-			metadataId,
 		});
 		await insertInstance({
 			mediaItemId: userItemId,

@@ -15,12 +15,17 @@ vi.mock("#/features/screens/auth/session", () => ({
 import {
 	insertInstance,
 	insertMediaItem,
-	insertMetadata,
 	truncateAll,
 } from "#/tests/integration/helpers";
 import { fetchItemsCompletedByMonth } from "../itemsCompletedByMonth.server";
 
 const USER = "test-user";
+const OTHER_USER = "other-user";
+// The same external item held by both users — impossible under the old schema.
+const SHARED_EXTERNAL = {
+	externalId: "shared-external-1",
+	externalSource: "test",
+} as const;
 
 beforeEach(() => truncateAll());
 
@@ -30,8 +35,10 @@ beforeEach(() => truncateAll());
 
 describe("date range", () => {
 	it("excludes items completed before the cutoff", async () => {
-		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
+		const itemId = await insertMediaItem({
+			type: MediaItemType.BOOK,
+			userId: USER,
+		});
 		// 4 months ago — outside a 3-month window
 		await insertInstance({ mediaItemId: itemId, completedAt: "2023-11-10" });
 
@@ -45,8 +52,10 @@ describe("date range", () => {
 	});
 
 	it("excludes future-dated items", async () => {
-		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
+		const itemId = await insertMediaItem({
+			type: MediaItemType.BOOK,
+			userId: USER,
+		});
 		await insertInstance({ mediaItemId: itemId, completedAt: "2025-01-01" });
 
 		const result = await fetchItemsCompletedByMonth(
@@ -59,8 +68,10 @@ describe("date range", () => {
 	});
 
 	it("includes items completed within the window", async () => {
-		const metadataId = await insertMetadata({ type: MediaItemType.BOOK });
-		const itemId = await insertMediaItem({ userId: USER, metadataId });
+		const itemId = await insertMediaItem({
+			type: MediaItemType.BOOK,
+			userId: USER,
+		});
 		await insertInstance({ mediaItemId: itemId, completedAt: "2024-03-10" });
 
 		const result = await fetchItemsCompletedByMonth(
@@ -70,5 +81,31 @@ describe("date range", () => {
 		);
 
 		expect(result.find((r) => r.month === "2024-03")?.value).toBe(1);
+	});
+});
+
+describe("cross-user isolation", () => {
+	it("excludes another user's item that shares the same external identity", async () => {
+		const mine = await insertMediaItem({
+			userId: USER,
+			type: MediaItemType.BOOK,
+			...SHARED_EXTERNAL,
+		});
+		const theirs = await insertMediaItem({
+			userId: OTHER_USER,
+			type: MediaItemType.BOOK,
+			...SHARED_EXTERNAL,
+		});
+		await insertInstance({ mediaItemId: mine, completedAt: "2024-03-10" });
+		await insertInstance({ mediaItemId: theirs, completedAt: "2024-03-10" });
+
+		const result = await fetchItemsCompletedByMonth(
+			USER,
+			"2024-01-01",
+			"2024-12-31",
+		);
+		const march = result.find((point) => point.month === "2024-03");
+
+		expect(march?.value).toBe(1);
 	});
 });

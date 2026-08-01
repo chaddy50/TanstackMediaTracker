@@ -1,3 +1,6 @@
+import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { Button } from "#/components/ui/button";
 import {
@@ -8,9 +11,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Pencil } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { RatingStars } from "../ratingStars/RatingStars";
 
 type FictionRatingRowProps = {

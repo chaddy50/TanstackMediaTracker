@@ -17,7 +17,6 @@ import { series } from "#/database/schema";
 import { testDb } from "#/tests/integration/db";
 import {
 	insertMediaItem,
-	insertMetadata,
 	insertSeries,
 	truncateAll,
 } from "#/tests/integration/helpers";
@@ -58,11 +57,12 @@ async function addItemToSeries(
 		metadata?: Record<string, unknown>;
 	} = {},
 ): Promise<number> {
-	const metadataId = await insertMetadata({
+	return insertMediaItem({
 		type: MediaItemType.BOOK,
 		...metadataOverrides,
+		userId,
+		seriesId,
 	});
-	return insertMediaItem({ userId, metadataId, seriesId });
 }
 
 /** Set isComplete and/or rating directly on a series row (fields not exposed by insertSeries). */

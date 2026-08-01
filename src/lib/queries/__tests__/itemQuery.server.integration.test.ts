@@ -20,7 +20,6 @@ import {
 	insertGenre,
 	insertInstance,
 	insertMediaItem,
-	insertMetadata,
 	insertSeries,
 	insertTag,
 	linkTag,
@@ -52,15 +51,13 @@ async function insertItem(
 		userId?: string;
 	} = {},
 ): Promise<number> {
-	const metadataId = await insertMetadata({
+	return insertMediaItem({
 		type: overrides.type ?? MediaItemType.BOOK,
 		title: overrides.title,
 		metadata: overrides.metadata,
 		releaseDate: overrides.releaseDate,
-	});
-	return insertMediaItem({
 		userId: overrides.userId ?? USER,
-		metadataId,
+
 		status: overrides.status,
 		purchaseStatus: overrides.purchaseStatus,
 		seriesId: overrides.seriesId,

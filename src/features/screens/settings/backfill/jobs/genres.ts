@@ -1,7 +1,7 @@
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { mediaItemMetadata, mediaItems } from "#/database/schema";
+import { mediaItems } from "#/database/schema";
 import { findOrCreateGenre } from "#/lib/genres/genres.server";
 
 export async function runGenresBackfill(
@@ -11,18 +11,14 @@ export async function runGenresBackfill(
 	const rows = await db
 		.select({
 			id: mediaItems.id,
-			metadata: mediaItemMetadata.metadata,
+			metadata: mediaItems.metadata,
 		})
 		.from(mediaItems)
-		.innerJoin(
-			mediaItemMetadata,
-			eq(mediaItems.mediaItemMetadataId, mediaItemMetadata.id),
-		)
 		.where(
 			and(
 				eq(mediaItems.userId, userId),
 				isNull(mediaItems.genreId),
-				isNotNull(mediaItemMetadata.metadata),
+				isNotNull(mediaItems.metadata),
 			),
 		);
 

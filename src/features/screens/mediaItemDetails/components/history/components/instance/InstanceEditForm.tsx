@@ -1,3 +1,12 @@
+import {
+	type Ref,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
+import { useTranslation } from "react-i18next";
 import { AutoResizeTextarea } from "#/components/AutoResizeTextarea";
 import { DeleteButton } from "#/components/DeleteButton";
 import { useUserSettings } from "#/components/hooks/useUserSettings";
@@ -20,15 +29,6 @@ import {
 } from "#/features/screens/mediaItemDetails/mediaItemDetails";
 import { GameControlMethod, MediaItemType } from "#/lib/enums";
 import { isDeepEqual } from "#/lib/utils";
-import {
-	type Ref,
-	useEffect,
-	useId,
-	useImperativeHandle,
-	useRef,
-	useState,
-} from "react";
-import { useTranslation } from "react-i18next";
 
 export interface InstanceEditFormHandle {
 	hasUnsavedChanges: () => boolean;

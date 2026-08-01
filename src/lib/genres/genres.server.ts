@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { genres } from "#/database/schema";
+import { genres, mediaItemInstances, mediaItems } from "#/database/schema";
 
 /**
  * Find an existing genre row for (userId, name), or create one.
@@ -27,4 +27,66 @@ export async function findOrCreateGenre(
 	}
 
 	return row.id;
+}
+
+export async function fetchGenreDetails(genreId: number, userId: string) {
+	const [row] = await db
+		.select()
+		.from(genres)
+		.where(and(eq(genres.id, genreId), eq(genres.userId, userId)));
+
+	if (!row) {
+		throw new Error(`Genre ${genreId} not found`);
+	}
+
+	const items = await db
+		.select({
+			id: mediaItems.id,
+			status: mediaItems.status,
+			purchaseStatus: mediaItems.purchaseStatus,
+			expectedReleaseDate: mediaItems.expectedReleaseDate,
+			title: mediaItems.title,
+			type: mediaItems.type,
+			coverImageUrl: mediaItems.coverImageUrl,
+			metadata: mediaItems.metadata,
+		})
+		.from(mediaItems)
+		.where(and(eq(mediaItems.genreId, genreId), eq(mediaItems.userId, userId)))
+		.orderBy(asc(mediaItems.releaseDate), asc(mediaItems.sortTitle));
+
+	if (items.length === 0) {
+		return { ...row, items: [] };
+	}
+
+	const itemIds = items.map((item) => item.id);
+	const latestRatings = await db
+		.selectDistinctOn([mediaItemInstances.mediaItemId], {
+			mediaItemId: mediaItemInstances.mediaItemId,
+			rating: mediaItemInstances.rating,
+			completedAt: mediaItemInstances.completedAt,
+		})
+		.from(mediaItemInstances)
+		.where(
+			and(
+				inArray(mediaItemInstances.mediaItemId, itemIds),
+				isNotNull(mediaItemInstances.completedAt),
+			),
+		)
+		.orderBy(mediaItemInstances.mediaItemId, desc(mediaItemInstances.id));
+
+	const ratingMap = new Map(
+		latestRatings.map((r) => [r.mediaItemId, r.rating]),
+	);
+	const completedAtMap = new Map(
+		latestRatings.map((r) => [r.mediaItemId, r.completedAt]),
+	);
+
+	return {
+		...row,
+		items: items.map((item) => ({
+			...item,
+			rating: parseFloat(ratingMap.get(item.id) ?? "") || 0,
+			completedAt: completedAtMap.get(item.id) ?? null,
+		})),
+	};
 }

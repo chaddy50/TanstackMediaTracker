@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { creators } from "#/database/schema";
+import { creators, mediaItems } from "#/database/schema";
+import { MediaItemType } from "#/lib/enums";
 
 /**
  * Find an existing creator row for (userId, name), or create one with the
@@ -44,4 +45,68 @@ export async function findOrCreateCreator(
 	}
 
 	return inserted.id;
+}
+
+/**
+ * Per-media-type JSONB key holding the creator's name, and the types that use it.
+ * A creator rename has to rewrite whichever key the item's type stores it under.
+ */
+const CREATOR_KEYS_BY_TYPE: ReadonlyArray<{
+	key: string;
+	types: readonly MediaItemType[];
+}> = [
+	{ key: "author", types: [MediaItemType.BOOK] },
+	{ key: "director", types: [MediaItemType.MOVIE] },
+	{ key: "creator", types: [MediaItemType.TV_SHOW, MediaItemType.PODCAST] },
+	{ key: "developer", types: [MediaItemType.VIDEO_GAME] },
+];
+
+export type UpdateCreatorMetadataInput = {
+	creatorId: number;
+	name: string;
+	biography?: string;
+};
+
+export async function updateCreatorMetadata(
+	data: UpdateCreatorMetadataInput,
+	userId: string,
+): Promise<void> {
+	const { creatorId, name, biography } = data;
+
+	const [current] = await db
+		.select({ name: creators.name })
+		.from(creators)
+		.where(and(eq(creators.id, creatorId), eq(creators.userId, userId)));
+
+	if (!current) {
+		throw new Error(`Creator ${creatorId} not found`);
+	}
+
+	await db
+		.update(creators)
+		.set({ name, biography: biography ?? null })
+		.where(and(eq(creators.id, creatorId), eq(creators.userId, userId)));
+
+	if (current.name === name) return;
+
+	// On name change, sync the JSONB metadata key for all of this user's linked
+	// items. No id-collection query is needed: the item row carries the userId,
+	// the type, and the metadata, so each update can scope itself.
+	//
+	// Note the bare jsonb_set — an item whose metadata is SQL NULL keeps NULL.
+	// That is pre-existing behavior, deliberately carried forward unchanged.
+	for (const { key, types } of CREATOR_KEYS_BY_TYPE) {
+		await db
+			.update(mediaItems)
+			.set({
+				metadata: sql`jsonb_set(${mediaItems.metadata}, ${sql.raw(`'{${key}}'`)}, ${JSON.stringify(name)}::jsonb)`,
+			})
+			.where(
+				and(
+					eq(mediaItems.userId, userId),
+					eq(mediaItems.creatorId, creatorId),
+					inArray(mediaItems.type, [...types]),
+				),
+			);
+	}
 }

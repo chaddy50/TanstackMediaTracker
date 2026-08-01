@@ -34,9 +34,9 @@ export async function fetchDrillDownItemsForMonth(
 				mi.id,
 				mi.status,
 				mi.purchase_status,
-				mim.title,
-				mim.type,
-				mim.cover_image_url,
+				mi.title,
+				mi.type,
+				mi.cover_image_url,
 				inst.rating,
 				inst.completed_at,
 				mi.expected_release_date,
@@ -44,7 +44,6 @@ export async function fetchDrillDownItemsForMonth(
 				s.name AS series_name
 			FROM media_item_instances inst
 			JOIN media_items mi ON inst.media_item_id = mi.id
-			JOIN media_metadata mim ON mi.media_item_metadata_id = mim.id
 			LEFT JOIN series s ON mi.series_id = s.id
 			WHERE
 				mi.user_id = ${userId}
@@ -52,7 +51,7 @@ export async function fetchDrillDownItemsForMonth(
 				AND to_char(inst.completed_at, 'YYYY-MM') = ${month}
 				${
 					hasTypeFilter
-						? sql`AND mim.type::text = ANY(ARRAY[${sql.join(
+						? sql`AND mi.type::text = ANY(ARRAY[${sql.join(
 								filteredTypes.map((t) => sql`${t}`),
 								sql`, `,
 							)}]::text[])`
@@ -106,9 +105,9 @@ export async function fetchDrillDownItemsForGenre(
 				mi.id,
 				mi.status,
 				mi.purchase_status,
-				mim.title,
-				mim.type,
-				mim.cover_image_url,
+				mi.title,
+				mi.type,
+				mi.cover_image_url,
 				inst.rating,
 				inst.completed_at,
 				mi.expected_release_date,
@@ -116,7 +115,6 @@ export async function fetchDrillDownItemsForGenre(
 				s.name AS series_name
 			FROM media_item_instances inst
 			JOIN media_items mi ON inst.media_item_id = mi.id
-			JOIN media_metadata mim ON mi.media_item_metadata_id = mim.id
 			JOIN genres g ON mi.genre_id = g.id
 			LEFT JOIN series s ON mi.series_id = s.id
 			WHERE
@@ -127,7 +125,7 @@ export async function fetchDrillDownItemsForGenre(
 				AND g.name = ${genre}
 				${
 					hasTypeFilter
-						? sql`AND mim.type::text = ANY(ARRAY[${sql.join(
+						? sql`AND mi.type::text = ANY(ARRAY[${sql.join(
 								filteredTypes.map((t) => sql`${t}`),
 								sql`, `,
 							)}]::text[])`

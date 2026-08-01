@@ -10,7 +10,7 @@ const navigate = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
-		useLoaderData: () => ({ id: 7, metadataId: 99 }),
+		useLoaderData: () => ({ id: 7 }),
 	}),
 	useNavigate: () => navigate,
 }));
@@ -69,6 +69,23 @@ describe("MediaItemDetailsScreen", () => {
 		render(<MediaItemDetailsScreen />);
 
 		expect(isUnsavedChangesGuardEnabled?.()).toBe(true);
+	});
+
+	// The server fn is keyed on the item now, not on a separate metadata row.
+	it("removes by mediaItemId, never by metadataId", async () => {
+		const { removeFromLibrary } = await import(
+			"#/features/screens/mediaItemDetails/mediaItemDetails"
+		);
+		vi.mocked(removeFromLibrary).mockResolvedValue(undefined);
+		render(<MediaItemDetailsScreen />);
+
+		clickRemoveFromLibrary();
+
+		expect(removeFromLibrary).toHaveBeenCalledWith({
+			data: { mediaItemId: 7 },
+		});
+		const [payload] = vi.mocked(removeFromLibrary).mock.calls[0];
+		expect(payload.data).not.toHaveProperty("metadataId");
 	});
 
 	it("disables the guard while the delete request is still in flight", async () => {
