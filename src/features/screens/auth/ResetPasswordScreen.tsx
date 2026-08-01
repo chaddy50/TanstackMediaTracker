@@ -51,7 +51,7 @@ export function ResetPasswordScreen() {
 		try {
 			const result = await authClient.resetPassword({
 				newPassword,
-				token: token!,
+				token,
 			});
 
 			if (result.error) {

@@ -11,5 +11,11 @@ export default defineConfig({
 		],
 		setupFiles: ["./src/tests/setup.ts"],
 		exclude: ["**/*.integration.test.ts", "**/node_modules/**"],
+		env: {
+			// Unit tests never connect, but importing src/database builds a drizzle
+			// client eagerly and requires a URL. Integration tests use their own
+			// config and get the real URL from globalSetup.
+			DATABASE_URL: "postgresql://unit-tests@localhost:5432/unit-tests",
+		},
 	},
 });

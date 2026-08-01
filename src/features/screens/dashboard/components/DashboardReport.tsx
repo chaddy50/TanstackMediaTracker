@@ -366,8 +366,7 @@ export function DashboardReport({ initialReport }: Props) {
 								fill: "#69359c",
 								strokeWidth: 0,
 								style: { cursor: "pointer" },
-								// eslint-disable-next-line @typescript-eslint/no-explicit-any
-								onClick: (_event: any, payload: any) =>
+								onClick: (_event: unknown, payload: unknown) =>
 									navigateToDrillDown(
 										(payload as { payload: ReportDataPoint }).payload.month,
 									),

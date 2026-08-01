@@ -1,6 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { RatingStars } from "#/features/screens/mediaItemDetails/components/history/components/instance/rating/ratingStars/RatingStars";
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
-import { Link } from "@tanstack/react-router";
 import { PurchasedBadge } from "./PurchasedBadge";
 import { TypeBadge } from "./TypeBadge";
 
