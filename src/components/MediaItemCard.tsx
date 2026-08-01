@@ -34,6 +34,7 @@ export function MediaItemCard({
 	const shouldShowPurchasedBadge =
 		shouldShowPurchaseStatus &&
 		mediaItem.purchaseStatus === PurchaseStatus.PURCHASED;
+	const isPodcast = mediaItem.type === MediaItemType.PODCAST;
 
 	return (
 		<Link
@@ -41,14 +42,12 @@ export function MediaItemCard({
 			params={{ mediaItemId: String(mediaItem.id) }}
 			className="group flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors self-start"
 		>
-			<div
-				className={`${mediaItem.type === MediaItemType.PODCAST ? "aspect-square" : "aspect-2/3"} bg-muted relative`}
-			>
+			<div className="aspect-2/3 bg-muted relative">
 				{mediaItem.coverImageUrl ? (
 					<img
 						src={mediaItem.coverImageUrl}
 						alt={mediaItem.title}
-						className="w-full h-full object-fill"
+						className={`w-full h-full ${isPodcast ? "object-contain" : "object-fill"}`}
 						onError={(e) => {
 							e.currentTarget.style.display = "none";
 						}}
