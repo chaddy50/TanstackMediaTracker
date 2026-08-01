@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MediaCard } from "#/components/MediaCard";
+import { MediaItemCard } from "#/components/MediaItemCard";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
 
@@ -21,8 +21,6 @@ type BaseItem = {
 	rating: number;
 	purchaseStatus: PurchaseStatus;
 	status: MediaItemStatus;
-	completedAt: string | null;
-	expectedReleaseDate: string | null;
 };
 
 const baseItem: BaseItem = {
@@ -33,30 +31,28 @@ const baseItem: BaseItem = {
 	rating: 4,
 	purchaseStatus: PurchaseStatus.NOT_PURCHASED,
 	status: MediaItemStatus.BACKLOG,
-	completedAt: null,
-	expectedReleaseDate: null,
 };
 
-function renderMediaCard(
+function renderMediaItemCard(
 	overrides: Partial<BaseItem & { seriesName: string }> & {
-		shouldShowStatus?: boolean;
 		shouldShowType?: boolean;
 		shouldShowRating?: boolean;
+		shouldShowPurchaseStatus?: boolean;
 	} = {},
 ) {
 	const {
-		shouldShowStatus,
 		shouldShowType,
 		shouldShowRating,
+		shouldShowPurchaseStatus,
 		...itemOverrides
 	} = overrides;
 	return render(
 		<TooltipProvider>
-			<MediaCard
+			<MediaItemCard
 				mediaItem={{ ...baseItem, ...itemOverrides }}
-				shouldShowStatus={shouldShowStatus}
 				shouldShowType={shouldShowType}
 				shouldShowRating={shouldShowRating}
+				shouldShowPurchaseStatus={shouldShowPurchaseStatus}
 			/>
 		</TooltipProvider>,
 	);
@@ -64,39 +60,58 @@ function renderMediaCard(
 
 afterEach(cleanup);
 
-describe("MediaCard", () => {
-	it("does not show purchased badge when status is IN_PROGRESS", () => {
-		renderMediaCard({ status: MediaItemStatus.IN_PROGRESS });
+describe("MediaItemCard", () => {
+	it("does not show purchased badge by default", () => {
+		renderMediaItemCard({ purchaseStatus: PurchaseStatus.PURCHASED });
 		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
 	});
 
-	it("shows purchased badge when status is BACKLOG", () => {
-		renderMediaCard({ status: MediaItemStatus.BACKLOG });
+	it("shows purchased badge when the item is purchased", () => {
+		renderMediaItemCard({
+			shouldShowPurchaseStatus: true,
+			purchaseStatus: PurchaseStatus.PURCHASED,
+		});
 		expect(screen.getByTestId("purchased-badge")).toBeInTheDocument();
 	});
 
+	it("does not show purchased badge when the item is only wanted", () => {
+		renderMediaItemCard({
+			shouldShowPurchaseStatus: true,
+			purchaseStatus: PurchaseStatus.WANT_TO_BUY,
+		});
+		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
+	});
+
+	it("does not show purchased badge when the item is not purchased", () => {
+		renderMediaItemCard({
+			shouldShowPurchaseStatus: true,
+			purchaseStatus: PurchaseStatus.NOT_PURCHASED,
+		});
+		expect(screen.queryByTestId("purchased-badge")).not.toBeInTheDocument();
+	});
+
 	it("shows rating stars when status is COMPLETED", () => {
-		renderMediaCard({ status: MediaItemStatus.COMPLETED });
+		renderMediaItemCard({ status: MediaItemStatus.COMPLETED });
 		expect(screen.getByTestId("rating-stars")).toBeInTheDocument();
 	});
 
 	it("does not show rating stars when status is IN_PROGRESS", () => {
-		renderMediaCard({ status: MediaItemStatus.IN_PROGRESS });
+		renderMediaItemCard({ status: MediaItemStatus.IN_PROGRESS });
 		expect(screen.queryByTestId("rating-stars")).not.toBeInTheDocument();
 	});
 
-	it("does not show status badge when shouldShowStatus is false", () => {
-		renderMediaCard({ shouldShowStatus: false });
+	it("never shows a status badge", () => {
+		renderMediaItemCard({ status: MediaItemStatus.IN_PROGRESS });
 		expect(screen.queryByTestId("status-badge")).not.toBeInTheDocument();
 	});
 
 	it("does not show type badge when shouldShowType is false", () => {
-		renderMediaCard({ shouldShowType: false });
+		renderMediaItemCard({ shouldShowType: false });
 		expect(screen.queryByTestId("type-badge")).not.toBeInTheDocument();
 	});
 
 	it("does not show rating stars when shouldShowRating is false, even when status is COMPLETED", () => {
-		renderMediaCard({
+		renderMediaItemCard({
 			status: MediaItemStatus.COMPLETED,
 			shouldShowRating: false,
 		});
@@ -104,7 +119,7 @@ describe("MediaCard", () => {
 	});
 
 	it("does not show series name even when seriesName is provided", () => {
-		renderMediaCard({ seriesName: "The Expanse" });
+		renderMediaItemCard({ seriesName: "The Expanse" });
 		expect(screen.queryByText("The Expanse")).not.toBeInTheDocument();
 	});
 });

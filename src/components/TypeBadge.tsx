@@ -7,6 +7,7 @@ import {
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
 import { MediaItemType } from "#/lib/enums";
+import { cn } from "#/lib/utils";
 
 const TYPE_ICONS: Record<
 	MediaItemType,
@@ -21,9 +22,10 @@ const TYPE_ICONS: Record<
 
 interface TypeBadgeProps {
 	type: MediaItemType;
+	className?: string;
 }
 
-export function TypeBadge({ type }: TypeBadgeProps) {
+export function TypeBadge({ type, className }: TypeBadgeProps) {
 	const { t } = useTranslation();
 	const Icon = TYPE_ICONS[type];
 
@@ -31,7 +33,10 @@ export function TypeBadge({ type }: TypeBadgeProps) {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<span
-					className="inline-flex items-center justify-center p-1.5 rounded-full bg-secondary text-secondary-foreground"
+					className={cn(
+						"inline-flex items-center justify-center p-1.5 rounded-full bg-secondary text-secondary-foreground",
+						className,
+					)}
 					data-testid="type-badge"
 				>
 					<Icon className="size-3.5" />

@@ -21,19 +21,17 @@ const STATUS_CLASSES: Record<string, string> = {
 
 interface StatusBadgeProps {
 	status: MediaItemStatus | undefined;
-	completedAt?: string | null;
 	expectedReleaseDate?: string | null;
 	onClick?: () => void;
 	disabled?: boolean;
 }
 
 export function StatusBadge(props: StatusBadgeProps) {
-	const { status, completedAt, expectedReleaseDate, onClick, disabled } = props;
+	const { status, expectedReleaseDate, onClick, disabled } = props;
 	const { t } = useTranslation();
 	if (!status) return null;
 
 	const commonClasses = `text-xs px-2 py-0.5 rounded-full ${STATUS_CLASSES[status]}`;
-	const formattedCompletedAt = completedAt ? formatDate(completedAt) : null;
 	const isWaiting = status === MediaItemStatus.WAITING_FOR_NEXT_RELEASE;
 	const formattedExpectedReleaseDate =
 		isWaiting && expectedReleaseDate ? formatDate(expectedReleaseDate) : null;
@@ -54,23 +52,16 @@ export function StatusBadge(props: StatusBadgeProps) {
 		</span>
 	);
 
+	if (!formattedExpectedReleaseDate) {
+		return badgeElement;
+	}
+
 	return (
-		<>
-			{formattedExpectedReleaseDate ? (
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>{badgeElement}</TooltipTrigger>
-						<TooltipContent>{formattedExpectedReleaseDate}</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
-			) : (
-				badgeElement
-			)}
-			{formattedCompletedAt && status === MediaItemStatus.COMPLETED && (
-				<span className="text-xs text-muted-foreground">
-					{formattedCompletedAt}
-				</span>
-			)}
-		</>
+		<TooltipProvider>
+			<Tooltip>
+				<TooltipTrigger asChild>{badgeElement}</TooltipTrigger>
+				<TooltipContent>{formattedExpectedReleaseDate}</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
 	);
 }

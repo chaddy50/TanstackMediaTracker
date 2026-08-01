@@ -1,4 +1,4 @@
-import { MediaCard } from "#/components/MediaCard";
+import { MediaItemCard } from "#/components/MediaItemCard";
 import type { DashboardItem } from "#/features/screens/dashboard/dashboard";
 
 interface DashboardSectionProps {
@@ -8,6 +8,7 @@ interface DashboardSectionProps {
 	variant?: "grid" | "scroll";
 	cardWidth?: string;
 	shouldShowRating?: boolean;
+	shouldShowPurchaseStatus?: boolean;
 }
 
 export function DashboardSection({
@@ -17,6 +18,7 @@ export function DashboardSection({
 	variant = "grid",
 	cardWidth = "w-28",
 	shouldShowRating,
+	shouldShowPurchaseStatus,
 }: DashboardSectionProps) {
 	return (
 		<section className="flex flex-col gap-2 w-full">
@@ -27,10 +29,10 @@ export function DashboardSection({
 				<div className="flex flex-row gap-4 overflow-x-auto">
 					{items.map((item) => (
 						<div key={item.id} className={`${cardWidth} shrink-0`}>
-							<MediaCard
+							<MediaItemCard
 								mediaItem={item}
-								shouldShowStatus={false}
 								shouldShowRating={shouldShowRating}
+								shouldShowPurchaseStatus={shouldShowPurchaseStatus}
 							/>
 						</div>
 					))}
@@ -38,10 +40,10 @@ export function DashboardSection({
 			) : (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 					{items.map((item) => (
-						<MediaCard
+						<MediaItemCard
 							key={item.id}
 							mediaItem={item}
-							shouldShowStatus={false}
+							shouldShowPurchaseStatus={shouldShowPurchaseStatus}
 						/>
 					))}
 				</div>

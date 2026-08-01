@@ -10,7 +10,6 @@ vi.mock("react-i18next", () => ({
 
 function renderStatusBadge(props: {
 	status: MediaItemStatus;
-	completedAt?: string | null;
 	expectedReleaseDate?: string | null;
 }) {
 	return render(
@@ -55,29 +54,5 @@ describe("StatusBadge", () => {
 			"data-slot",
 			"tooltip-trigger",
 		);
-	});
-
-	it("shows formatted completedAt date when provided", () => {
-		renderStatusBadge({
-			status: MediaItemStatus.COMPLETED,
-			completedAt: "2024-01-15",
-		});
-		expect(screen.getByText("Jan 15, 2024")).toBeInTheDocument();
-	});
-
-	it("does not show completedAt date when null", () => {
-		renderStatusBadge({
-			status: MediaItemStatus.COMPLETED,
-			completedAt: null,
-		});
-		expect(screen.queryByText("Jan 15, 2024")).not.toBeInTheDocument();
-	});
-
-	it("does not show completedAt date when status is not completed", () => {
-		renderStatusBadge({
-			status: MediaItemStatus.BACKLOG,
-			completedAt: "2024-01-15",
-		});
-		expect(screen.queryByText("Jan 15, 2024")).not.toBeInTheDocument();
 	});
 });

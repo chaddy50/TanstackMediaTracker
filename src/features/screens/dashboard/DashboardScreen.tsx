@@ -25,7 +25,7 @@ export function DashboardScreen() {
 					<div className="flex-1 min-w-0">
 						<DashboardSection
 							variant="scroll"
-							cardWidth="w-38 md:w-[clamp(7rem,13vh,10rem)]"
+							cardWidth="w-48 md:w-[clamp(10rem,19vh,15rem)]"
 							title={t("dashboard.inProgress")}
 							items={inProgressItems}
 							emptyMessage={t("dashboard.emptyInProgress")}
@@ -41,17 +41,18 @@ export function DashboardScreen() {
 				<div className="shrink-0">
 					<DashboardSection
 						variant="scroll"
-						cardWidth="w-30 md:w-[clamp(5.5rem,10vh,8rem)]"
+						cardWidth="w-40 md:w-[clamp(8rem,14.5vh,12rem)]"
 						title={t("dashboard.nextInSeries")}
 						items={nextInSeriesItems}
 						emptyMessage={t("dashboard.emptyNextInSeries")}
 						shouldShowRating={false}
+						shouldShowPurchaseStatus
 					/>
 				</div>
 				<div className="shrink-0">
 					<DashboardSection
 						variant="scroll"
-						cardWidth="w-30 md:w-[clamp(5.5rem,10vh,8rem)]"
+						cardWidth="w-40 md:w-[clamp(8rem,14.5vh,12rem)]"
 						title={t("dashboard.recentlyFinished")}
 						items={recentlyFinishedItems}
 						emptyMessage={t("dashboard.emptyRecentlyFinished")}
