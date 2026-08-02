@@ -23,7 +23,12 @@ function setupFileReaderMock(content: string) {
 		const reader: Partial<FileReader> = {
 			readAsText: vi.fn().mockImplementation(() => {
 				Promise.resolve().then(() => {
-					(reader as any).onload?.({ target: { result: content } });
+					reader.onload?.call(
+						reader as FileReader,
+						{
+							target: { result: content },
+						} as ProgressEvent<FileReader>,
+					);
 				});
 			}),
 		};

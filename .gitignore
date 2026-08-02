@@ -19,3 +19,4 @@ media-tracker-plan.md
 common-components-usage.md
 interview-questions.md
 CODE_REVIEW.md
+.githooks/pre-push

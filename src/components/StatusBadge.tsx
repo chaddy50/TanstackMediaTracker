@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
 	Tooltip,
 	TooltipContent,
@@ -6,7 +7,6 @@ import {
 } from "#/components/ui/tooltip";
 import { MediaItemStatus } from "#/lib/enums";
 import { formatDate } from "#/lib/utils";
-import { useTranslation } from "react-i18next";
 
 const STATUS_CLASSES: Record<string, string> = {
 	want_to: "bg-gray-600 text-gray-200",

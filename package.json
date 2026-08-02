@@ -6,6 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "dev": "dotenv -e .env -- sh -c \"NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000\"",
     "build": "vite build && cp instrument.server.mjs .output/server",
     "preview": "vite preview",
