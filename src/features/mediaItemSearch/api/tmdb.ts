@@ -1,3 +1,4 @@
+import { MediaItemType } from "#/lib/enums";
 import type { ExternalSearchResult } from "./types";
 
 type TmdbMovie = {
@@ -46,7 +47,7 @@ async function searchMovies(query: string): Promise<ExternalSearchResult[]> {
 	return data.results.slice(0, 10).map((movie) => ({
 		externalId: String(movie.id),
 		externalSource: "tmdb",
-		type: "movie" as const,
+		type: MediaItemType.MOVIE,
 		title: movie.title,
 		description: movie.overview || undefined,
 		coverImageUrl: movie.poster_path
@@ -75,7 +76,7 @@ async function searchTvShows(query: string): Promise<ExternalSearchResult[]> {
 	return data.results.slice(0, 10).map((show) => ({
 		externalId: String(show.id),
 		externalSource: "tmdb",
-		type: "tv_show" as const,
+		type: MediaItemType.TV_SHOW,
 		title: show.name,
 		description: show.overview || undefined,
 		coverImageUrl: show.poster_path
@@ -218,10 +219,14 @@ export async function fetchCreatorBio(
 
 export async function search(
 	query: string,
-	type: "movie" | "tv_show" | "all",
+	type: typeof MediaItemType.MOVIE | typeof MediaItemType.TV_SHOW | "all",
 ): Promise<ExternalSearchResult[]> {
-	if (type === "movie") return searchMovies(query);
-	if (type === "tv_show") return searchTvShows(query);
+	if (type === MediaItemType.MOVIE) {
+		return searchMovies(query);
+	}
+	if (type === MediaItemType.TV_SHOW) {
+		return searchTvShows(query);
+	}
 
 	const [movies, shows] = await Promise.all([
 		searchMovies(query),

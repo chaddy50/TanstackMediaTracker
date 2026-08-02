@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { SearchResultWithStatus } from "#/features/mediaItemSearch/types";
+import { resolveCreatorName } from "#/lib/creator";
 import { formatReleaseYear } from "#/lib/releaseDate";
 import { ActionButton } from "./components/ActionButton";
 import { Details } from "./components/Details";
@@ -24,11 +25,25 @@ export function SearchResult(props: SearchResultProps) {
 
 			<Details
 				title={result.title}
+				creator={resolveCreatorName(result.type, result.metadata) ?? undefined}
 				year={formatReleaseYear(result.releaseDate, t) ?? undefined}
+				series={getSeriesLabel(result) ?? undefined}
 				type={result.type}
 			/>
 
 			<ActionButton result={result} onClose={onClose} />
 		</div>
 	);
+}
+
+/** Books also carry their position in the series; other types just have a name. */
+function getSeriesLabel(result: SearchResultWithStatus): string | null {
+	const { series, seriesBookNumber } = result.metadata;
+	if (typeof series !== "string" || !series) {
+		return null;
+	}
+	if (typeof seriesBookNumber === "string" && seriesBookNumber) {
+		return `${series} #${seriesBookNumber}`;
+	}
+	return series;
 }

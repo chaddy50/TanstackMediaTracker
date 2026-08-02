@@ -97,4 +97,103 @@ describe("SearchResults", () => {
 
 		expect(screen.getByText("2020")).toBeInTheDocument();
 	});
+
+	it("shows the author and numbered series for book results", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Dune",
+				externalId: "1",
+				externalSource: "hardcover",
+				type: "book",
+				metadata: {
+					author: "Frank Herbert",
+					series: "Dune",
+					seriesBookNumber: "1",
+				},
+			},
+		];
+		renderSearchResults({ query: "dune", results });
+
+		expect(screen.getByText("Frank Herbert")).toBeInTheDocument();
+		expect(screen.getByText("Dune #1")).toBeInTheDocument();
+	});
+
+	it("separates the year and the series with a dot", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Dune",
+				externalId: "1",
+				externalSource: "hardcover",
+				type: "book",
+				releaseDate: "1965-08-01",
+				metadata: { series: "Dune", seriesBookNumber: "1" },
+			},
+		];
+		renderSearchResults({ query: "dune", results });
+
+		expect(screen.getByText("1965 · Dune #1")).toBeInTheDocument();
+	});
+
+	it("shows the series without a number when the position is unknown", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Elden Ring",
+				externalId: "1",
+				externalSource: "igdb",
+				type: "video_game",
+				metadata: { developer: "FromSoftware", series: "Souls" },
+			},
+		];
+		renderSearchResults({ query: "elden", results });
+
+		expect(screen.getByText("FromSoftware")).toBeInTheDocument();
+		expect(screen.getByText("Souls")).toBeInTheDocument();
+	});
+
+	it("shows the creator for podcast results", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Hardcore History",
+				externalId: "1",
+				externalSource: "itunes",
+				type: "podcast",
+				metadata: { creator: "Dan Carlin" },
+			},
+		];
+		renderSearchResults({ query: "hardcore", results });
+
+		expect(screen.getByText("Dan Carlin")).toBeInTheDocument();
+	});
+
+	it("shows no creator line for tv show results without one", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Breaking Bad",
+				externalId: "1",
+				externalSource: "tmdb",
+				type: "tv_show",
+				releaseDate: "2008-01-20",
+				metadata: {},
+			},
+		];
+		renderSearchResults({ query: "breaking", results });
+
+		expect(screen.getByText("Breaking Bad")).toBeInTheDocument();
+		expect(screen.getByText("2008")).toBeInTheDocument();
+	});
+
+	it("shows the creator for tv show results that have one", () => {
+		const results: SearchResultWithStatus[] = [
+			{
+				title: "Breaking Bad",
+				externalId: "1",
+				externalSource: "tmdb",
+				type: "tv_show",
+				metadata: { creator: "Vince Gilligan" },
+			},
+		];
+		renderSearchResults({ query: "breaking", results });
+
+		expect(screen.getByText("Vince Gilligan")).toBeInTheDocument();
+	});
 });

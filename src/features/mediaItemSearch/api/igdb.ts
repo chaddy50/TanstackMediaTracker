@@ -1,3 +1,4 @@
+import { MediaItemType } from "#/lib/enums";
 import type { ExternalSearchResult } from "./types";
 
 type IgdbTokenResponse = {
@@ -203,7 +204,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 	return games.map((game) => ({
 		externalId: String(game.id),
 		externalSource: "igdb",
-		type: "video_game" as const,
+		type: MediaItemType.VIDEO_GAME,
 		title: game.name,
 		description: game.summary || undefined,
 		coverImageUrl: game.cover?.url

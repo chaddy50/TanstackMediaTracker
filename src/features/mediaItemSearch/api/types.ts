@@ -1,7 +1,9 @@
+import type { MediaItemType } from "#/lib/enums";
+
 export type ExternalSearchResult = {
 	externalId: string;
 	externalSource: string;
-	type: "book" | "movie" | "tv_show" | "video_game" | "podcast";
+	type: MediaItemType;
 	title: string;
 	description?: string;
 	coverImageUrl?: string;

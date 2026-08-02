@@ -1,3 +1,4 @@
+import { MediaItemType } from "#/lib/enums";
 import { releaseYearToDate } from "#/lib/releaseDate";
 import type { ExternalSearchResult } from "./types";
 
@@ -195,7 +196,7 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		return {
 			externalId: String(hit.id),
 			externalSource: "hardcover",
-			type: "book" as const,
+			type: MediaItemType.BOOK,
 			title: hit.title,
 			description: hit.description,
 			coverImageUrl: imageById.get(hit.id),

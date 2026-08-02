@@ -3,21 +3,34 @@ import type { MediaItemType } from "#/lib/enums";
 
 interface DetailsProps {
 	title: string;
+	creator: string | undefined;
 	year: string | undefined;
+	series: string | undefined;
 	type: MediaItemType;
 }
 
 export function Details(props: DetailsProps) {
-	const { title, year, type } = props;
+	const { title, creator, year, series, type } = props;
 	return (
 		<div className="flex-1 min-w-0">
-			<p className="text-sm font-medium text-foreground leading-snug line-clamp-1">
-				{title}
-			</p>
-			<div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-				{year && <span className="text-xs text-muted-foreground">{year}</span>}
-				<TypeBadge type={type} />
+			<div className="flex items-center gap-1.5">
+				<TypeBadge type={type} className="shrink-0" />
+				<p className="min-w-0 text-sm font-medium text-foreground leading-snug line-clamp-1">
+					{title}
+				</p>
 			</div>
+			{creator && (
+				<p className="text-xs text-muted-foreground leading-snug line-clamp-1 mt-0.5">
+					{creator}
+				</p>
+			)}
+			{(year || series) && (
+				<p className="text-xs text-muted-foreground leading-snug line-clamp-1 mt-0.5">
+					{year}
+					{year && series && " · "}
+					{series}
+				</p>
+			)}
 		</div>
 	);
 }

@@ -1,3 +1,4 @@
+import { MediaItemType } from "#/lib/enums";
 import type { ExternalSearchResult } from "./types";
 
 type ItunesPodcastResult = {
@@ -48,7 +49,7 @@ export async function searchPodcasts(
 	return data.results.map((podcast) => ({
 		externalId: String(podcast.trackId),
 		externalSource: "itunes",
-		type: "podcast" as const,
+		type: MediaItemType.PODCAST,
 		title: podcast.collectionName ?? podcast.trackName ?? "Unknown Podcast",
 		description: undefined,
 		coverImageUrl: podcast.artworkUrl600 ?? podcast.artworkUrl100 ?? undefined,

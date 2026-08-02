@@ -9,6 +9,7 @@ import * as itunes from "#/features/mediaItemSearch/api/itunes";
 import * as tmdb from "#/features/mediaItemSearch/api/tmdb";
 import type { ExternalSearchResult } from "#/features/mediaItemSearch/api/types";
 import { findOrCreateCreator } from "#/features/screens/creatorDetails/creatorDetails.server";
+import { resolveCreatorName } from "#/lib/creator";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { syncSeriesStatus } from "#/lib/queries/seriesQuery.server";
 import type { SearchResultWithStatus } from "./types";
@@ -433,25 +434,6 @@ async function findOrCreateSeriesForItem(
 		.returning({ id: series.id });
 	if (!newSeries) throw new Error("Failed to create series");
 	return newSeries.id;
-}
-
-export function resolveCreatorName(
-	type: MediaItemType,
-	metadata: Record<string, unknown>,
-): string | null {
-	if (type === MediaItemType.BOOK) {
-		return typeof metadata.author === "string" ? metadata.author : null;
-	}
-	if (type === MediaItemType.MOVIE) {
-		return typeof metadata.director === "string" ? metadata.director : null;
-	}
-	if (type === MediaItemType.TV_SHOW || type === MediaItemType.PODCAST) {
-		return typeof metadata.creator === "string" ? metadata.creator : null;
-	}
-	if (type === MediaItemType.VIDEO_GAME) {
-		return typeof metadata.developer === "string" ? metadata.developer : null;
-	}
-	return null;
 }
 
 export async function resolveCreatorBiography(

@@ -29,7 +29,11 @@
 	"[css]": {
 		"editor.defaultFormatter": "biomejs.biome"
 	},
+	// Biome owns import order here. codeActionsOnSave merges with user settings,
+	// so the built-in TypeScript organizer has to be switched off explicitly —
+	// otherwise it runs too and re-sorts alphabetically, which Biome rejects.
 	"editor.codeActionsOnSave": {
+		"source.organizeImports": "never",
 		"source.organizeImports.biome": "explicit"
 	}
 }
