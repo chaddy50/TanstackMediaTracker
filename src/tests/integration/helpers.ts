@@ -1,17 +1,36 @@
 import { sql } from "drizzle-orm";
 import {
+	type ConsumptionInfo,
 	creators,
+	customReports,
+	type FictionRating,
+	type FilterAndSortOptions,
 	genres,
+	type ItemSortField,
 	mediaItemInstances,
 	mediaItems,
 	mediaItemTags,
+	type SeasonReview,
+	type SeriesSortField,
+	type SortDirection,
 	series,
 	tags,
+	user,
+	userSettings,
+	type ViewSubject,
+	views,
 } from "#/database/schema";
+import type { DashboardReportType } from "#/features/screens/reports/types";
 import type {
+	BookConsumptionMethod,
+	GameControlMethod,
+	GamePlatform,
 	MediaItemStatus,
 	MediaItemType,
+	MovieConsumptionMethod,
+	NextItemStatus,
 	PurchaseStatus,
+	TvShowConsumptionMethod,
 } from "#/lib/enums";
 import { testDb } from "./db";
 
@@ -24,12 +43,18 @@ import { testDb } from "./db";
  * Call this in beforeEach so each test starts with a clean slate.
  *
  * Note: `series`, `creators`, `genres`, `tags`, `media_items`,
- * `media_item_instances`, `media_item_tags`, and `views`
- * all use plain-text userId (no FK to `user`), so no auth rows are needed.
+ * `media_item_instances`, `media_item_tags`, and `views` all use plain-text
+ * userId (no FK to `user`), so those need no auth rows. `custom_reports` and
+ * `user_settings` are the exceptions — both reference `user.id`, so seed a row
+ * with `insertUser` before touching them.
  */
 export async function truncateAll() {
+	// `user` is a reserved word and must stay quoted. Truncating it cascades to
+	// `session` and `account`, which is what we want between tests.
 	await testDb.execute(sql`
 		TRUNCATE
+			user_settings,
+			custom_reports,
 			media_item_instances,
 			media_item_tags,
 			media_items,
@@ -37,7 +62,8 @@ export async function truncateAll() {
 			creators,
 			genres,
 			tags,
-			views
+			views,
+			"user"
 		RESTART IDENTITY CASCADE
 	`);
 }
@@ -58,6 +84,7 @@ type InsertMediaItemOptions = {
 	metadata?: Record<string, unknown>;
 	status?: MediaItemStatus;
 	purchaseStatus?: PurchaseStatus;
+	expectedReleaseDate?: string;
 	seriesId?: number;
 	creatorId?: number;
 	genreId?: number;
@@ -85,6 +112,7 @@ export async function insertMediaItem(
 			status: options.status ?? ("backlog" as MediaItemStatus),
 			purchaseStatus:
 				options.purchaseStatus ?? ("not_purchased" as PurchaseStatus),
+			expectedReleaseDate: options.expectedReleaseDate ?? null,
 			seriesId: options.seriesId ?? null,
 			creatorId: options.creatorId ?? null,
 			genreId: options.genreId ?? null,
@@ -100,6 +128,10 @@ type InsertInstanceOptions = {
 	completedAt?: string;
 	startedAt?: string;
 	rating?: string;
+	reviewText?: string;
+	fictionRating?: FictionRating;
+	seasonReviews?: SeasonReview[];
+	consumptionInfo?: ConsumptionInfo;
 };
 
 /** Inserts a `media_item_instances` row and returns its id. */
@@ -113,6 +145,10 @@ export async function insertInstance(
 			completedAt: options.completedAt ?? null,
 			startedAt: options.startedAt ?? null,
 			rating: options.rating ?? null,
+			reviewText: options.reviewText ?? null,
+			fictionRating: options.fictionRating ?? null,
+			seasonReviews: options.seasonReviews ?? null,
+			consumptionInfo: options.consumptionInfo ?? null,
 		})
 		.returning({ id: mediaItemInstances.id });
 
@@ -125,6 +161,10 @@ type InsertSeriesOptions = {
 	name?: string;
 	type: MediaItemType;
 	status?: MediaItemStatus;
+	nextItemStatus?: NextItemStatus;
+	rating?: string;
+	description?: string;
+	isComplete?: boolean;
 };
 
 /** Inserts a `series` row and returns its id. */
@@ -138,6 +178,10 @@ export async function insertSeries(
 			name: options.name ?? "Test Series",
 			type: options.type,
 			status: options.status ?? ("backlog" as MediaItemStatus),
+			nextItemStatus: options.nextItemStatus ?? null,
+			rating: options.rating ?? null,
+			description: options.description ?? null,
+			isComplete: options.isComplete ?? false,
 		})
 		.returning({ id: series.id });
 
@@ -203,4 +247,108 @@ export async function insertCreator(
 
 	if (!row) throw new Error("insertCreator failed");
 	return row.id;
+}
+
+/**
+ * Inserts a better-auth `user` row. Only `custom_reports` and `user_settings`
+ * need one — every other app table stores userId as plain text.
+ */
+export async function insertUser(userId: string): Promise<void> {
+	await testDb.insert(user).values({
+		id: userId,
+		name: userId,
+		email: `${userId}@test.local`,
+	});
+}
+
+type InsertViewOptions = {
+	userId: string;
+	name?: string;
+	subject?: ViewSubject;
+	filters?: FilterAndSortOptions;
+	displayOrder?: number;
+};
+
+/** Inserts a `views` row and returns its id. */
+export async function insertView(options: InsertViewOptions): Promise<number> {
+	const [row] = await testDb
+		.insert(views)
+		.values({
+			userId: options.userId,
+			name: options.name ?? "Test View",
+			subject: options.subject ?? "items",
+			filters: options.filters ?? {},
+			displayOrder: options.displayOrder ?? 0,
+		})
+		.returning({ id: views.id });
+
+	if (!row) throw new Error("insertView failed");
+	return row.id;
+}
+
+type InsertCustomReportOptions = {
+	userId: string;
+	name?: string;
+	reportType?: DashboardReportType;
+	mediaTypes?: MediaItemType[];
+	monthCount?: number;
+	displayOrder?: number;
+};
+
+/** Inserts a `custom_reports` row and returns its id. Needs `insertUser` first. */
+export async function insertCustomReport(
+	options: InsertCustomReportOptions,
+): Promise<number> {
+	const [row] = await testDb
+		.insert(customReports)
+		.values({
+			userId: options.userId,
+			name: options.name ?? "Test Report",
+			reportType: options.reportType ?? "items_completed_by_month",
+			mediaTypes: options.mediaTypes ?? null,
+			monthCount: options.monthCount ?? 12,
+			displayOrder: options.displayOrder ?? 0,
+		})
+		.returning({ id: customReports.id });
+
+	if (!row) throw new Error("insertCustomReport failed");
+	return row.id;
+}
+
+type InsertUserSettingsOptions = {
+	userId: string;
+	activeCustomReportId?: number;
+	defaultLibrarySortBy?: ItemSortField;
+	defaultLibrarySortDirection?: SortDirection;
+	defaultSeriesSortBy?: SeriesSortField;
+	defaultSeriesSortDirection?: SortDirection;
+	defaultBookConsumptionMethod?: BookConsumptionMethod;
+	defaultMovieConsumptionMethod?: MovieConsumptionMethod;
+	defaultTvShowConsumptionMethod?: TvShowConsumptionMethod;
+	defaultGamePlatform?: GamePlatform;
+	defaultGameControlMethod?: GameControlMethod;
+};
+
+/**
+ * Inserts the caller's one `user_settings` row. Needs `insertUser` first, and
+ * `insertCustomReport` first when passing `activeCustomReportId`.
+ */
+export async function insertUserSettings(
+	options: InsertUserSettingsOptions,
+): Promise<void> {
+	await testDb.insert(userSettings).values({
+		userId: options.userId,
+		activeCustomReportId: options.activeCustomReportId ?? null,
+		defaultLibrarySortBy: options.defaultLibrarySortBy ?? null,
+		defaultLibrarySortDirection: options.defaultLibrarySortDirection ?? null,
+		defaultSeriesSortBy: options.defaultSeriesSortBy ?? null,
+		defaultSeriesSortDirection: options.defaultSeriesSortDirection ?? null,
+		defaultBookConsumptionMethod: options.defaultBookConsumptionMethod ?? null,
+		defaultMovieConsumptionMethod:
+			options.defaultMovieConsumptionMethod ?? null,
+		defaultTvShowConsumptionMethod:
+			options.defaultTvShowConsumptionMethod ?? null,
+		defaultGamePlatform: options.defaultGamePlatform ?? null,
+		defaultGameControlMethod: options.defaultGameControlMethod ?? null,
+	});
 }

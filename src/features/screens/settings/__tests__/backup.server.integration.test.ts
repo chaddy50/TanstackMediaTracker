@@ -11,16 +11,44 @@ vi.mock("#/features/screens/auth/session", () => ({
 }));
 
 import { eq } from "drizzle-orm";
-import { mediaItems } from "#/database/schema";
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import {
+	creators,
+	customReports,
+	genres,
+	mediaItems,
+	mediaItemTags,
+	series,
+	tags,
+	userSettings,
+	views,
+} from "#/database/schema";
+import {
+	MediaItemStatus,
+	MediaItemType,
+	NextItemStatus,
+	PurchaseStatus,
+} from "#/lib/enums";
 import { testDb } from "#/tests/integration/db";
 import {
+	insertCreator,
+	insertCustomReport,
+	insertGenre,
 	insertInstance,
 	insertMediaItem,
 	insertSeries,
+	insertTag,
+	insertUser,
+	insertUserSettings,
+	insertView,
+	linkTag,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { backupSchema, exportBackup, importBackup } from "../backup.server";
+import {
+	type BackupData,
+	backupSchema,
+	exportBackup,
+	importBackup,
+} from "../backup.server";
 
 /** Serializes an export the way writing it to disk and reading it back would. */
 async function exportThroughJson(userId: string) {
@@ -32,6 +60,18 @@ const USER_A = "user-a";
 const USER_B = "user-b";
 
 const TIMESTAMP = "2026-01-01T00:00:00.000Z";
+
+const SEASON_REVIEWS = [
+	{
+		season: 1,
+		startedAt: "2024-01-01",
+		completedAt: "2024-02-01",
+		rating: 9,
+		reviewText: "Strong opening season",
+	},
+];
+
+const CONSUMPTION_INFO = { method: "streaming" };
 
 beforeEach(() => truncateAll());
 
@@ -72,8 +112,10 @@ function buildV1Backup() {
 				id: 900,
 				mediaItemMetadataId: 500,
 				seriesId: null,
+				creatorId: 7,
+				genreId: 3,
 				status: MediaItemStatus.COMPLETED,
-				purchaseStatus: "purchased" as const,
+				purchaseStatus: PurchaseStatus.PURCHASED,
 				createdAt: TIMESTAMP,
 				updatedAt: TIMESTAMP,
 			},
@@ -95,8 +137,205 @@ function buildV1Backup() {
 	};
 }
 
+/**
+ * A realistic version-2 file. v2 exported with an unprojected SELECT, so the
+ * file carries columns the v2 import schema used to discard.
+ */
+function buildV2Backup() {
+	return {
+		version: 2,
+		exportedAt: TIMESTAMP,
+		series: [
+			{
+				id: 300,
+				name: "Trilogy",
+				type: MediaItemType.MOVIE,
+				status: MediaItemStatus.IN_PROGRESS,
+				rating: "8.0",
+				description: null,
+				isComplete: false,
+				nextItemStatus: NextItemStatus.PURCHASED,
+				createdAt: TIMESTAMP,
+				updatedAt: TIMESTAMP,
+			},
+		],
+		mediaItems: [
+			{
+				id: 900,
+				seriesId: 300,
+				creatorId: 7,
+				genreId: 3,
+				type: MediaItemType.MOVIE,
+				title: "Dune",
+				description: null,
+				coverImageUrl: null,
+				releaseDate: "2021-10-22",
+				externalId: "tmdb-438631",
+				externalSource: "tmdb",
+				metadata: { director: "Denis Villeneuve" },
+				status: MediaItemStatus.COMPLETED,
+				purchaseStatus: PurchaseStatus.PURCHASED,
+				expectedReleaseDate: "2027-03-01",
+				createdAt: TIMESTAMP,
+				updatedAt: TIMESTAMP,
+			},
+		],
+		mediaItemInstances: [
+			{
+				id: 800,
+				mediaItemId: 900,
+				rating: "9.0",
+				fictionRating: null,
+				seasonReviews: SEASON_REVIEWS,
+				consumptionInfo: CONSUMPTION_INFO,
+				reviewText: "Great",
+				startedAt: "2021-11-01",
+				completedAt: "2021-11-02",
+				createdAt: TIMESTAMP,
+				updatedAt: TIMESTAMP,
+			},
+		],
+		views: [],
+	};
+}
+
+/** A current-format file with every collection empty. */
+function buildEmptyV3Backup(): BackupData {
+	return {
+		version: 3,
+		exportedAt: TIMESTAMP,
+		series: [],
+		mediaItems: [],
+		mediaItemInstances: [],
+		views: [],
+		tags: [],
+		mediaItemTags: [],
+		creators: [],
+		genres: [],
+		customReports: [],
+		userSettings: null,
+	};
+}
+
+/**
+ * Seeds exactly one row in every user-owned table, with all foreign keys
+ * populated, so a round trip has something of each kind to lose.
+ */
+async function seedFullLibrary(userId: string) {
+	await insertUser(userId);
+
+	const seriesId = await insertSeries({
+		userId,
+		name: "Trilogy",
+		type: MediaItemType.MOVIE,
+		status: MediaItemStatus.IN_PROGRESS,
+		nextItemStatus: NextItemStatus.PURCHASED,
+		rating: "8.0",
+		description: "A series description",
+		isComplete: false,
+	});
+	const creatorId = await insertCreator({ userId, name: "Denis Villeneuve" });
+	const genreId = await insertGenre({ userId, name: "Science Fiction" });
+	const tagId = await insertTag({ userId, name: "Favorites" });
+
+	const mediaItemId = await insertMediaItem({
+		userId,
+		type: MediaItemType.MOVIE,
+		title: "Dune",
+		description: "A description",
+		coverImageUrl: "http://example.test/a.jpg",
+		releaseDate: "2021-10-22",
+		externalId: "tmdb-438631",
+		externalSource: "tmdb",
+		metadata: { director: "Denis Villeneuve", runtime: 155 },
+		status: MediaItemStatus.COMPLETED,
+		purchaseStatus: PurchaseStatus.PURCHASED,
+		expectedReleaseDate: "2027-03-01",
+		seriesId,
+		creatorId,
+		genreId,
+	});
+	await linkTag(mediaItemId, tagId);
+
+	const instanceId = await insertInstance({
+		mediaItemId,
+		rating: "9.0",
+		reviewText: "Great",
+		startedAt: "2021-11-01",
+		completedAt: "2021-11-02",
+		seasonReviews: SEASON_REVIEWS,
+		consumptionInfo: CONSUMPTION_INFO,
+	});
+
+	await insertView({
+		userId,
+		name: "Sci-fi backlog",
+		subject: "items",
+		filters: { tags: ["Favorites"], genres: ["Science Fiction"] },
+		displayOrder: 2,
+	});
+
+	const customReportId = await insertCustomReport({
+		userId,
+		name: "Movies this year",
+		reportType: "items_completed_by_month",
+		mediaTypes: [MediaItemType.MOVIE],
+		monthCount: 24,
+		displayOrder: 1,
+	});
+	await insertUserSettings({
+		userId,
+		activeCustomReportId: customReportId,
+		defaultLibrarySortBy: "title",
+		defaultLibrarySortDirection: "asc",
+		defaultSeriesSortBy: "name",
+		defaultSeriesSortDirection: "desc",
+		defaultBookConsumptionMethod: "ebook",
+		defaultMovieConsumptionMethod: "streaming",
+		defaultTvShowConsumptionMethod: "streaming",
+		defaultGamePlatform: "pc",
+		defaultGameControlMethod: "controller",
+	});
+
+	return {
+		seriesId,
+		creatorId,
+		genreId,
+		tagId,
+		mediaItemId,
+		instanceId,
+		customReportId,
+	};
+}
+
+const VOLATILE_KEYS = new Set([
+	"id",
+	"seriesId",
+	"creatorId",
+	"genreId",
+	"mediaItemId",
+	"tagId",
+	"activeCustomReportId",
+	"exportedAt",
+]);
+
+/** Drops the keys a restore is expected to renumber, so two exports can be compared. */
+function stripVolatile(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map(stripVolatile);
+	}
+	if (value === null || typeof value !== "object" || value instanceof Date) {
+		return value;
+	}
+	return Object.fromEntries(
+		Object.entries(value as Record<string, unknown>)
+			.filter(([key]) => !VOLATILE_KEYS.has(key))
+			.map(([key, entryValue]) => [key, stripVolatile(entryValue)]),
+	);
+}
+
 describe("exportBackup", () => {
-	it("emits version 2 with metadata inlined and no separate array", async () => {
+	it("emits version 3 with every collection present", async () => {
 		await insertMediaItem({
 			userId: USER_A,
 			type: MediaItemType.MOVIE,
@@ -105,27 +344,135 @@ describe("exportBackup", () => {
 
 		const backup = await exportBackup(USER_A);
 
-		expect(backup.version).toBe(2);
+		expect(backup.version).toBe(3);
 		expect(backup).not.toHaveProperty("mediaItemMetadata");
+		expect(backup).toHaveProperty("tags");
+		expect(backup).toHaveProperty("mediaItemTags");
+		expect(backup).toHaveProperty("creators");
+		expect(backup).toHaveProperty("genres");
+		expect(backup).toHaveProperty("customReports");
+		expect(backup).toHaveProperty("userSettings");
 		expect(backup.mediaItems[0]).toMatchObject({
 			title: "Dune",
 			type: MediaItemType.MOVIE,
 		});
 	});
 
-	it("includes only the caller's rows", async () => {
-		await insertMediaItem({ userId: USER_A, type: MediaItemType.BOOK });
-		await insertMediaItem({ userId: USER_B, type: MediaItemType.BOOK });
-		await insertSeries({
-			userId: USER_B,
-			name: "B series",
+	it("exports tags and the item-to-tag join", async () => {
+		const mediaItemId = await insertMediaItem({
+			userId: USER_A,
 			type: MediaItemType.BOOK,
 		});
+		const tagId = await insertTag({ userId: USER_A, name: "Favorites" });
+		await linkTag(mediaItemId, tagId);
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.tags).toHaveLength(1);
+		expect(backup.tags[0].name).toBe("Favorites");
+		expect(backup.mediaItemTags).toEqual([{ mediaItemId, tagId }]);
+	});
+
+	it("exports creators and genres", async () => {
+		await insertCreator({ userId: USER_A, name: "Denis Villeneuve" });
+		await insertGenre({ userId: USER_A, name: "Science Fiction" });
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.creators).toHaveLength(1);
+		expect(backup.creators[0].name).toBe("Denis Villeneuve");
+		expect(backup.genres).toHaveLength(1);
+		expect(backup.genres[0].name).toBe("Science Fiction");
+	});
+
+	it("exports custom reports and user settings", async () => {
+		await insertUser(USER_A);
+		const customReportId = await insertCustomReport({
+			userId: USER_A,
+			name: "Movies this year",
+		});
+		await insertUserSettings({
+			userId: USER_A,
+			activeCustomReportId: customReportId,
+			defaultLibrarySortBy: "title",
+		});
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.customReports).toHaveLength(1);
+		expect(backup.customReports[0].name).toBe("Movies this year");
+		expect(backup.userSettings).toMatchObject({
+			activeCustomReportId: customReportId,
+			defaultLibrarySortBy: "title",
+		});
+	});
+
+	it("carries creatorId, genreId and expectedReleaseDate on media items", async () => {
+		const creatorId = await insertCreator({ userId: USER_A, name: "Nolan" });
+		const genreId = await insertGenre({ userId: USER_A, name: "Thriller" });
+		await insertMediaItem({
+			userId: USER_A,
+			type: MediaItemType.MOVIE,
+			creatorId,
+			genreId,
+			expectedReleaseDate: "2027-03-01",
+		});
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.mediaItems[0]).toMatchObject({
+			creatorId,
+			genreId,
+			expectedReleaseDate: "2027-03-01",
+		});
+	});
+
+	it("carries nextItemStatus on series", async () => {
+		await insertSeries({
+			userId: USER_A,
+			name: "Trilogy",
+			type: MediaItemType.MOVIE,
+			nextItemStatus: NextItemStatus.PURCHASED,
+		});
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.series[0].nextItemStatus).toBe(NextItemStatus.PURCHASED);
+	});
+
+	it("carries seasonReviews and consumptionInfo on instances", async () => {
+		const mediaItemId = await insertMediaItem({
+			userId: USER_A,
+			type: MediaItemType.TV_SHOW,
+		});
+		await insertInstance({
+			mediaItemId,
+			seasonReviews: SEASON_REVIEWS,
+			consumptionInfo: CONSUMPTION_INFO,
+		});
+
+		const backup = await exportBackup(USER_A);
+
+		expect(backup.mediaItemInstances[0].seasonReviews).toEqual(SEASON_REVIEWS);
+		expect(backup.mediaItemInstances[0].consumptionInfo).toEqual(
+			CONSUMPTION_INFO,
+		);
+	});
+
+	it("includes only the caller's rows in every collection", async () => {
+		await insertMediaItem({ userId: USER_A, type: MediaItemType.BOOK });
+		await seedFullLibrary(USER_B);
 
 		const backup = await exportBackup(USER_A);
 
 		expect(backup.mediaItems).toHaveLength(1);
 		expect(backup.series).toHaveLength(0);
+		expect(backup.tags).toHaveLength(0);
+		expect(backup.mediaItemTags).toHaveLength(0);
+		expect(backup.creators).toHaveLength(0);
+		expect(backup.genres).toHaveLength(0);
+		expect(backup.customReports).toHaveLength(0);
+		expect(backup.userSettings).toBeNull();
 	});
 });
 
@@ -190,6 +537,160 @@ describe("importBackup round trip", () => {
 		});
 	});
 
+	it("keeps every collection populated", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.series).toHaveLength(1);
+		expect(restored.mediaItems).toHaveLength(1);
+		expect(restored.mediaItemInstances).toHaveLength(1);
+		expect(restored.views).toHaveLength(1);
+		expect(restored.tags).toHaveLength(1);
+		expect(restored.mediaItemTags).toHaveLength(1);
+		expect(restored.creators).toHaveLength(1);
+		expect(restored.genres).toHaveLength(1);
+		expect(restored.customReports).toHaveLength(1);
+		expect(restored.userSettings).not.toBeNull();
+	});
+
+	it("remaps creatorId to the restored creator", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].creatorId).toBe(restored.creators[0].id);
+		expect(restored.creators[0].name).toBe("Denis Villeneuve");
+	});
+
+	it("remaps genreId to the restored genre", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].genreId).toBe(restored.genres[0].id);
+		expect(restored.genres[0].name).toBe("Science Fiction");
+	});
+
+	it("remaps both sides of the item-to-tag join", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItemTags).toEqual([
+			{
+				mediaItemId: restored.mediaItems[0].id,
+				tagId: restored.tags[0].id,
+			},
+		]);
+		expect(restored.mediaItems[0].title).toBe("Dune");
+		expect(restored.tags[0].name).toBe("Favorites");
+	});
+
+	it("remaps activeCustomReportId to the restored report", async () => {
+		const seeded = await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.userSettings?.activeCustomReportId).toBe(
+			restored.customReports[0].id,
+		);
+		expect(restored.userSettings?.activeCustomReportId).not.toBe(
+			seeded.customReportId,
+		);
+		expect(restored.customReports[0].name).toBe("Movies this year");
+	});
+
+	it("preserves the scalar user settings", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.userSettings).toMatchObject({
+			defaultLibrarySortBy: "title",
+			defaultLibrarySortDirection: "asc",
+			defaultSeriesSortBy: "name",
+			defaultSeriesSortDirection: "desc",
+			defaultBookConsumptionMethod: "ebook",
+			defaultMovieConsumptionMethod: "streaming",
+			defaultTvShowConsumptionMethod: "streaming",
+			defaultGamePlatform: "pc",
+			defaultGameControlMethod: "controller",
+		});
+	});
+
+	it("preserves the custom report fields", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.customReports[0]).toMatchObject({
+			name: "Movies this year",
+			reportType: "items_completed_by_month",
+			mediaTypes: [MediaItemType.MOVIE],
+			monthCount: 24,
+			displayOrder: 1,
+		});
+	});
+
+	it("preserves series nextItemStatus", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.series[0].nextItemStatus).toBe(NextItemStatus.PURCHASED);
+	});
+
+	it("preserves instance seasonReviews and consumptionInfo", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItemInstances[0].seasonReviews).toEqual(
+			SEASON_REVIEWS,
+		);
+		expect(restored.mediaItemInstances[0].consumptionInfo).toEqual(
+			CONSUMPTION_INFO,
+		);
+	});
+
+	it("preserves expectedReleaseDate", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].expectedReleaseDate).toBe("2027-03-01");
+	});
+
+	it("is idempotent apart from renumbered ids", async () => {
+		await seedFullLibrary(USER_A);
+		const before = await exportBackup(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const after = await exportBackup(USER_A);
+		expect(stripVolatile(after)).toEqual(stripVolatile(before));
+	});
+
+	it("still remaps seriesId", async () => {
+		await seedFullLibrary(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].seriesId).toBe(restored.series[0].id);
+	});
+
 	it("replaces only the caller's data", async () => {
 		await insertMediaItem({ userId: USER_A, type: MediaItemType.BOOK });
 		const itemB = await insertMediaItem({
@@ -198,21 +699,90 @@ describe("importBackup round trip", () => {
 			title: "B's book",
 		});
 
-		await importBackup(
-			{
-				version: 2,
-				exportedAt: TIMESTAMP,
-				series: [],
-				mediaItems: [],
-				mediaItemInstances: [],
-				views: [],
-			},
-			USER_A,
-		);
+		await importBackup(buildEmptyV3Backup(), USER_A);
 
 		const remaining = await testDb.select().from(mediaItems);
 		expect(remaining).toHaveLength(1);
 		expect(remaining[0].id).toBe(itemB);
+	});
+});
+
+describe("importBackup version 2 compatibility", () => {
+	it("restores items, series and instances", async () => {
+		await importBackup(backupSchema.parse(buildV2Backup()), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems).toHaveLength(1);
+		expect(restored.series).toHaveLength(1);
+		expect(restored.mediaItemInstances).toHaveLength(1);
+		expect(restored.mediaItems[0].title).toBe("Dune");
+	});
+
+	it("recovers the columns a v2 import used to strip", async () => {
+		await importBackup(backupSchema.parse(buildV2Backup()), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].expectedReleaseDate).toBe("2027-03-01");
+		expect(restored.series[0].nextItemStatus).toBe(NextItemStatus.PURCHASED);
+		expect(restored.mediaItemInstances[0].seasonReviews).toEqual(
+			SEASON_REVIEWS,
+		);
+		expect(restored.mediaItemInstances[0].consumptionInfo).toEqual(
+			CONSUMPTION_INFO,
+		);
+	});
+
+	it("nulls creatorId and genreId, whose rows a v2 file never carried", async () => {
+		await importBackup(backupSchema.parse(buildV2Backup()), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].creatorId).toBeNull();
+		expect(restored.mediaItems[0].genreId).toBeNull();
+	});
+
+	it("leaves the collections v2 never had empty", async () => {
+		await importBackup(backupSchema.parse(buildV2Backup()), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.tags).toHaveLength(0);
+		expect(restored.mediaItemTags).toHaveLength(0);
+		expect(restored.creators).toHaveLength(0);
+		expect(restored.genres).toHaveLength(0);
+		expect(restored.customReports).toHaveLength(0);
+		expect(restored.userSettings).toBeNull();
+	});
+
+	it("imports an older v2 file that omits the new optional columns", async () => {
+		const backup = buildV2Backup();
+		const {
+			creatorId: _creatorId,
+			genreId: _genreId,
+			expectedReleaseDate: _expectedReleaseDate,
+			...itemWithoutNewColumns
+		} = backup.mediaItems[0];
+		const { nextItemStatus: _nextItemStatus, ...seriesWithoutNewColumns } =
+			backup.series[0];
+		const {
+			seasonReviews: _seasonReviews,
+			consumptionInfo: _consumptionInfo,
+			...instanceWithoutNewColumns
+		} = backup.mediaItemInstances[0];
+
+		await importBackup(
+			backupSchema.parse({
+				...backup,
+				series: [seriesWithoutNewColumns],
+				mediaItems: [itemWithoutNewColumns],
+				mediaItemInstances: [instanceWithoutNewColumns],
+			}),
+			USER_A,
+		);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].expectedReleaseDate).toBeNull();
+		expect(restored.series[0].nextItemStatus).toBeNull();
+		expect(restored.mediaItemInstances[0].seasonReviews).toBeNull();
+		expect(restored.mediaItemInstances[0].consumptionInfo).toBeNull();
 	});
 });
 
@@ -280,28 +850,226 @@ describe("importBackup version 1 compatibility", () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0].userId).toBe(USER_A);
 	});
+
+	it("leaves the new collections empty and nulls creatorId/genreId", async () => {
+		await importBackup(backupSchema.parse(buildV1Backup()), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].creatorId).toBeNull();
+		expect(restored.mediaItems[0].genreId).toBeNull();
+		expect(restored.tags).toHaveLength(0);
+		expect(restored.mediaItemTags).toHaveLength(0);
+		expect(restored.creators).toHaveLength(0);
+		expect(restored.genres).toHaveLength(0);
+		expect(restored.customReports).toHaveLength(0);
+		expect(restored.userSettings).toBeNull();
+	});
+});
+
+describe("importBackup user scoping", () => {
+	it("does not delete another user's tags or joins", async () => {
+		await seedFullLibrary(USER_B);
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		const remainingTags = await testDb
+			.select()
+			.from(tags)
+			.where(eq(tags.userId, USER_B));
+		expect(remainingTags).toHaveLength(1);
+		expect(await testDb.select().from(mediaItemTags)).toHaveLength(1);
+	});
+
+	it("does not delete another user's creators or genres", async () => {
+		await seedFullLibrary(USER_B);
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		expect(
+			await testDb.select().from(creators).where(eq(creators.userId, USER_B)),
+		).toHaveLength(1);
+		expect(
+			await testDb.select().from(genres).where(eq(genres.userId, USER_B)),
+		).toHaveLength(1);
+	});
+
+	it("does not delete another user's reports or settings", async () => {
+		const seeded = await seedFullLibrary(USER_B);
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		const remainingReports = await testDb
+			.select()
+			.from(customReports)
+			.where(eq(customReports.userId, USER_B));
+		expect(remainingReports).toHaveLength(1);
+
+		const [remainingSettings] = await testDb
+			.select()
+			.from(userSettings)
+			.where(eq(userSettings.userId, USER_B));
+		expect(remainingSettings.activeCustomReportId).toBe(seeded.customReportId);
+	});
+
+	it("replaces only the caller's series and views", async () => {
+		await seedFullLibrary(USER_B);
+		await insertSeries({
+			userId: USER_A,
+			name: "A's series",
+			type: MediaItemType.BOOK,
+		});
+		await insertView({ userId: USER_A, name: "A's view" });
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		const remainingSeries = await testDb.select().from(series);
+		expect(remainingSeries).toHaveLength(1);
+		expect(remainingSeries[0].userId).toBe(USER_B);
+
+		const remainingViews = await testDb.select().from(views);
+		expect(remainingViews).toHaveLength(1);
+		expect(remainingViews[0].userId).toBe(USER_B);
+	});
+
+	it("allows two users to hold identically-named tags, creators and genres", async () => {
+		await seedFullLibrary(USER_B);
+		await seedFullLibrary(USER_A);
+		const backup = await exportThroughJson(USER_A);
+
+		await importBackup(backup, USER_A);
+
+		expect(
+			await testDb.select().from(tags).where(eq(tags.name, "Favorites")),
+		).toHaveLength(2);
+		expect(
+			await testDb
+				.select()
+				.from(creators)
+				.where(eq(creators.name, "Denis Villeneuve")),
+		).toHaveLength(2);
+		expect(
+			await testDb
+				.select()
+				.from(genres)
+				.where(eq(genres.name, "Science Fiction")),
+		).toHaveLength(2);
+	});
+});
+
+describe("importBackup dangling references", () => {
+	it("skips join rows whose tag or media item is missing", async () => {
+		await seedFullLibrary(USER_A);
+		const backup = await exportThroughJson(USER_A);
+		if (backup.version !== 3) {
+			throw new Error("expected a version 3 export");
+		}
+		backup.mediaItemTags = [
+			...backup.mediaItemTags,
+			{ mediaItemId: 9999, tagId: backup.tags[0].id },
+			{ mediaItemId: backup.mediaItems[0].id, tagId: 9999 },
+		];
+
+		await importBackup(backup, USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItemTags).toHaveLength(1);
+	});
+
+	it("nulls creatorId and genreId that no row in the file matches", async () => {
+		await seedFullLibrary(USER_A);
+		const backup = await exportThroughJson(USER_A);
+		if (backup.version !== 3) {
+			throw new Error("expected a version 3 export");
+		}
+		backup.creators = [];
+		backup.genres = [];
+
+		await importBackup(backup, USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.mediaItems[0].creatorId).toBeNull();
+		expect(restored.mediaItems[0].genreId).toBeNull();
+	});
+
+	it("nulls activeCustomReportId that no report in the file matches", async () => {
+		await seedFullLibrary(USER_A);
+		const backup = await exportThroughJson(USER_A);
+		if (backup.version !== 3) {
+			throw new Error("expected a version 3 export");
+		}
+		backup.customReports = [];
+
+		await importBackup(backup, USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.customReports).toHaveLength(0);
+		expect(restored.userSettings?.activeCustomReportId).toBeNull();
+	});
+
+	it("imports user settings when the file has no reports at all", async () => {
+		await insertUser(USER_A);
+		await insertUserSettings({
+			userId: USER_A,
+			defaultGamePlatform: "pc",
+		});
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.userSettings).toMatchObject({
+			activeCustomReportId: null,
+			defaultGamePlatform: "pc",
+		});
+	});
+
+	it("wipes all of the caller's data when the file is empty", async () => {
+		await seedFullLibrary(USER_A);
+		await seedFullLibrary(USER_B);
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		const restored = await exportBackup(USER_A);
+		expect(restored.series).toHaveLength(0);
+		expect(restored.mediaItems).toHaveLength(0);
+		expect(restored.mediaItemInstances).toHaveLength(0);
+		expect(restored.views).toHaveLength(0);
+		expect(restored.tags).toHaveLength(0);
+		expect(restored.mediaItemTags).toHaveLength(0);
+		expect(restored.creators).toHaveLength(0);
+		expect(restored.genres).toHaveLength(0);
+		expect(restored.customReports).toHaveLength(0);
+		expect(restored.userSettings).toBeNull();
+
+		const untouched = await exportBackup(USER_B);
+		expect(untouched.mediaItems).toHaveLength(1);
+		expect(untouched.tags).toHaveLength(1);
+	});
+
+	it("produces the same row counts when the same file is imported twice", async () => {
+		await seedFullLibrary(USER_A);
+		const backup = await exportThroughJson(USER_A);
+
+		await importBackup(backup, USER_A);
+		const afterFirst = await exportBackup(USER_A);
+		await importBackup(backup, USER_A);
+		const afterSecond = await exportBackup(USER_A);
+
+		expect(stripVolatile(afterSecond)).toEqual(stripVolatile(afterFirst));
+	});
 });
 
 describe("backupSchema validation", () => {
 	it("rejects an unrecognized version", () => {
 		const parsed = backupSchema.safeParse({
 			...buildV1Backup(),
-			version: 3,
+			version: 4,
 		});
 		expect(parsed.success).toBe(false);
 	});
 
-	it("accepts both version 1 and version 2 documents", () => {
+	it("accepts version 1, 2 and 3 documents", () => {
 		expect(backupSchema.safeParse(buildV1Backup()).success).toBe(true);
-		expect(
-			backupSchema.safeParse({
-				version: 2,
-				exportedAt: TIMESTAMP,
-				series: [],
-				mediaItems: [],
-				mediaItemInstances: [],
-				views: [],
-			}).success,
-		).toBe(true);
+		expect(backupSchema.safeParse(buildV2Backup()).success).toBe(true);
+		expect(backupSchema.safeParse(buildEmptyV3Backup()).success).toBe(true);
 	});
 });

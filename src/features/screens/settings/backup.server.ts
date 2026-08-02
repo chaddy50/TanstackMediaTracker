@@ -3,28 +3,24 @@ import { z } from "zod";
 
 import { db } from "#/database/index";
 import {
+	creators,
+	customReports,
+	genres,
 	mediaItemInstances,
 	mediaItems,
+	mediaItemTags,
 	series,
+	tags,
+	userSettings,
 	type ViewSubject,
 	views,
 } from "#/database/schema";
 
 /**
  * Backup export/import.
- *
- * Version 2 is the current format: each media item carries its own descriptive
- * data inline. Version 1 predates the collapse of the shared `media_metadata`
- * table and carries a separate `mediaItemMetadata` array that items reference by
- * id — those files still exist on disk, so they remain importable and are
- * flattened to the v2 shape on read.
- *
- * This file uses the .server.ts convention — it must never be statically
- * imported by client-side code. Import it only from server function handler
- * bodies or other server-only modules.
  */
 
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 // ---------------------------------------------------------------------------
 // Export
@@ -50,10 +46,40 @@ export async function exportBackup(userId: string) {
 					.where(inArray(mediaItemInstances.mediaItemId, itemIds))
 			: [];
 
+	const mediaItemTagRows =
+		itemIds.length > 0
+			? await db
+					.select()
+					.from(mediaItemTags)
+					.where(inArray(mediaItemTags.mediaItemId, itemIds))
+			: [];
+
 	const viewRows = await db
 		.select()
 		.from(views)
 		.where(eq(views.userId, userId));
+
+	const tagRows = await db.select().from(tags).where(eq(tags.userId, userId));
+
+	const creatorRows = await db
+		.select()
+		.from(creators)
+		.where(eq(creators.userId, userId));
+
+	const genreRows = await db
+		.select()
+		.from(genres)
+		.where(eq(genres.userId, userId));
+
+	const customReportRows = await db
+		.select()
+		.from(customReports)
+		.where(eq(customReports.userId, userId));
+
+	const settingsRows = await db
+		.select()
+		.from(userSettings)
+		.where(eq(userSettings.userId, userId));
 
 	return {
 		version: BACKUP_VERSION,
@@ -62,6 +88,12 @@ export async function exportBackup(userId: string) {
 		mediaItems: itemRows,
 		mediaItemInstances: instanceRows,
 		views: viewRows,
+		tags: tagRows,
+		mediaItemTags: mediaItemTagRows,
+		creators: creatorRows,
+		genres: genreRows,
+		customReports: customReportRows,
+		userSettings: settingsRows[0] ?? null,
 	};
 }
 
@@ -77,6 +109,7 @@ const seriesBackupSchema = z.object({
 	rating: z.string().nullable(),
 	description: z.string().nullable(),
 	isComplete: z.boolean(),
+	nextItemStatus: z.string().nullable().optional(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 });
@@ -86,6 +119,8 @@ const instanceBackupSchema = z.object({
 	mediaItemId: z.number().int(),
 	rating: z.string().nullable(),
 	fictionRating: z.unknown().nullable(),
+	seasonReviews: z.unknown().nullable().optional(),
+	consumptionInfo: z.unknown().nullable().optional(),
 	reviewText: z.string().nullable(),
 	startedAt: z.string().nullable(),
 	completedAt: z.string().nullable(),
@@ -103,7 +138,58 @@ const viewBackupSchema = z.object({
 	updatedAt: z.string(),
 });
 
-/** The descriptive half of an item, shared by both format versions. */
+const tagBackupSchema = z.object({
+	id: z.number().int(),
+	name: z.string(),
+	createdAt: z.string(),
+});
+
+const mediaItemTagBackupSchema = z.object({
+	mediaItemId: z.number().int(),
+	tagId: z.number().int(),
+});
+
+const creatorBackupSchema = z.object({
+	id: z.number().int(),
+	name: z.string(),
+	biography: z.string().nullable(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+});
+
+const genreBackupSchema = z.object({
+	id: z.number().int(),
+	name: z.string(),
+	createdAt: z.string(),
+});
+
+const customReportBackupSchema = z.object({
+	id: z.number().int(),
+	name: z.string(),
+	reportType: z.string(),
+	mediaTypes: z.array(z.string()).nullable(),
+	monthCount: z.number().int(),
+	displayOrder: z.number().int(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+});
+
+const userSettingsBackupSchema = z.object({
+	activeCustomReportId: z.number().int().nullable(),
+	defaultLibrarySortBy: z.string().nullable(),
+	defaultLibrarySortDirection: z.string().nullable(),
+	defaultSeriesSortBy: z.string().nullable(),
+	defaultSeriesSortDirection: z.string().nullable(),
+	defaultBookConsumptionMethod: z.string().nullable(),
+	defaultMovieConsumptionMethod: z.string().nullable(),
+	defaultTvShowConsumptionMethod: z.string().nullable(),
+	defaultGamePlatform: z.string().nullable(),
+	defaultGameControlMethod: z.string().nullable(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+});
+
+/** The descriptive half of an item, shared by every format version. */
 const itemMetadataSchema = z.object({
 	type: z.string(),
 	title: z.string(),
@@ -118,10 +204,28 @@ const itemMetadataSchema = z.object({
 const itemTrackingSchema = z.object({
 	id: z.number().int(),
 	seriesId: z.number().int().nullable(),
+	creatorId: z.number().int().nullable().optional(),
+	genreId: z.number().int().nullable().optional(),
 	status: z.string(),
 	purchaseStatus: z.enum(["not_purchased", "want_to_buy", "purchased"]),
+	expectedReleaseDate: z.string().nullable().optional(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
+});
+
+const backupSchemaV3 = z.object({
+	version: z.literal(3),
+	exportedAt: z.string(),
+	series: z.array(seriesBackupSchema),
+	mediaItems: z.array(itemTrackingSchema.merge(itemMetadataSchema)),
+	mediaItemInstances: z.array(instanceBackupSchema),
+	views: z.array(viewBackupSchema),
+	tags: z.array(tagBackupSchema),
+	mediaItemTags: z.array(mediaItemTagBackupSchema),
+	creators: z.array(creatorBackupSchema),
+	genres: z.array(genreBackupSchema),
+	customReports: z.array(customReportBackupSchema),
+	userSettings: userSettingsBackupSchema.nullable(),
 });
 
 const backupSchemaV2 = z.object({
@@ -153,6 +257,7 @@ const backupSchemaV1 = z.object({
 export const backupSchema = z.discriminatedUnion("version", [
 	backupSchemaV1,
 	backupSchemaV2,
+	backupSchemaV3,
 ]);
 
 /**
@@ -161,50 +266,7 @@ export const backupSchema = z.discriminatedUnion("version", [
  * already been serialized by the time anyone re-reads one.
  */
 export type BackupData = z.infer<typeof backupSchema>;
-type BackupV2 = z.infer<typeof backupSchemaV2>;
-
-/**
- * Folds a v1 backup into the v2 shape by joining each item to the metadata row
- * it references. Items whose metadata row is missing are dropped, matching the
- * importer's long-standing behavior; metadata rows no item references are
- * unreachable and disappear with the join.
- */
-function normalizeToV2(backup: BackupData): BackupV2 {
-	if (backup.version === 2) return backup;
-
-	const metadataById = new Map(
-		backup.mediaItemMetadata.map((row) => [row.id, row]),
-	);
-
-	const mediaItemsWithMetadata = backup.mediaItems.flatMap((item) => {
-		const metadataRow = metadataById.get(item.mediaItemMetadataId);
-		if (!metadataRow) return [];
-
-		const { mediaItemMetadataId: _ignored, ...tracking } = item;
-		return [
-			{
-				...tracking,
-				type: metadataRow.type,
-				title: metadataRow.title,
-				description: metadataRow.description,
-				coverImageUrl: metadataRow.coverImageUrl,
-				releaseDate: metadataRow.releaseDate,
-				externalId: metadataRow.externalId,
-				externalSource: metadataRow.externalSource,
-				metadata: metadataRow.metadata,
-			},
-		];
-	});
-
-	return {
-		version: 2,
-		exportedAt: backup.exportedAt,
-		series: backup.series,
-		mediaItems: mediaItemsWithMetadata,
-		mediaItemInstances: backup.mediaItemInstances,
-		views: backup.views,
-	};
-}
+type BackupV3 = z.infer<typeof backupSchemaV3>;
 
 // ---------------------------------------------------------------------------
 // Import
@@ -214,14 +276,20 @@ export async function importBackup(
 	rawBackup: BackupData,
 	userId: string,
 ): Promise<void> {
-	const backup = normalizeToV2(rawBackup);
+	const backup = normalizeToV3(rawBackup);
 
 	await db.transaction(async (tx) => {
-		// 1. Delete all existing user data. Items now carry their own metadata,
-		// so this leaves nothing orphaned behind.
+		// 1. Delete all existing user data. Settings and reports go first because
+		// they point at each other, then items — whose delete cascades to instances
+		// and tag links — and only then the rows items point at.
+		await tx.delete(userSettings).where(eq(userSettings.userId, userId));
+		await tx.delete(customReports).where(eq(customReports.userId, userId));
 		await tx.delete(views).where(eq(views.userId, userId));
 		await tx.delete(mediaItems).where(eq(mediaItems.userId, userId));
 		await tx.delete(series).where(eq(series.userId, userId));
+		await tx.delete(creators).where(eq(creators.userId, userId));
+		await tx.delete(genres).where(eq(genres.userId, userId));
+		await tx.delete(tags).where(eq(tags.userId, userId));
 
 		// 2. Restore series — build old-id → new-id map
 		const seriesIdMap = new Map<number, number>();
@@ -236,6 +304,8 @@ export async function importBackup(
 					rating: seriesRow.rating,
 					description: seriesRow.description,
 					isComplete: seriesRow.isComplete,
+					nextItemStatus: (seriesRow.nextItemStatus ??
+						null) as typeof series.$inferInsert.nextItemStatus,
 					createdAt: new Date(seriesRow.createdAt),
 					updatedAt: new Date(seriesRow.updatedAt),
 				})
@@ -243,7 +313,49 @@ export async function importBackup(
 			seriesIdMap.set(seriesRow.id, inserted.id);
 		}
 
-		// 3. Restore mediaItems — build old-id → new-id map
+		// 3. Restore the rows media items point at, before the items themselves
+		const creatorIdMap = new Map<number, number>();
+		for (const creatorRow of backup.creators) {
+			const [inserted] = await tx
+				.insert(creators)
+				.values({
+					userId,
+					name: creatorRow.name,
+					biography: creatorRow.biography,
+					createdAt: new Date(creatorRow.createdAt),
+					updatedAt: new Date(creatorRow.updatedAt),
+				})
+				.returning({ id: creators.id });
+			creatorIdMap.set(creatorRow.id, inserted.id);
+		}
+
+		const genreIdMap = new Map<number, number>();
+		for (const genreRow of backup.genres) {
+			const [inserted] = await tx
+				.insert(genres)
+				.values({
+					userId,
+					name: genreRow.name,
+					createdAt: new Date(genreRow.createdAt),
+				})
+				.returning({ id: genres.id });
+			genreIdMap.set(genreRow.id, inserted.id);
+		}
+
+		const tagIdMap = new Map<number, number>();
+		for (const tagRow of backup.tags) {
+			const [inserted] = await tx
+				.insert(tags)
+				.values({
+					userId,
+					name: tagRow.name,
+					createdAt: new Date(tagRow.createdAt),
+				})
+				.returning({ id: tags.id });
+			tagIdMap.set(tagRow.id, inserted.id);
+		}
+
+		// 4. Restore mediaItems — build old-id → new-id map
 		const itemIdMap = new Map<number, number>();
 		for (const itemRow of backup.mediaItems) {
 			const [inserted] = await tx
@@ -261,8 +373,15 @@ export async function importBackup(
 					seriesId: itemRow.seriesId
 						? (seriesIdMap.get(itemRow.seriesId) ?? null)
 						: null,
+					creatorId: itemRow.creatorId
+						? (creatorIdMap.get(itemRow.creatorId) ?? null)
+						: null,
+					genreId: itemRow.genreId
+						? (genreIdMap.get(itemRow.genreId) ?? null)
+						: null,
 					status: itemRow.status as typeof mediaItems.$inferInsert.status,
 					purchaseStatus: itemRow.purchaseStatus,
+					expectedReleaseDate: itemRow.expectedReleaseDate ?? null,
 					createdAt: new Date(itemRow.createdAt),
 					updatedAt: new Date(itemRow.updatedAt),
 				})
@@ -270,7 +389,7 @@ export async function importBackup(
 			itemIdMap.set(itemRow.id, inserted.id);
 		}
 
-		// 4. Restore mediaItemInstances
+		// 5. Restore mediaItemInstances
 		for (const instanceRow of backup.mediaItemInstances) {
 			const newItemId = itemIdMap.get(instanceRow.mediaItemId);
 			if (newItemId === undefined) {
@@ -281,6 +400,10 @@ export async function importBackup(
 				rating: instanceRow.rating,
 				fictionRating:
 					instanceRow.fictionRating as typeof mediaItemInstances.$inferInsert.fictionRating,
+				seasonReviews: (instanceRow.seasonReviews ??
+					null) as typeof mediaItemInstances.$inferInsert.seasonReviews,
+				consumptionInfo: (instanceRow.consumptionInfo ??
+					null) as typeof mediaItemInstances.$inferInsert.consumptionInfo,
 				reviewText: instanceRow.reviewText,
 				startedAt: instanceRow.startedAt,
 				completedAt: instanceRow.completedAt,
@@ -289,7 +412,19 @@ export async function importBackup(
 			});
 		}
 
-		// 5. Restore views
+		// 6. Restore the item ↔ tag links, skipping any whose end is missing
+		for (const linkRow of backup.mediaItemTags) {
+			const newItemId = itemIdMap.get(linkRow.mediaItemId);
+			const newTagId = tagIdMap.get(linkRow.tagId);
+			if (newItemId === undefined || newTagId === undefined) {
+				continue;
+			}
+			await tx
+				.insert(mediaItemTags)
+				.values({ mediaItemId: newItemId, tagId: newTagId });
+		}
+
+		// 7. Restore views
 		for (const viewRow of backup.views) {
 			await tx.insert(views).values({
 				userId,
@@ -301,5 +436,146 @@ export async function importBackup(
 				updatedAt: new Date(viewRow.updatedAt),
 			});
 		}
+
+		// 8. Restore custom reports — build old-id → new-id map for the settings row
+		const customReportIdMap = new Map<number, number>();
+		for (const reportRow of backup.customReports) {
+			const [inserted] = await tx
+				.insert(customReports)
+				.values({
+					userId,
+					name: reportRow.name,
+					reportType: reportRow.reportType,
+					mediaTypes: reportRow.mediaTypes,
+					monthCount: reportRow.monthCount,
+					displayOrder: reportRow.displayOrder,
+					createdAt: new Date(reportRow.createdAt),
+					updatedAt: new Date(reportRow.updatedAt),
+				})
+				.returning({ id: customReports.id });
+			customReportIdMap.set(reportRow.id, inserted.id);
+		}
+
+		// 9. Restore user settings
+		const settings = backup.userSettings;
+		if (settings) {
+			await tx.insert(userSettings).values({
+				userId,
+				activeCustomReportId: settings.activeCustomReportId
+					? (customReportIdMap.get(settings.activeCustomReportId) ?? null)
+					: null,
+				defaultLibrarySortBy:
+					settings.defaultLibrarySortBy as typeof userSettings.$inferInsert.defaultLibrarySortBy,
+				defaultLibrarySortDirection:
+					settings.defaultLibrarySortDirection as typeof userSettings.$inferInsert.defaultLibrarySortDirection,
+				defaultSeriesSortBy:
+					settings.defaultSeriesSortBy as typeof userSettings.$inferInsert.defaultSeriesSortBy,
+				defaultSeriesSortDirection:
+					settings.defaultSeriesSortDirection as typeof userSettings.$inferInsert.defaultSeriesSortDirection,
+				defaultBookConsumptionMethod:
+					settings.defaultBookConsumptionMethod as typeof userSettings.$inferInsert.defaultBookConsumptionMethod,
+				defaultMovieConsumptionMethod:
+					settings.defaultMovieConsumptionMethod as typeof userSettings.$inferInsert.defaultMovieConsumptionMethod,
+				defaultTvShowConsumptionMethod:
+					settings.defaultTvShowConsumptionMethod as typeof userSettings.$inferInsert.defaultTvShowConsumptionMethod,
+				defaultGamePlatform:
+					settings.defaultGamePlatform as typeof userSettings.$inferInsert.defaultGamePlatform,
+				defaultGameControlMethod:
+					settings.defaultGameControlMethod as typeof userSettings.$inferInsert.defaultGameControlMethod,
+				createdAt: new Date(settings.createdAt),
+				updatedAt: new Date(settings.updatedAt),
+			});
+		}
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Lifts a v1 or v2 backup into the v3 shape.
+ *
+ * The five tables v3 added were never exported by the older formats, so they come
+ * back empty. `creatorId` and `genreId` are dropped for the same reason: an old
+ * file carries the ids but not the `creators`/`genres` rows they point at, so
+ * keeping them would attach items to whatever happens to hold that id now.
+ *
+ * The v1 lift additionally joins each item to the metadata row it references.
+ * Items whose metadata row is missing are dropped, matching the importer's
+ * long-standing behavior; metadata rows no item references are unreachable and
+ * disappear with the join.
+ */
+function normalizeToV3(backup: BackupData): BackupV3 {
+	const emptyV3Collections: Pick<
+		BackupV3,
+		| "tags"
+		| "mediaItemTags"
+		| "creators"
+		| "genres"
+		| "customReports"
+		| "userSettings"
+	> = {
+		tags: [],
+		mediaItemTags: [],
+		creators: [],
+		genres: [],
+		customReports: [],
+		userSettings: null,
+	};
+
+	if (backup.version === 3) {
+		return backup;
+	}
+
+	if (backup.version === 2) {
+		return {
+			...backup,
+			...emptyV3Collections,
+			version: 3,
+			mediaItems: backup.mediaItems.map((item) => ({
+				...item,
+				creatorId: null,
+				genreId: null,
+			})),
+		};
+	}
+
+	const metadataById = new Map(
+		backup.mediaItemMetadata.map((row) => [row.id, row]),
+	);
+
+	const mediaItemsWithMetadata = backup.mediaItems.flatMap((item) => {
+		const metadataRow = metadataById.get(item.mediaItemMetadataId);
+		if (!metadataRow) {
+			return [];
+		}
+
+		const { mediaItemMetadataId: _ignored, ...tracking } = item;
+		return [
+			{
+				...tracking,
+				creatorId: null,
+				genreId: null,
+				type: metadataRow.type,
+				title: metadataRow.title,
+				description: metadataRow.description,
+				coverImageUrl: metadataRow.coverImageUrl,
+				releaseDate: metadataRow.releaseDate,
+				externalId: metadataRow.externalId,
+				externalSource: metadataRow.externalSource,
+				metadata: metadataRow.metadata,
+			},
+		];
+	});
+
+	return {
+		...emptyV3Collections,
+		version: 3,
+		exportedAt: backup.exportedAt,
+		series: backup.series,
+		mediaItems: mediaItemsWithMetadata,
+		mediaItemInstances: backup.mediaItemInstances,
+		views: backup.views,
+	};
 }
