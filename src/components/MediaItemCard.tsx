@@ -58,20 +58,20 @@ export function MediaItemCard({
 		<Link
 			to="/mediaItemDetails/$mediaItemId"
 			params={{ mediaItemId: String(mediaItem.id) }}
-			className="group flex flex-col bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors self-start"
+			className="group block bg-card rounded-lg overflow-hidden border border-border hover:border-foreground/30 transition-colors self-start"
 		>
-			<div className="aspect-2/3 bg-muted relative">
+			<div className="aspect-2/3 w-full bg-muted relative">
 				{mediaItem.coverImageUrl ? (
 					<img
 						src={mediaItem.coverImageUrl}
 						alt={mediaItem.title}
-						className={`w-full h-full ${isPodcast ? "object-contain" : "object-fill"}`}
+						className={`absolute inset-0 w-full h-full ${isPodcast ? "object-contain" : "object-fill"}`}
 						onError={(e) => {
 							e.currentTarget.style.display = "none";
 						}}
 					/>
 				) : (
-					<div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+					<div className="absolute inset-0 w-full h-full flex items-center justify-center text-muted-foreground text-sm">
 						No Cover
 					</div>
 				)}
