@@ -9,6 +9,11 @@ import {
 	views,
 } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
+import {
+	findOwnedView,
+	handleGetViewOrderItems,
+	handleReorderViewItems,
+} from "#/features/screens/customView/view.server";
 import { filterAndSortOptionsSchema } from "#/lib/filterAndSort";
 import { runItemQuery } from "#/lib/queries/itemQuery.server";
 import { runSeriesQuery } from "#/lib/queries/seriesQuery.server";
@@ -49,11 +54,7 @@ export const getViewResults = createServerFn({ method: "GET" })
 	)
 	.handler(async ({ data: { viewId, titleQuery, offset } }) => {
 		const user = await getLoggedInUser();
-		const [view] = await db
-			.select()
-			.from(views)
-			.where(and(eq(views.id, viewId), eq(views.userId, user.id)));
-		if (!view) throw new Error(`View ${viewId} not found`);
+		const view = await findOwnedView(viewId, user.id);
 
 		const filters = {
 			...(view.filters ?? {}),
@@ -63,7 +64,7 @@ export const getViewResults = createServerFn({ method: "GET" })
 		if (view.subject === "items") {
 			return {
 				view,
-				results: await runItemQuery(filters, user.id, offset),
+				results: await runItemQuery(filters, user.id, offset, view.id),
 			};
 		}
 
@@ -71,6 +72,13 @@ export const getViewResults = createServerFn({ method: "GET" })
 			view,
 			results: await runSeriesQuery(filters, user.id, offset),
 		};
+	});
+
+export const getViewOrderItems = createServerFn({ method: "GET" })
+	.inputValidator(z.object({ viewId: z.number() }))
+	.handler(async ({ data: { viewId } }) => {
+		const user = await getLoggedInUser();
+		return handleGetViewOrderItems(viewId, user.id);
 	});
 
 export type ViewResults = Awaited<ReturnType<typeof getViewResults>>;
@@ -148,4 +156,16 @@ export const reorderViews = createServerFn({ method: "POST" })
 					.where(and(eq(views.id, id), eq(views.userId, user.id))),
 			),
 		);
+	});
+
+export const reorderViewItems = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			viewId: z.number(),
+			orderedMediaItemIds: z.array(z.number()),
+		}),
+	)
+	.handler(async ({ data: { viewId, orderedMediaItemIds } }) => {
+		const user = await getLoggedInUser();
+		await handleReorderViewItems(viewId, orderedMediaItemIds, user.id);
 	});

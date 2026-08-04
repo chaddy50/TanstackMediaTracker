@@ -22,10 +22,12 @@ import {
 	insertMediaItem,
 	insertSeries,
 	insertTag,
+	insertView,
+	insertViewItemOrder,
 	linkTag,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { runItemQuery } from "../itemQuery.server";
+import { runItemQuery, runOrderableItemQuery } from "../itemQuery.server";
 
 const USER = "test-user";
 
@@ -866,5 +868,274 @@ describe("LATERAL join for latest instance", () => {
 
 		expect(result.items).toHaveLength(1);
 		expect(result.items[0].rating).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Custom order
+// ---------------------------------------------------------------------------
+
+describe("sort by custom", () => {
+	/** Seeds a view plus the given titles, placing the first `placedCount` of them. */
+	async function seedPlacedItems(titles: string[], placedCount: number) {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom", sortDirection: "asc" },
+		});
+
+		const itemIds: number[] = [];
+		for (const title of titles) {
+			itemIds.push(await insertItem({ title }));
+		}
+
+		for (let position = 0; position < placedCount; position++) {
+			await insertViewItemOrder({
+				viewId,
+				mediaItemId: itemIds[position],
+				position,
+			});
+		}
+
+		return { viewId, itemIds };
+	}
+
+	it("orders placed items by their saved position, overriding title order", async () => {
+		const { viewId } = await seedPlacedItems(["Zebra", "Middle", "Apple"], 3);
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "asc" },
+			USER,
+			0,
+			viewId,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Zebra",
+			"Middle",
+			"Apple",
+		]);
+	});
+
+	it("sorts items with no saved position after every placed item", async () => {
+		const { viewId } = await seedPlacedItems(
+			["Zebra", "Middle", "Apple", "Betelgeuse"],
+			2,
+		);
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "asc" },
+			USER,
+			0,
+			viewId,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Zebra",
+			"Middle",
+			"Apple",
+			"Betelgeuse",
+		]);
+	});
+
+	it("falls back to the title tiebreaker among unplaced items", async () => {
+		const { viewId } = await seedPlacedItems(["Zulu", "Charlie", "Alpha"], 0);
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "asc" },
+			USER,
+			0,
+			viewId,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Alpha",
+			"Charlie",
+			"Zulu",
+		]);
+	});
+
+	it("reverses the placed block on desc but still puts unplaced items last", async () => {
+		const { viewId } = await seedPlacedItems(
+			["Zebra", "Middle", "Apple", "Betelgeuse"],
+			3,
+		);
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "desc" },
+			USER,
+			0,
+			viewId,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual([
+			"Apple",
+			"Middle",
+			"Zebra",
+			"Betelgeuse",
+		]);
+	});
+
+	it("ignores order rows that belong to a different view", async () => {
+		const viewA = await insertView({
+			userId: USER,
+			name: "View A",
+			filters: { sortBy: "custom" },
+		});
+		const viewB = await insertView({
+			userId: USER,
+			name: "View B",
+			filters: { sortBy: "custom" },
+		});
+		const zebraId = await insertItem({ title: "Zebra" });
+		await insertItem({ title: "Apple" });
+
+		// Placed in B only — from A's perspective it is unplaced, so it sorts last.
+		await insertViewItemOrder({
+			viewId: viewB,
+			mediaItemId: zebraId,
+			position: 0,
+		});
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "asc" },
+			USER,
+			0,
+			viewA,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(["Apple", "Zebra"]);
+	});
+
+	it("falls back to the default ordering when no view id is supplied", async () => {
+		await seedPlacedItems(["Zebra", "Middle", "Apple"], 3);
+
+		const withoutView = await runItemQuery({ sortBy: "custom" }, USER);
+		const bySeries = await runItemQuery({ sortBy: "series" }, USER);
+
+		expect(withoutView.items.map((item) => item.title)).toEqual(
+			bySeries.items.map((item) => item.title),
+		);
+	});
+
+	it("still honors the view's filters", async () => {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom" },
+		});
+		const tagId = await insertTag({ userId: USER, name: "Ancient Sumeria" });
+
+		const taggedId = await insertItem({ title: "Gilgamesh" });
+		await linkTag(taggedId, tagId);
+		const untaggedId = await insertItem({ title: "Untagged" });
+
+		await insertViewItemOrder({ viewId, mediaItemId: taggedId, position: 1 });
+		await insertViewItemOrder({ viewId, mediaItemId: untaggedId, position: 0 });
+
+		const result = await runItemQuery(
+			{ sortBy: "custom", tags: ["Ancient Sumeria"] },
+			USER,
+			0,
+			viewId,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(["Gilgamesh"]);
+	});
+
+	it("paginates in stable custom order", async () => {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom" },
+		});
+		for (let position = 0; position < 60; position++) {
+			const itemId = await insertItem({
+				title: `Item ${String(position).padStart(3, "0")}`,
+			});
+			await insertViewItemOrder({ viewId, mediaItemId: itemId, position });
+		}
+
+		const firstPage = await runItemQuery({ sortBy: "custom" }, USER, 0, viewId);
+		const secondPage = await runItemQuery(
+			{ sortBy: "custom" },
+			USER,
+			48,
+			viewId,
+		);
+
+		expect(firstPage.items).toHaveLength(48);
+		expect(firstPage.hasMore).toBe(true);
+		expect(secondPage.items).toHaveLength(12);
+		expect(secondPage.hasMore).toBe(false);
+		expect(firstPage.items[0].title).toBe("Item 000");
+		expect(secondPage.items[0].title).toBe("Item 048");
+
+		const firstPageIds = new Set(firstPage.items.map((item) => item.id));
+		const overlapping = secondPage.items.filter((item) =>
+			firstPageIds.has(item.id),
+		);
+		expect(overlapping).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runOrderableItemQuery
+// ---------------------------------------------------------------------------
+
+describe("runOrderableItemQuery", () => {
+	it("returns every matching item in one call, past a single page", async () => {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom" },
+		});
+		for (let position = 0; position < 60; position++) {
+			const itemId = await insertItem({
+				title: `Item ${String(position).padStart(3, "0")}`,
+			});
+			await insertViewItemOrder({ viewId, mediaItemId: itemId, position });
+		}
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			USER,
+			viewId,
+		);
+
+		expect(result).toHaveLength(60);
+		expect(result[0].title).toBe("Item 000");
+		expect(result.at(-1)?.title).toBe("Item 059");
+	});
+
+	it("returns only the caller's items", async () => {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom" },
+		});
+		await insertItem({ title: "Mine" });
+		await insertItem({ title: "Theirs", userId: "other-user" });
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			USER,
+			viewId,
+		);
+
+		expect(result.map((item) => item.title)).toEqual(["Mine"]);
+	});
+
+	it("includes filter-matching items with no saved position, last", async () => {
+		const viewId = await insertView({
+			userId: USER,
+			filters: { sortBy: "custom" },
+		});
+		const placedId = await insertItem({ title: "Zebra" });
+		await insertItem({ title: "Apple" });
+		await insertViewItemOrder({ viewId, mediaItemId: placedId, position: 0 });
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			USER,
+			viewId,
+		);
+
+		expect(result.map((item) => item.title)).toEqual(["Zebra", "Apple"]);
 	});
 });

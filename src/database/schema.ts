@@ -126,7 +126,8 @@ export type ItemSortField =
 	| "series"
 	| "status"
 	| "director"
-	| "releaseDate";
+	| "releaseDate"
+	| "custom";
 export type SeriesSortField =
 	| "name"
 	| "updatedAt"
@@ -583,3 +584,26 @@ export const views = pgTable("views", {
 		.notNull()
 		.$onUpdateFn(() => new Date()),
 });
+
+/**
+ * One row per media item that has been hand-placed inside a custom-ordered view.
+ */
+export const viewItemOrder = pgTable(
+	"view_item_order",
+	{
+		viewId: integer("view_id")
+			.notNull()
+			.references(() => views.id, { onDelete: "cascade" }),
+		mediaItemId: integer("media_item_id")
+			.notNull()
+			.references(() => mediaItems.id, { onDelete: "cascade" }),
+		position: integer("position").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.viewId, table.mediaItemId] }),
+		index("view_item_order_viewId_position_idx").on(
+			table.viewId,
+			table.position,
+		),
+	],
+);

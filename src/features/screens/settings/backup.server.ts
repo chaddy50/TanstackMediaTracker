@@ -13,6 +13,7 @@ import {
 	tags,
 	userSettings,
 	type ViewSubject,
+	viewItemOrder,
 	views,
 } from "#/database/schema";
 
@@ -20,7 +21,7 @@ import {
  * Backup export/import.
  */
 
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 // ---------------------------------------------------------------------------
 // Export
@@ -59,6 +60,17 @@ export async function exportBackup(userId: string) {
 		.from(views)
 		.where(eq(views.userId, userId));
 
+	// Order rows carry no userId of their own — reaching them through the user's
+	// own view ids is what keeps another user's rows out of the file.
+	const viewIds = viewRows.map((view) => view.id);
+	const viewItemOrderRows =
+		viewIds.length > 0
+			? await db
+					.select()
+					.from(viewItemOrder)
+					.where(inArray(viewItemOrder.viewId, viewIds))
+			: [];
+
 	const tagRows = await db.select().from(tags).where(eq(tags.userId, userId));
 
 	const creatorRows = await db
@@ -88,6 +100,7 @@ export async function exportBackup(userId: string) {
 		mediaItems: itemRows,
 		mediaItemInstances: instanceRows,
 		views: viewRows,
+		viewItemOrder: viewItemOrderRows,
 		tags: tagRows,
 		mediaItemTags: mediaItemTagRows,
 		creators: creatorRows,
@@ -136,6 +149,12 @@ const viewBackupSchema = z.object({
 	displayOrder: z.number().int(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
+});
+
+const viewItemOrderBackupSchema = z.object({
+	viewId: z.number().int(),
+	mediaItemId: z.number().int(),
+	position: z.number().int(),
 });
 
 const tagBackupSchema = z.object({
@@ -213,6 +232,22 @@ const itemTrackingSchema = z.object({
 	updatedAt: z.string(),
 });
 
+const backupSchemaV4 = z.object({
+	version: z.literal(4),
+	exportedAt: z.string(),
+	series: z.array(seriesBackupSchema),
+	mediaItems: z.array(itemTrackingSchema.merge(itemMetadataSchema)),
+	mediaItemInstances: z.array(instanceBackupSchema),
+	views: z.array(viewBackupSchema),
+	viewItemOrder: z.array(viewItemOrderBackupSchema),
+	tags: z.array(tagBackupSchema),
+	mediaItemTags: z.array(mediaItemTagBackupSchema),
+	creators: z.array(creatorBackupSchema),
+	genres: z.array(genreBackupSchema),
+	customReports: z.array(customReportBackupSchema),
+	userSettings: userSettingsBackupSchema.nullable(),
+});
+
 const backupSchemaV3 = z.object({
 	version: z.literal(3),
 	exportedAt: z.string(),
@@ -258,6 +293,7 @@ export const backupSchema = z.discriminatedUnion("version", [
 	backupSchemaV1,
 	backupSchemaV2,
 	backupSchemaV3,
+	backupSchemaV4,
 ]);
 
 /**
@@ -266,7 +302,7 @@ export const backupSchema = z.discriminatedUnion("version", [
  * already been serialized by the time anyone re-reads one.
  */
 export type BackupData = z.infer<typeof backupSchema>;
-type BackupV3 = z.infer<typeof backupSchemaV3>;
+type BackupV4 = z.infer<typeof backupSchemaV4>;
 
 // ---------------------------------------------------------------------------
 // Import
@@ -276,7 +312,7 @@ export async function importBackup(
 	rawBackup: BackupData,
 	userId: string,
 ): Promise<void> {
-	const backup = normalizeToV3(rawBackup);
+	const backup = normalizeToV4(rawBackup);
 
 	await db.transaction(async (tx) => {
 		// 1. Delete all existing user data. Settings and reports go first because
@@ -424,20 +460,39 @@ export async function importBackup(
 				.values({ mediaItemId: newItemId, tagId: newTagId });
 		}
 
-		// 7. Restore views
+		// 7. Restore views — build old-id → new-id map for the order rows
+		const viewIdMap = new Map<number, number>();
 		for (const viewRow of backup.views) {
-			await tx.insert(views).values({
-				userId,
-				name: viewRow.name,
-				subject: viewRow.subject as ViewSubject,
-				filters: viewRow.filters as typeof views.$inferInsert.filters,
-				displayOrder: viewRow.displayOrder,
-				createdAt: new Date(viewRow.createdAt),
-				updatedAt: new Date(viewRow.updatedAt),
+			const [inserted] = await tx
+				.insert(views)
+				.values({
+					userId,
+					name: viewRow.name,
+					subject: viewRow.subject as ViewSubject,
+					filters: viewRow.filters as typeof views.$inferInsert.filters,
+					displayOrder: viewRow.displayOrder,
+					createdAt: new Date(viewRow.createdAt),
+					updatedAt: new Date(viewRow.updatedAt),
+				})
+				.returning({ id: views.id });
+			viewIdMap.set(viewRow.id, inserted.id);
+		}
+
+		// 8. Restore the hand-built view orders, skipping any whose end is missing
+		for (const orderRow of backup.viewItemOrder) {
+			const newViewId = viewIdMap.get(orderRow.viewId);
+			const newItemId = itemIdMap.get(orderRow.mediaItemId);
+			if (newViewId === undefined || newItemId === undefined) {
+				continue;
+			}
+			await tx.insert(viewItemOrder).values({
+				viewId: newViewId,
+				mediaItemId: newItemId,
+				position: orderRow.position,
 			});
 		}
 
-		// 8. Restore custom reports — build old-id → new-id map for the settings row
+		// 9. Restore custom reports — build old-id → new-id map for the settings row
 		const customReportIdMap = new Map<number, number>();
 		for (const reportRow of backup.customReports) {
 			const [inserted] = await tx
@@ -456,7 +511,7 @@ export async function importBackup(
 			customReportIdMap.set(reportRow.id, inserted.id);
 		}
 
-		// 9. Restore user settings
+		// 10. Restore user settings
 		const settings = backup.userSettings;
 		if (settings) {
 			await tx.insert(userSettings).values({
@@ -494,21 +549,24 @@ export async function importBackup(
 // ---------------------------------------------------------------------------
 
 /**
- * Lifts a v1 or v2 backup into the v3 shape.
+ * Lifts a v1, v2 or v3 backup into the v4 shape.
  *
- * The five tables v3 added were never exported by the older formats, so they come
- * back empty. `creatorId` and `genreId` are dropped for the same reason: an old
- * file carries the ids but not the `creators`/`genres` rows they point at, so
- * keeping them would attach items to whatever happens to hold that id now.
+ * The tables each later version added were never exported by the older formats,
+ * so they come back empty — a pre-v4 file restores its views intact, their items
+ * simply all sort as unplaced. `creatorId` and `genreId` are dropped for the same
+ * reason: an old file carries the ids but not the `creators`/`genres` rows they
+ * point at, so keeping them would attach items to whatever happens to hold that
+ * id now.
  *
  * The v1 lift additionally joins each item to the metadata row it references.
  * Items whose metadata row is missing are dropped, matching the importer's
  * long-standing behavior; metadata rows no item references are unreachable and
  * disappear with the join.
  */
-function normalizeToV3(backup: BackupData): BackupV3 {
-	const emptyV3Collections: Pick<
-		BackupV3,
+function normalizeToV4(backup: BackupData): BackupV4 {
+	const emptyCollections: Pick<
+		BackupV4,
+		| "viewItemOrder"
 		| "tags"
 		| "mediaItemTags"
 		| "creators"
@@ -516,6 +574,7 @@ function normalizeToV3(backup: BackupData): BackupV3 {
 		| "customReports"
 		| "userSettings"
 	> = {
+		viewItemOrder: [],
 		tags: [],
 		mediaItemTags: [],
 		creators: [],
@@ -524,15 +583,19 @@ function normalizeToV3(backup: BackupData): BackupV3 {
 		userSettings: null,
 	};
 
-	if (backup.version === 3) {
+	if (backup.version === 4) {
 		return backup;
+	}
+
+	if (backup.version === 3) {
+		return { ...backup, viewItemOrder: [], version: 4 };
 	}
 
 	if (backup.version === 2) {
 		return {
 			...backup,
-			...emptyV3Collections,
-			version: 3,
+			...emptyCollections,
+			version: 4,
 			mediaItems: backup.mediaItems.map((item) => ({
 				...item,
 				creatorId: null,
@@ -570,8 +633,8 @@ function normalizeToV3(backup: BackupData): BackupV3 {
 	});
 
 	return {
-		...emptyV3Collections,
-		version: 3,
+		...emptyCollections,
+		version: 4,
 		exportedAt: backup.exportedAt,
 		series: backup.series,
 		mediaItems: mediaItemsWithMetadata,

@@ -6,7 +6,7 @@ import {
 	purchaseStatusEnum,
 } from "#/database/schema";
 import type { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
+import { SERIES_SORT_FIELDS, VIEW_ITEM_SORT_FIELDS } from "#/lib/sortFields";
 
 /**
  * The filter and sort options shared by the library, series, and custom view
@@ -24,7 +24,7 @@ export const filterAndSortOptionsSchema = z.object({
 	isSeriesComplete: z.boolean().optional(),
 	tags: z.array(z.string()).optional(),
 	genres: z.array(z.string()).optional(),
-	sortBy: z.enum([...ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
+	sortBy: z.enum([...VIEW_ITEM_SORT_FIELDS, ...SERIES_SORT_FIELDS]).optional(),
 	sortDirection: z.enum(["asc", "desc"]).optional(),
 	titleQuery: z.string().optional(),
 	creatorQuery: z.string().optional(),

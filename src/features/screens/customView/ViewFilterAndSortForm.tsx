@@ -84,7 +84,7 @@ export function ViewFilterAndSortForm({
 				onSubjectChanged={onSubjectChanged}
 			/>
 			<Filters {...filtersProps} />
-			<SortingOptions {...sortingProps} />
+			<SortingOptions {...sortingProps} shouldAllowCustomOrder />
 			<FilterAndSortActions
 				onSubmit={handleSubmit}
 				onCancel={onCancel}

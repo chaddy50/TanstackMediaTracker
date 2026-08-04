@@ -25,14 +25,16 @@ import {
 	mediaItemTags,
 	series,
 	tags,
+	viewItemOrder,
 } from "#/database/schema";
-import {
-	MediaItemStatus,
-	type MediaItemType,
-	type PurchaseStatus,
-} from "#/lib/enums";
+import { MediaItemStatus } from "#/lib/enums";
 import { BLANK_FILTER_VALUE } from "#/lib/genres/constants";
 import { syncSeriesStatus } from "#/lib/queries/seriesQuery.server";
+import {
+	type ItemQueryItem,
+	REORDERABLE_ITEM_LIMIT,
+} from "#/lib/queries/types";
+import { CUSTOM_ITEM_SORT_FIELD } from "#/lib/sortFields";
 
 // ---------------------------------------------------------------------------
 // buildCompletedDateCondition
@@ -218,6 +220,7 @@ export function normalizeSortField(sortBy: string | undefined): ItemSortField {
 function buildItemSortClauses(
 	sortBy: ItemSortField,
 	sortDirection: "asc" | "desc",
+	viewId: number | undefined,
 ): SQL[] {
 	const dir = sortDirection === "asc" ? asc : desc;
 
@@ -299,6 +302,32 @@ function buildItemSortClauses(
 				...bySeriesThenTitle,
 			];
 
+		case CUSTOM_ITEM_SORT_FIELD: {
+			if (viewId === undefined) {
+				throw new Error("Custom order requires a view id");
+			}
+
+			// A correlated subquery rather than a join: it keeps the query shape
+			// identical for every sort mode, and the (view_id, media_item_id) primary
+			// key makes the lookup a single index probe per row.
+			const savedPosition = sql`(
+				SELECT ${viewItemOrder.position}
+				FROM ${viewItemOrder}
+				WHERE ${viewItemOrder.viewId} = ${viewId}
+					AND ${viewItemOrder.mediaItemId} = ${mediaItems.id}
+			)`;
+
+			// NULLS LAST in both directions: items the user has never placed belong
+			// at the end regardless of direction, ordered among themselves by the
+			// usual series → title fallback.
+			return [
+				sortDirection === "asc"
+					? sql`${savedPosition} ASC NULLS LAST`
+					: sql`${savedPosition} DESC NULLS LAST`,
+				...bySeriesThenTitle,
+			];
+		}
+
 		default:
 			return [dir(mediaItems.sortTitle)];
 	}
@@ -308,84 +337,41 @@ function buildItemSortClauses(
 // runItemQuery
 // ---------------------------------------------------------------------------
 
-export type ItemQueryItem = {
-	id: number;
-	status: MediaItemStatus;
-	purchaseStatus: PurchaseStatus;
-	expectedReleaseDate: string | null;
-	title: string;
-	type: MediaItemType;
-	coverImageUrl: string | null;
-	seriesId: number | null;
-	seriesName: string | null;
-	creatorId: number | null;
-	creatorName: string | null;
-	genreId: number | null;
-	genreName: string | null;
-	completedAt: string | null;
-	rating: number;
-};
-
 const PAGE_SIZE = 48;
 
 export async function runItemQuery(
 	filters: FilterAndSortOptions,
 	userId: string,
 	offset: number = 0,
+	viewId?: number,
 ): Promise<{ items: ItemQueryItem[]; hasMore: boolean }> {
-	const conditions = buildItemFilterConditions(filters, userId);
-	const sortBy = normalizeSortField(filters.sortBy);
-	const sortDirection = filters.sortDirection ?? "asc";
-	const sortClauses = buildItemSortClauses(sortBy, sortDirection);
-
-	const lateralLatestInstance = sql`LATERAL (
-		SELECT
-			${mediaItemInstances.rating} AS latest_rating,
-			${mediaItemInstances.completedAt} AS latest_completed_at
-		FROM ${mediaItemInstances}
-		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
-			AND ${mediaItemInstances.completedAt} IS NOT NULL
-		ORDER BY ${mediaItemInstances.id} DESC
-		LIMIT 1
-	) AS latest_instance`;
-
-	const rawItems = await db
-		.select({
-			id: mediaItems.id,
-			status: mediaItems.status,
-			purchaseStatus: mediaItems.purchaseStatus,
-			expectedReleaseDate: mediaItems.expectedReleaseDate,
-			title: mediaItems.title,
-			type: mediaItems.type,
-			coverImageUrl: mediaItems.coverImageUrl,
-			seriesId: mediaItems.seriesId,
-			seriesName: series.name,
-			creatorId: mediaItems.creatorId,
-			creatorName: creators.name,
-			genreId: mediaItems.genreId,
-			genreName: genres.name,
-			latestRating: sql<string | null>`latest_instance.latest_rating`,
-			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
-		})
-		.from(mediaItems)
-		.leftJoin(series, eq(mediaItems.seriesId, series.id))
-		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
-		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
-		.leftJoin(lateralLatestInstance, sql`true`)
-		.where(and(...conditions))
-		.orderBy(...sortClauses)
+	const rawItems = await buildItemSelectQuery(filters, userId, viewId)
 		.limit(PAGE_SIZE + 1)
 		.offset(offset);
 
 	const hasMore = rawItems.length > PAGE_SIZE;
-	const pageItems = rawItems.slice(0, PAGE_SIZE);
-
-	const items = pageItems.map(({ latestRating, ...item }) => ({
-		...item,
-		rating: parseFloat(latestRating ?? "") || 0,
-	}));
+	const items = rawItems.slice(0, PAGE_SIZE).map(toItemQueryItem);
 
 	return { items, hasMore };
+}
+
+// ---------------------------------------------------------------------------
+// runOrderableItemQuery
+// ---------------------------------------------------------------------------
+
+/**
+ * Every item in a view, in its custom order, unpaginated. Backs reorder mode.
+ */
+export async function runOrderableItemQuery(
+	filters: FilterAndSortOptions,
+	userId: string,
+	viewId: number,
+): Promise<ItemQueryItem[]> {
+	const rawItems = await buildItemSelectQuery(filters, userId, viewId).limit(
+		REORDERABLE_ITEM_LIMIT,
+	);
+
+	return rawItems.map(toItemQueryItem);
 }
 
 // ---------------------------------------------------------------------------
@@ -424,4 +410,93 @@ export async function transitionReleasedItems(userId: string) {
 	for (const seriesId of affectedSeriesIds) {
 		await syncSeriesStatus(seriesId, userId);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+/** A row as it comes back from the select, before the rating is parsed. */
+type ItemQueryRow = Omit<ItemQueryItem, "rating"> & {
+	latestRating: string | null;
+};
+
+/**
+ * The select, joins, filters and ordering shared by the paginated and the
+ * unpaginated item queries. The caller applies its own limit/offset.
+ */
+function buildItemSelectQuery(
+	filters: FilterAndSortOptions,
+	userId: string,
+	viewId: number | undefined,
+) {
+	const conditions = buildItemFilterConditions(filters, userId);
+	const sortBy = resolveItemSortField(filters.sortBy, viewId);
+	const sortClauses = buildItemSortClauses(
+		sortBy,
+		filters.sortDirection ?? "asc",
+		viewId,
+	);
+
+	const lateralLatestInstance = sql`LATERAL (
+		SELECT
+			${mediaItemInstances.rating} AS latest_rating,
+			${mediaItemInstances.completedAt} AS latest_completed_at
+		FROM ${mediaItemInstances}
+		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
+			AND ${mediaItemInstances.completedAt} IS NOT NULL
+		ORDER BY ${mediaItemInstances.id} DESC
+		LIMIT 1
+	) AS latest_instance`;
+
+	return db
+		.select({
+			id: mediaItems.id,
+			status: mediaItems.status,
+			purchaseStatus: mediaItems.purchaseStatus,
+			expectedReleaseDate: mediaItems.expectedReleaseDate,
+			title: mediaItems.title,
+			type: mediaItems.type,
+			coverImageUrl: mediaItems.coverImageUrl,
+			seriesId: mediaItems.seriesId,
+			seriesName: series.name,
+			creatorId: mediaItems.creatorId,
+			creatorName: creators.name,
+			genreId: mediaItems.genreId,
+			genreName: genres.name,
+			latestRating: sql<string | null>`latest_instance.latest_rating`,
+			completedAt: sql<string | null>`latest_instance.latest_completed_at`,
+		})
+		.from(mediaItems)
+		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
+		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
+		.leftJoin(lateralLatestInstance, sql`true`)
+		.where(and(...conditions))
+		.orderBy(...sortClauses);
+}
+
+/**
+ * Resolves the sort field a query should actually use.
+ *
+ * Custom order is keyed on a view; without one — the library screen, or a
+ * hand-typed search string carrying `sortBy=custom` — there is nothing to read,
+ * so it falls back to the default ordering rather than failing.
+ */
+function resolveItemSortField(
+	sortBy: string | undefined,
+	viewId: number | undefined,
+): ItemSortField {
+	const requestedSortField = normalizeSortField(sortBy);
+	if (requestedSortField === CUSTOM_ITEM_SORT_FIELD && viewId === undefined) {
+		return "series";
+	}
+	return requestedSortField;
+}
+
+function toItemQueryItem({
+	latestRating,
+	...item
+}: ItemQueryRow): ItemQueryItem {
+	return { ...item, rating: parseFloat(latestRating ?? "") || 0 };
 }

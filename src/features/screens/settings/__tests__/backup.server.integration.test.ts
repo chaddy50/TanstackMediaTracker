@@ -10,7 +10,7 @@ vi.mock("#/features/screens/auth/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import {
 	creators,
 	customReports,
@@ -20,6 +20,7 @@ import {
 	series,
 	tags,
 	userSettings,
+	viewItemOrder,
 	views,
 } from "#/database/schema";
 import {
@@ -28,6 +29,7 @@ import {
 	NextItemStatus,
 	PurchaseStatus,
 } from "#/lib/enums";
+import { runItemQuery } from "#/lib/queries/itemQuery.server";
 import { testDb } from "#/tests/integration/db";
 import {
 	insertCreator,
@@ -40,6 +42,7 @@ import {
 	insertUser,
 	insertUserSettings,
 	insertView,
+	insertViewItemOrder,
 	linkTag,
 	truncateAll,
 } from "#/tests/integration/helpers";
@@ -344,7 +347,7 @@ describe("exportBackup", () => {
 
 		const backup = await exportBackup(USER_A);
 
-		expect(backup.version).toBe(3);
+		expect(backup.version).toBe(4);
 		expect(backup).not.toHaveProperty("mediaItemMetadata");
 		expect(backup).toHaveProperty("tags");
 		expect(backup).toHaveProperty("mediaItemTags");
@@ -960,8 +963,8 @@ describe("importBackup dangling references", () => {
 	it("skips join rows whose tag or media item is missing", async () => {
 		await seedFullLibrary(USER_A);
 		const backup = await exportThroughJson(USER_A);
-		if (backup.version !== 3) {
-			throw new Error("expected a version 3 export");
+		if (backup.version !== 4) {
+			throw new Error("expected a version 4 export");
 		}
 		backup.mediaItemTags = [
 			...backup.mediaItemTags,
@@ -978,8 +981,8 @@ describe("importBackup dangling references", () => {
 	it("nulls creatorId and genreId that no row in the file matches", async () => {
 		await seedFullLibrary(USER_A);
 		const backup = await exportThroughJson(USER_A);
-		if (backup.version !== 3) {
-			throw new Error("expected a version 3 export");
+		if (backup.version !== 4) {
+			throw new Error("expected a version 4 export");
 		}
 		backup.creators = [];
 		backup.genres = [];
@@ -994,8 +997,8 @@ describe("importBackup dangling references", () => {
 	it("nulls activeCustomReportId that no report in the file matches", async () => {
 		await seedFullLibrary(USER_A);
 		const backup = await exportThroughJson(USER_A);
-		if (backup.version !== 3) {
-			throw new Error("expected a version 3 export");
+		if (backup.version !== 4) {
+			throw new Error("expected a version 4 export");
 		}
 		backup.customReports = [];
 
@@ -1071,5 +1074,194 @@ describe("backupSchema validation", () => {
 		expect(backupSchema.safeParse(buildV1Backup()).success).toBe(true);
 		expect(backupSchema.safeParse(buildV2Backup()).success).toBe(true);
 		expect(backupSchema.safeParse(buildEmptyV3Backup()).success).toBe(true);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Custom view order
+// ---------------------------------------------------------------------------
+
+describe("view item order backup", () => {
+	/** Seeds a custom-ordered view holding two placed items, and returns their ids. */
+	async function seedOrderedView(userId: string) {
+		await insertUser(userId);
+
+		const viewId = await insertView({
+			userId,
+			name: "Ancient Sumeria",
+			subject: "items",
+			filters: { sortBy: "custom", sortDirection: "asc" },
+		});
+		const firstId = await insertMediaItem({
+			userId,
+			type: MediaItemType.BOOK,
+			title: "Zebra",
+		});
+		const secondId = await insertMediaItem({
+			userId,
+			type: MediaItemType.BOOK,
+			title: "Apple",
+		});
+		await insertViewItemOrder({
+			viewId,
+			mediaItemId: firstId,
+			position: 0,
+		});
+		await insertViewItemOrder({
+			viewId,
+			mediaItemId: secondId,
+			position: 1,
+		});
+
+		return { viewId, firstId, secondId };
+	}
+
+	/** The restored order, read back as titles in position order. */
+	async function readRestoredOrder(userId: string) {
+		const rows = await testDb
+			.select({ title: mediaItems.title, position: viewItemOrder.position })
+			.from(viewItemOrder)
+			.innerJoin(views, eq(views.id, viewItemOrder.viewId))
+			.innerJoin(mediaItems, eq(mediaItems.id, viewItemOrder.mediaItemId))
+			.where(eq(views.userId, userId))
+			.orderBy(asc(viewItemOrder.position));
+		return rows;
+	}
+
+	it("exports version 4 with the saved order", async () => {
+		await seedOrderedView(USER_A);
+
+		const backup = await exportThroughJson(USER_A);
+
+		expect(backup.version).toBe(4);
+		expect(backup.version === 4 && backup.viewItemOrder).toHaveLength(2);
+	});
+
+	it("exports only the caller's order rows", async () => {
+		await seedOrderedView(USER_A);
+		await seedOrderedView(USER_B);
+
+		const backup = await exportThroughJson(USER_A);
+
+		expect(backup.version === 4 && backup.viewItemOrder).toHaveLength(2);
+	});
+
+	it("restores the order against the renumbered view and item ids", async () => {
+		const { viewId, firstId } = await seedOrderedView(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await readRestoredOrder(USER_A);
+		expect(restored.map((row) => row.title)).toEqual(["Zebra", "Apple"]);
+
+		// The restore re-inserts every row, so nothing may still point at the old ids.
+		const staleViewRows = await testDb
+			.select()
+			.from(viewItemOrder)
+			.where(eq(viewItemOrder.viewId, viewId));
+		expect(staleViewRows).toHaveLength(0);
+		const staleItemRows = await testDb
+			.select()
+			.from(viewItemOrder)
+			.where(eq(viewItemOrder.mediaItemId, firstId));
+		expect(staleItemRows).toHaveLength(0);
+	});
+
+	it("preserves the position values exactly", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const restored = await readRestoredOrder(USER_A);
+		expect(restored.map((row) => row.position)).toEqual([0, 1]);
+	});
+
+	it("skips an order row whose view is missing from the file", async () => {
+		await seedOrderedView(USER_A);
+		const backup = await exportThroughJson(USER_A);
+		if (backup.version !== 4) {
+			throw new Error("expected a version 4 export");
+		}
+		backup.views = [];
+
+		await importBackup(backup, USER_A);
+
+		expect(await readRestoredOrder(USER_A)).toHaveLength(0);
+	});
+
+	it("skips an order row whose media item is missing from the file", async () => {
+		await seedOrderedView(USER_A);
+		const backup = await exportThroughJson(USER_A);
+		if (backup.version !== 4) {
+			throw new Error("expected a version 4 export");
+		}
+		backup.mediaItems = [];
+
+		await importBackup(backup, USER_A);
+
+		expect(await readRestoredOrder(USER_A)).toHaveLength(0);
+	});
+
+	it("restores a v3 file with no order rows", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(buildEmptyV3Backup(), USER_A);
+
+		expect(await readRestoredOrder(USER_A)).toHaveLength(0);
+	});
+
+	it("restores a v2 file with no order rows", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(backupSchema.parse(buildV2Backup()), USER_A);
+
+		expect(await readRestoredOrder(USER_A)).toHaveLength(0);
+	});
+
+	it("restores a v1 file with no order rows", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(backupSchema.parse(buildV1Backup()), USER_A);
+
+		expect(await readRestoredOrder(USER_A)).toHaveLength(0);
+	});
+
+	it("replaces only the importing user's order rows", async () => {
+		await seedOrderedView(USER_A);
+		await seedOrderedView(USER_B);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		expect(await readRestoredOrder(USER_B)).toHaveLength(2);
+	});
+
+	it("is idempotent across repeated imports", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+		const afterFirst = await readRestoredOrder(USER_A);
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+		const afterSecond = await readRestoredOrder(USER_A);
+
+		expect(afterSecond).toEqual(afterFirst);
+	});
+
+	it("sorts a custom view by the restored order", async () => {
+		await seedOrderedView(USER_A);
+
+		await importBackup(await exportThroughJson(USER_A), USER_A);
+
+		const [restoredView] = await testDb
+			.select()
+			.from(views)
+			.where(eq(views.userId, USER_A));
+		const result = await runItemQuery(
+			{ sortBy: "custom", sortDirection: "asc" },
+			USER_A,
+			0,
+			restoredView.id,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(["Zebra", "Apple"]);
 	});
 });

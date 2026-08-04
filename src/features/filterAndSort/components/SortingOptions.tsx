@@ -8,7 +8,11 @@ import type {
 	SortDirection,
 	ViewSubject,
 } from "#/database/schema";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
+import {
+	ITEM_SORT_FIELDS,
+	SERIES_SORT_FIELDS,
+	VIEW_ITEM_SORT_FIELDS,
+} from "#/lib/sortFields";
 
 export interface SortingOptionsProps {
 	subject: ViewSubject;
@@ -16,6 +20,8 @@ export interface SortingOptionsProps {
 	onSortByChange: (field: ItemSortField | SeriesSortField) => void;
 	sortDirection: SortDirection;
 	onSortDirectionChange: (direction: SortDirection) => void;
+	/** Only a saved view can hold a hand-built order, so only its form offers it. */
+	shouldAllowCustomOrder?: boolean;
 }
 
 export function SortingOptions({
@@ -24,8 +30,17 @@ export function SortingOptions({
 	onSortByChange,
 	sortDirection,
 	onSortDirectionChange,
+	shouldAllowCustomOrder = false,
 }: SortingOptionsProps) {
 	const { t } = useTranslation();
+
+	// Custom order is keyed on a view id and only ever applies to items, so it is
+	// offered only when the caller is a view form and the subject is items.
+	const itemSortFields =
+		shouldAllowCustomOrder && subject === "items"
+			? VIEW_ITEM_SORT_FIELDS
+			: ITEM_SORT_FIELDS;
+	const sortFields = subject === "items" ? itemSortFields : SERIES_SORT_FIELDS;
 
 	return (
 		<div className="border-t border-border pt-4 flex flex-col gap-4">
@@ -36,10 +51,7 @@ export function SortingOptions({
 			<div className="flex flex-col gap-1.5">
 				<Label>{t("views.form.sortBy")}</Label>
 				<SingleSelectFilter
-					options={(subject === "items"
-						? ITEM_SORT_FIELDS
-						: SERIES_SORT_FIELDS
-					).map((field) => ({
+					options={sortFields.map((field) => ({
 						value: field,
 						label: t(`views.form.sortByOption.${field}`),
 					}))}

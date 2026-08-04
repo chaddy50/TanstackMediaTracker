@@ -1,4 +1,11 @@
-import { cleanup, render } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FilterAndSortOptions, ViewSubject } from "#/database/schema";
@@ -16,13 +23,26 @@ let view: {
 	filters?: FilterAndSortOptions;
 } = { id: 1, name: "Owned books", subject: "items" };
 
+// A stable object, as the real loader data is: only a refetch replaces it.
+let loaderResults: { items: unknown[]; hasMore: boolean } = {
+	items: [],
+	hasMore: false,
+};
+
+/** Mimics the loader handing back a fresh result set. */
+function simulateLoaderRefresh() {
+	loaderResults = { items: [], hasMore: false };
+}
+
+const routerInvalidate = vi.fn();
+
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
-		useLoaderData: () => ({ view, results: { items: [], hasMore: false } }),
+		useLoaderData: () => ({ view, results: loaderResults }),
 		useSearch: () => ({}),
 	}),
 	useRouter: () => ({
-		invalidate: vi.fn(),
+		invalidate: routerInvalidate,
 		history: { back: vi.fn() },
 	}),
 }));
@@ -43,7 +63,7 @@ vi.mock("#/components/MediaItemList", () => ({
 		wasMediaItemListRendered = true;
 		capturedShouldShowPurchaseStatus = props.shouldShowPurchaseStatus;
 		capturedShouldShowStatus = props.shouldShowStatus;
-		return null;
+		return <div data-testid="media-item-list" />;
 	},
 }));
 
@@ -52,15 +72,34 @@ vi.mock("#/components/SeriesList", () => ({ SeriesList: () => null }));
 vi.mock("#/features/screens/customView/EditViewDialog", () => ({
 	EditViewDialog: () => null,
 }));
-vi.mock("#/features/navigation/topBar/TopBar", () => ({ TopBar: () => null }));
+// Renders the action slot so the reorder toggle is reachable.
+vi.mock("#/features/navigation/topBar/TopBar", () => ({
+	TopBar: ({ right }: { right?: React.ReactNode }) => <div>{right}</div>,
+}));
 vi.mock("#/features/navigation/topBar/components/SearchInput", () => ({
 	SearchInput: () => null,
 }));
 
+let capturedOnReorder: ((orderedMediaItemIds: number[]) => void) | null = null;
+vi.mock("#/features/screens/customView/components/ReorderableItemGrid", () => ({
+	ReorderableItemGrid: ({
+		onReorder,
+	}: {
+		onReorder: (orderedMediaItemIds: number[]) => void;
+	}) => {
+		capturedOnReorder = onReorder;
+		return <div data-testid="reorderable-grid" />;
+	},
+}));
+
 // Keeps the server fns (and their drizzle client) out of the unit test.
+const getViewOrderItems = vi.fn().mockResolvedValue([]);
+const reorderViewItems = vi.fn().mockResolvedValue(undefined);
 vi.mock("#/features/screens/customView/view", () => ({
 	getViewResults: vi.fn(),
 	deleteView: vi.fn(),
+	reorderViewItems: (...args: unknown[]) => reorderViewItems(...args),
+	getViewOrderItems: (...args: unknown[]) => getViewOrderItems(...args),
 }));
 
 // jsdom has no IntersectionObserver, which the real hook constructs on mount.
@@ -78,6 +117,17 @@ beforeEach(() => {
 	capturedShouldShowPurchaseStatus = undefined;
 	capturedShouldShowStatus = undefined;
 	wasMediaItemListRendered = false;
+	loaderResults = { items: [], hasMore: false };
+	routerInvalidate.mockClear();
+	// The real invalidate refetches, then commits new loader data.
+	routerInvalidate.mockImplementation(async () => {
+		simulateLoaderRefresh();
+	});
+	getViewOrderItems.mockClear();
+	getViewOrderItems.mockResolvedValue([]);
+	capturedOnReorder = null;
+	reorderViewItems.mockClear();
+	reorderViewItems.mockResolvedValue(undefined);
 });
 
 describe("ViewScreen purchase badge visibility", () => {
@@ -172,5 +222,237 @@ describe("ViewScreen status badge visibility", () => {
 
 		expect(capturedShouldShowStatus).toBe(false);
 		expect(capturedShouldShowPurchaseStatus).toBe(true);
+	});
+});
+
+describe("ViewScreen reorder mode", () => {
+	/** Finds the reorder toggle, which every item view offers. */
+	function queryReorderButton() {
+		return screen.queryByRole("button", { name: "views.reorder" });
+	}
+
+	it("offers reordering for a custom-ordered item view", () => {
+		view.filters = { sortBy: "custom" };
+
+		render(<ViewScreen />);
+
+		expect(queryReorderButton()).toBeInTheDocument();
+	});
+
+	// Arranging a view by hand is what switches it to custom order, so the
+	// entry point cannot be gated on the view already being custom-ordered.
+	it("offers reordering for an item view sorted by something else", () => {
+		view.filters = { sortBy: "series" };
+
+		render(<ViewScreen />);
+
+		expect(queryReorderButton()).toBeInTheDocument();
+	});
+
+	it("offers reordering for an item view with no filters", () => {
+		view.filters = undefined;
+
+		render(<ViewScreen />);
+
+		expect(queryReorderButton()).toBeInTheDocument();
+	});
+
+	// Custom order is keyed on media items, so a series view can never use it.
+	it("does not offer reordering for a series view", () => {
+		view = {
+			id: 2,
+			name: "Owned series",
+			subject: "series",
+			filters: { sortBy: "custom" },
+		};
+
+		render(<ViewScreen />);
+
+		expect(queryReorderButton()).not.toBeInTheDocument();
+	});
+
+	it("loads the whole result set when reordering starts", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+
+		await waitFor(() => {
+			expect(getViewOrderItems).toHaveBeenCalledWith({
+				data: { viewId: view.id },
+			});
+		});
+	});
+
+	it("swaps the paginated list for the reorderable grid", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+		expect(screen.getByTestId("media-item-list")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+
+		expect(await screen.findByTestId("reorderable-grid")).toBeInTheDocument();
+		expect(screen.queryByTestId("media-item-list")).not.toBeInTheDocument();
+	});
+
+	it("restores the paginated list and refetches when reordering ends", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.doneReordering" }),
+		);
+
+		expect(await screen.findByTestId("media-item-list")).toBeInTheDocument();
+		expect(screen.queryByTestId("reorderable-grid")).not.toBeInTheDocument();
+		await waitFor(() => {
+			expect(routerInvalidate).toHaveBeenCalledTimes(1);
+		});
+	});
+});
+
+describe("ViewScreen reorder persistence", () => {
+	/** Enters reorder mode and hands back the grid's reorder callback. */
+	async function startReordering() {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+	}
+
+	it("saves the new order the grid reports", async () => {
+		await startReordering();
+
+		act(() => {
+			capturedOnReorder?.([3, 1, 2]);
+		});
+
+		await waitFor(() => {
+			expect(reorderViewItems).toHaveBeenCalledWith({
+				data: { viewId: view.id, orderedMediaItemIds: [3, 1, 2] },
+			});
+		});
+	});
+
+	// The bug this guards: Done used to refetch while the save was still in
+	// flight, so the loader re-read the pre-drag order and the reordering
+	// looked like it had been thrown away.
+	it("waits for an in-flight save before refetching", async () => {
+		let releaseSave: () => void = () => {};
+		reorderViewItems.mockReturnValue(
+			new Promise<void>((resolve) => {
+				releaseSave = () => resolve();
+			}),
+		);
+		await startReordering();
+
+		act(() => {
+			capturedOnReorder?.([3, 1, 2]);
+		});
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.doneReordering" }),
+		);
+
+		// Still saving — refetching now would read the old order.
+		await Promise.resolve();
+		expect(routerInvalidate).not.toHaveBeenCalled();
+
+		await act(async () => {
+			releaseSave();
+		});
+
+		await waitFor(() => {
+			expect(routerInvalidate).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it("surfaces a failed save instead of silently dropping it", async () => {
+		reorderViewItems.mockRejectedValue(new Error("network down"));
+		await startReordering();
+
+		act(() => {
+			capturedOnReorder?.([3, 1, 2]);
+		});
+
+		expect(await screen.findByText("views.reorderFailed")).toBeInTheDocument();
+	});
+});
+
+describe("ViewScreen reorder hand-off", () => {
+	// The bug this guards: Done used to hand the screen back to the paginated
+	// list before the refetch landed, so the list painted its stale pre-drag
+	// order and the items visibly snapped back before jumping into place.
+	it("keeps the grid up until the refreshed list data has arrived", async () => {
+		let releaseInvalidate: () => void = () => {};
+		routerInvalidate.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					releaseInvalidate = () => {
+						simulateLoaderRefresh();
+						resolve();
+					};
+				}),
+		);
+
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.doneReordering" }),
+		);
+		await waitFor(() => {
+			expect(routerInvalidate).toHaveBeenCalled();
+		});
+
+		// Mid-refetch: the arrangement stays on screen, the stale list stays away.
+		expect(screen.getByTestId("reorderable-grid")).toBeInTheDocument();
+		expect(screen.queryByTestId("media-item-list")).not.toBeInTheDocument();
+
+		await act(async () => {
+			releaseInvalidate();
+		});
+
+		expect(await screen.findByTestId("media-item-list")).toBeInTheDocument();
+		expect(screen.queryByTestId("reorderable-grid")).not.toBeInTheDocument();
+	});
+});
+
+describe("ViewScreen reorder hand-off under a deferred transition", () => {
+	// The bug this guards: the router commits loader updates inside a React
+	// transition, so `invalidate()` can resolve while the new data is still
+	// uncommitted. Anything that swapped back on a timer raced that transition
+	// and let the list paint its pre-drag order first.
+	it("does not swap back while invalidate has resolved but the data has not", async () => {
+		routerInvalidate.mockResolvedValue(undefined);
+
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.doneReordering" }),
+		);
+		await waitFor(() => {
+			expect(routerInvalidate).toHaveBeenCalled();
+		});
+
+		// Data still pending: the arrangement must stay on screen.
+		expect(screen.getByTestId("reorderable-grid")).toBeInTheDocument();
+		expect(screen.queryByTestId("media-item-list")).not.toBeInTheDocument();
+
+		// The transition finally commits the refreshed data.
+		await act(async () => {
+			simulateLoaderRefresh();
+			fireEvent.click(screen.getByRole("button", { name: "views.editView" }));
+		});
+
+		expect(await screen.findByTestId("media-item-list")).toBeInTheDocument();
+		expect(screen.queryByTestId("reorderable-grid")).not.toBeInTheDocument();
 	});
 });

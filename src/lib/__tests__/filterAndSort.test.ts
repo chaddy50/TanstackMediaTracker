@@ -6,12 +6,30 @@ import {
 	isFilteredToSinglePurchaseStatus,
 	isFilteredToSingleStatus,
 } from "#/lib/filterAndSort";
-import { ITEM_SORT_FIELDS, SERIES_SORT_FIELDS } from "#/lib/sortFields";
+import {
+	ITEM_SORT_FIELDS,
+	SERIES_SORT_FIELDS,
+	VIEW_ITEM_SORT_FIELDS,
+} from "#/lib/sortFields";
 
 describe("filterAndSortOptionsSchema sortBy", () => {
 	it('accepts "releaseDate"', () => {
 		const parsed = filterAndSortOptionsSchema.parse({ sortBy: "releaseDate" });
 		expect(parsed.sortBy).toBe("releaseDate");
+	});
+
+	it('accepts "custom"', () => {
+		expect(
+			filterAndSortOptionsSchema.safeParse({ sortBy: "custom" }).success,
+		).toBe(true);
+	});
+
+	it("accepts every view item sort field", () => {
+		for (const field of VIEW_ITEM_SORT_FIELDS) {
+			expect(
+				filterAndSortOptionsSchema.safeParse({ sortBy: field }).success,
+			).toBe(true);
+		}
 	});
 
 	it("accepts every item sort field", () => {
@@ -34,6 +52,22 @@ describe("filterAndSortOptionsSchema sortBy", () => {
 		expect(
 			filterAndSortOptionsSchema.safeParse({ sortBy: "bogus" }).success,
 		).toBe(false);
+	});
+
+	it('rejects "manual", which is not the custom order field', () => {
+		expect(
+			filterAndSortOptionsSchema.safeParse({ sortBy: "manual" }).success,
+		).toBe(false);
+	});
+
+	it("round-trips a saved view's filters using custom order", () => {
+		const filters = {
+			tags: ["Ancient Sumeria"],
+			sortBy: "custom",
+			sortDirection: "asc",
+		};
+
+		expect(filterAndSortOptionsSchema.parse(filters)).toEqual(filters);
 	});
 
 	it("round-trips a saved view's filters using the release date sort", () => {

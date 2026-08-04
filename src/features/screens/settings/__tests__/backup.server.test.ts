@@ -173,9 +173,18 @@ function buildV3Backup() {
 	};
 }
 
+/** A v4 file — the v3 shape plus the hand-built view orders. */
+function buildV4Backup() {
+	return {
+		...buildV3Backup(),
+		version: 4,
+		viewItemOrder: [{ viewId: 1, mediaItemId: 1, position: 0 }],
+	};
+}
+
 describe("BACKUP_VERSION", () => {
-	it("is 3", () => {
-		expect(BACKUP_VERSION).toBe(3);
+	it("is 4", () => {
+		expect(BACKUP_VERSION).toBe(4);
 	});
 });
 
@@ -194,8 +203,49 @@ describe("backupSchema version acceptance", () => {
 
 	it("rejects an unrecognized version", () => {
 		expect(
-			backupSchema.safeParse({ ...buildV3Backup(), version: 4 }).success,
+			backupSchema.safeParse({ ...buildV4Backup(), version: 5 }).success,
 		).toBe(false);
+	});
+
+	it("accepts a v4 document with every collection", () => {
+		expect(backupSchema.safeParse(buildV4Backup()).success).toBe(true);
+	});
+
+	it("accepts a v4 document with no saved view order", () => {
+		expect(
+			backupSchema.safeParse({ ...buildV4Backup(), viewItemOrder: [] }).success,
+		).toBe(true);
+	});
+
+	it("rejects a v4 document missing viewItemOrder", () => {
+		const { viewItemOrder: _omitted, ...withoutOrder } = buildV4Backup();
+
+		expect(backupSchema.safeParse(withoutOrder).success).toBe(false);
+	});
+});
+
+describe("backupSchema viewItemOrder entries", () => {
+	it("accepts position 0", () => {
+		const backup = buildV4Backup();
+		backup.viewItemOrder = [{ viewId: 1, mediaItemId: 1, position: 0 }];
+
+		expect(backupSchema.safeParse(backup).success).toBe(true);
+	});
+
+	it("rejects a non-integer position", () => {
+		const backup = buildV4Backup();
+		backup.viewItemOrder = [
+			{ viewId: 1, mediaItemId: 1, position: "first" } as never,
+		];
+
+		expect(backupSchema.safeParse(backup).success).toBe(false);
+	});
+
+	it("rejects an entry missing its view id", () => {
+		const backup = buildV4Backup();
+		backup.viewItemOrder = [{ mediaItemId: 1, position: 0 } as never];
+
+		expect(backupSchema.safeParse(backup).success).toBe(false);
 	});
 });
 

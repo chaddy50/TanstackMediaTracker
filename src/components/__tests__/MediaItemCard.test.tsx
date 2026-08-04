@@ -72,6 +72,7 @@ function renderMediaItemCard(
 		shouldShowRating?: boolean;
 		shouldShowPurchaseStatus?: boolean;
 		shouldShowStatus?: boolean;
+		shouldLinkToDetails?: boolean;
 	} = {},
 ) {
 	const {
@@ -79,6 +80,7 @@ function renderMediaItemCard(
 		shouldShowRating,
 		shouldShowPurchaseStatus,
 		shouldShowStatus,
+		shouldLinkToDetails,
 		...itemOverrides
 	} = overrides;
 	return render(
@@ -89,6 +91,7 @@ function renderMediaItemCard(
 				shouldShowRating={shouldShowRating}
 				shouldShowPurchaseStatus={shouldShowPurchaseStatus}
 				shouldShowStatus={shouldShowStatus}
+				shouldLinkToDetails={shouldLinkToDetails}
 			/>
 		</TooltipProvider>,
 	);
@@ -337,6 +340,40 @@ function getAspectBox() {
  * width instead: a block root, a full-width 2:3 frame, and nothing inside that
  * frame left in normal flow to size it from the cover art.
  */
+describe("MediaItemCard details link", () => {
+	it("links to the item by default", () => {
+		renderMediaItemCard();
+
+		expect(screen.getByRole("link")).toBeInTheDocument();
+	});
+
+	// Reorder mode renders these as drag targets, where a stray click that
+	// navigated away would abandon the arrangement in progress.
+	it("renders no link when linking is turned off", () => {
+		renderMediaItemCard({ shouldLinkToDetails: false });
+
+		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+	});
+
+	it("keeps the card chrome when linking is turned off", () => {
+		renderMediaItemCard({ shouldLinkToDetails: false });
+
+		const card = getAspectBox().parentElement;
+		expect(card).toHaveClass("bg-card");
+		expect(card).toHaveClass("rounded-lg");
+		expect(card).toHaveClass("border");
+	});
+
+	it("still renders the cover when linking is turned off", () => {
+		renderMediaItemCard({
+			coverImageUrl: COVER_IMAGE_URL,
+			shouldLinkToDetails: false,
+		});
+
+		expect(screen.getByAltText(baseItem.title)).toBeInTheDocument();
+	});
+});
+
 describe("MediaItemCard layout contract", () => {
 	it("keeps every child of the aspect box out of flow when there is no cover", () => {
 		renderMediaItemCard();

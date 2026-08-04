@@ -301,6 +301,12 @@ export const en = {
 		builtIn: "Built-in",
 		seriesItemCount_one: "{{count}} item",
 		seriesItemCount_other: "{{count}} items",
+		reorder: "Reorder",
+		doneReordering: "Done",
+		reorderHint: "Drag items into the order you want.",
+		reorderLimitNotice: "Only the first {{count}} items can be reordered.",
+		reorderFailed: "Could not save the new order.",
+		dragToReorder: "Drag to reorder",
 		subject: {
 			items: "Items",
 			series: "Series",
@@ -352,6 +358,7 @@ export const en = {
 				status: "Status",
 				nextItemStatus: "Next item",
 				director: "Director",
+				custom: "Custom order",
 			},
 			sortDirection: "Order",
 			sortDirectionOption: {

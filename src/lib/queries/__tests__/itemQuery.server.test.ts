@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import { REORDERABLE_ITEM_LIMIT } from "#/lib/queries/types";
 import {
 	normalizeSortField,
 	runItemQuery,
+	runOrderableItemQuery,
 	transitionReleasedItems,
 } from "../itemQuery.server";
 
@@ -136,6 +138,26 @@ function makeItemQueryChain(resolvedRows: (typeof baseRow)[]) {
 	return chain;
 }
 
+/**
+ * A chain for the unpaginated query, which stops at `.limit()`. That call has to
+ * be both awaitable (it terminates `runOrderableItemQuery`) and chainable
+ * (`runItemQuery` still hangs `.offset()` off it), so it returns a thenable.
+ */
+function makeOrderableQueryChain(resolvedRows: (typeof baseRow)[]) {
+	const chain: Record<string, unknown> = {};
+	for (const method of ["from", "innerJoin", "leftJoin", "where", "orderBy"]) {
+		chain[method] = vi.fn(() => chain);
+	}
+	const offsetFn = vi.fn().mockResolvedValue(resolvedRows);
+	// A real promise, so awaiting it works, with `offset` hung off it so the
+	// paginated caller can keep chaining.
+	const limitFn = vi.fn(() =>
+		Object.assign(Promise.resolve(resolvedRows), { offset: offsetFn }),
+	);
+	chain.limit = limitFn;
+	return { chain, limitFn, offsetFn };
+}
+
 describe("runItemQuery — pagination", () => {
 	afterEach(() => {
 		vi.resetAllMocks();
@@ -210,6 +232,109 @@ describe("runItemQuery — pagination", () => {
 
 		expect(result.items[0].rating).toBe(0);
 	});
+
+	it("still paginates correctly when a view id is supplied", async () => {
+		const { db } = await import("#/database/index");
+		const rows = Array.from({ length: PAGE_SIZE + 1 }, (_, index) => ({
+			...baseRow,
+			id: index + 1,
+		}));
+		const chain = makeItemQueryChain(rows);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const result = await runItemQuery({ sortBy: "custom" }, "user-1", 0, 7);
+
+		expect(result.hasMore).toBe(true);
+		expect(result.items).toHaveLength(PAGE_SIZE);
+	});
+
+	it("returns the paginated shape for custom order with no view id", async () => {
+		const { db } = await import("#/database/index");
+		const chain = makeItemQueryChain([baseRow]);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const result = await runItemQuery({ sortBy: "custom" }, "user-1");
+
+		expect(result).toEqual({
+			items: expect.any(Array),
+			hasMore: false,
+		});
+		expect(chain.orderBy).toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runOrderableItemQuery
+// ---------------------------------------------------------------------------
+
+describe("runOrderableItemQuery", () => {
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("caps the fetch at the reorderable item limit", async () => {
+		const { db } = await import("#/database/index");
+		const { chain, limitFn } = makeOrderableQueryChain([baseRow]);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		await runOrderableItemQuery({ sortBy: "custom" }, "user-1", 7);
+
+		expect(limitFn).toHaveBeenCalledWith(REORDERABLE_ITEM_LIMIT);
+	});
+
+	it("does not paginate", async () => {
+		const { db } = await import("#/database/index");
+		const { chain, offsetFn } = makeOrderableQueryChain([baseRow]);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			"user-1",
+			7,
+		);
+
+		expect(offsetFn).not.toHaveBeenCalled();
+		expect(Array.isArray(result)).toBe(true);
+		expect(result).not.toHaveProperty("hasMore");
+	});
+
+	it("converts latestRating string to a number on each item", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeOrderableQueryChain([
+			{ ...baseRow, latestRating: "4.5" },
+		]);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			"user-1",
+			7,
+		);
+
+		expect(result[0].rating).toBe(4.5);
+	});
+
+	it("defaults rating to 0 when latestRating is null", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeOrderableQueryChain([
+			{ ...baseRow, latestRating: null },
+		]);
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const result = await runOrderableItemQuery(
+			{ sortBy: "custom" },
+			"user-1",
+			7,
+		);
+
+		expect(result[0].rating).toBe(0);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -236,9 +361,14 @@ describe("normalizeSortField", () => {
 			"rating",
 			"completedAt",
 			"releaseDate",
+			"custom",
 		] as const;
 		for (const field of fields) {
 			expect(normalizeSortField(field)).toBe(field);
 		}
+	});
+
+	it('passes "custom" through', () => {
+		expect(normalizeSortField("custom")).toBe("custom");
 	});
 });

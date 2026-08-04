@@ -18,6 +18,7 @@ import {
 	user,
 	userSettings,
 	type ViewSubject,
+	viewItemOrder,
 	views,
 } from "#/database/schema";
 import type { DashboardReportType } from "#/features/screens/reports/types";
@@ -44,9 +45,10 @@ import { testDb } from "./db";
  *
  * Note: `series`, `creators`, `genres`, `tags`, `media_items`,
  * `media_item_instances`, `media_item_tags`, and `views` all use plain-text
- * userId (no FK to `user`), so those need no auth rows. `custom_reports` and
- * `user_settings` are the exceptions — both reference `user.id`, so seed a row
- * with `insertUser` before touching them.
+ * userId (no FK to `user`), so those need no auth rows. `view_item_order` needs
+ * none either — it inherits ownership from the view it points at.
+ * `custom_reports` and `user_settings` are the exceptions — both reference
+ * `user.id`, so seed a row with `insertUser` before touching them.
  */
 export async function truncateAll() {
 	// `user` is a reserved word and must stay quoted. Truncating it cascades to
@@ -57,6 +59,7 @@ export async function truncateAll() {
 			custom_reports,
 			media_item_instances,
 			media_item_tags,
+			view_item_order,
 			media_items,
 			series,
 			creators,
@@ -284,6 +287,23 @@ export async function insertView(options: InsertViewOptions): Promise<number> {
 
 	if (!row) throw new Error("insertView failed");
 	return row.id;
+}
+
+type InsertViewItemOrderOptions = {
+	viewId: number;
+	mediaItemId: number;
+	position: number;
+};
+
+/** Places a media item at a position inside a custom-ordered view. */
+export async function insertViewItemOrder(
+	options: InsertViewItemOrderOptions,
+): Promise<void> {
+	await testDb.insert(viewItemOrder).values({
+		viewId: options.viewId,
+		mediaItemId: options.mediaItemId,
+		position: options.position,
+	});
 }
 
 type InsertCustomReportOptions = {
