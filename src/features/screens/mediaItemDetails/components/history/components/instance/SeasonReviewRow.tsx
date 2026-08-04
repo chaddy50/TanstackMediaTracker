@@ -48,9 +48,9 @@ export function SeasonReviewRow({
 
 	if (!isExpanded) {
 		return (
-			<div className="flex items-start justify-between gap-4 p-3 rounded-md border border-border bg-muted/30">
-				<div className="flex flex-col gap-1 min-w-0">
-					<div className="flex items-center gap-3 flex-wrap">
+			<div className="flex flex-col gap-1 p-3 rounded-md border border-border bg-muted/30">
+				<div className="flex items-start justify-between gap-2">
+					<div className="flex items-center gap-3 flex-wrap min-w-0">
 						<span className="text-sm font-medium text-muted-foreground">
 							{t("mediaItemDetails.seasonN", { season: seasonReview.season })}
 						</span>
@@ -59,21 +59,21 @@ export function SeasonReviewRow({
 						)}
 						<RatingStars rating={seasonReview.rating} />
 					</div>
-					{seasonReview.fictionRating && (
-						<FictionRatingComments fictionRating={seasonReview.fictionRating} />
-					)}
-					{seasonReview.reviewText && (
-						<MarkdownTextBlock text={seasonReview.reviewText} maxLines={3} />
-					)}
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={onToggleExpanded}
+						className="shrink-0 -mt-1 -mr-2"
+					>
+						{t("mediaItemDetails.edit")}
+					</Button>
 				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={onToggleExpanded}
-					className="shrink-0"
-				>
-					{t("mediaItemDetails.edit")}
-				</Button>
+				{seasonReview.fictionRating && (
+					<FictionRatingComments fictionRating={seasonReview.fictionRating} />
+				)}
+				{seasonReview.reviewText && (
+					<MarkdownTextBlock text={seasonReview.reviewText} maxLines={3} />
+				)}
 			</div>
 		);
 	}

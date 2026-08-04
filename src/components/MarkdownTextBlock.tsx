@@ -46,7 +46,7 @@ export function MarkdownTextBlock({
 				<button
 					type="button"
 					onClick={() => setIsExpanded((previous) => !previous)}
-					className="mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="mt-1 ml-auto block text-xs text-muted-foreground hover:text-foreground transition-colors"
 				>
 					{isExpanded ? t("common.showLess") : t("common.showMore")}
 				</button>
