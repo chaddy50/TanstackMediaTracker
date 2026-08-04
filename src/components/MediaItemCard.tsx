@@ -76,6 +76,16 @@ export function MediaItemCard({
 				</div>
 			)}
 
+			{/* A 1:1 podcast cover contained in a 2:3 card leaves a sixth of the
+			    card empty above the image, which is where the title goes. */}
+			{isPodcast && (
+				<div className="absolute inset-x-0 top-0 h-1/6 flex items-center justify-center px-1.5">
+					<span className="text-sm leading-tight font-medium text-center line-clamp-2">
+						{mediaItem.title}
+					</span>
+				</div>
+			)}
+
 			{shouldShowRatingStars && (
 				<div className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/70 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
 			)}
