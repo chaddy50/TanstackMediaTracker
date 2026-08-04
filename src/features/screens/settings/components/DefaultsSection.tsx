@@ -135,15 +135,6 @@ export function DefaultsSection() {
 
 	return (
 		<section className="flex flex-col gap-4">
-			<div>
-				<h2 className="text-lg font-semibold">
-					{t("settings.defaults.title")}
-				</h2>
-				<p className="text-sm text-muted-foreground">
-					{t("settings.defaults.description")}
-				</p>
-			</div>
-
 			<div className="flex flex-col gap-6">
 				<div className="flex flex-col gap-3">
 					<p className="text-sm font-medium">

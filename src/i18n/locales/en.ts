@@ -217,52 +217,11 @@ export const en = {
 		normally: "Normal",
 		completely: "Completionist",
 	},
-	backfill: {
-		runButton: "Run",
-		running: "Running...",
-		result_one: "Updated {{count}} item",
-		result_other: "Updated {{count}} items",
-		remaining_one: "{{count}} creator remaining — run again to continue",
-		remaining_other: "{{count}} creators remaining — run again to continue",
-		timeToComplete: {
-			label: "Time to Complete",
-			description:
-				"Fetch runtime and completion time estimates for all movies, TV shows, and games in your library.",
-		},
-		renameEmotionalImpact: {
-			label: "Migrate: Emotional Impact → Depth",
-			description:
-				"One-time migration to rename the 'Emotional Impact' fiction rating category to 'Depth' for all existing ratings.",
-		},
-		seriesRatings: {
-			label: "Backfill Series Ratings",
-			description:
-				"Compute and store the average rating for all completed series based on their items' ratings.",
-		},
-		nextItemStatus: {
-			label: "Backfill Next Item Status",
-			description:
-				"Set the next item status for in-progress series: 'Waiting for Release' if the series is waiting, or 'Purchased'/'Available' based on whether you own the next installment.",
-		},
-		creators: {
-			label: "Backfill Creator Entities",
-			description:
-				"Create creator records from your existing library items and link them together.",
-		},
-		genres: {
-			label: "Backfill Genres",
-			description:
-				"Migrate genre data from your existing library items into the new genre system.",
-		},
-	},
 	settings: {
 		title: "Settings",
+		tabsLabel: "Settings sections",
 		account: {
 			title: "Account",
-		},
-		backfill: {
-			title: "Data Sync",
-			description: "Run one-time data enrichment jobs for your library.",
 		},
 		backup: {
 			title: "Backup & Restore",
