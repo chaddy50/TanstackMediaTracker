@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-export const SETTINGS_TAB_IDS = ["defaults"] as const;
+export const SETTINGS_TAB_IDS = ["defaults", "tags", "genres"] as const;
 
 export type SettingsTabId = (typeof SETTINGS_TAB_IDS)[number];
 

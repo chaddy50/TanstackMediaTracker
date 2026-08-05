@@ -6,9 +6,30 @@ import { db } from "#/database/index";
 import { genres, mediaItems } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
 import {
+	createGenre as createGenreInDatabase,
+	deleteGenre as deleteGenreInDatabase,
 	fetchGenreDetails,
 	findOrCreateGenre,
+	getGenresWithUsage as getGenresWithUsageFromDatabase,
+	renameGenre as renameGenreInDatabase,
 } from "#/lib/genres/genres.server";
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+export const createGenreInputSchema = z.object({
+	name: z.string().trim().min(1),
+});
+
+export const renameGenreInputSchema = z.object({
+	genreId: z.number().int(),
+	name: z.string().trim().min(1),
+});
+
+export const deleteGenreInputSchema = z.object({
+	genreId: z.number().int(),
+});
 
 // ---------------------------------------------------------------------------
 // Server functions
@@ -55,3 +76,31 @@ export const getGenreDetails = createServerFn({ method: "GET" })
 
 export type GenreDetails = Awaited<ReturnType<typeof getGenreDetails>>;
 export type GenreItem = GenreDetails["items"][number];
+
+export const getGenresWithUsage = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const user = await getLoggedInUser();
+		return getGenresWithUsageFromDatabase(user.id);
+	},
+);
+
+export const createGenre = createServerFn({ method: "POST" })
+	.inputValidator(createGenreInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		return createGenreInDatabase(data.name, user.id);
+	});
+
+export const renameGenre = createServerFn({ method: "POST" })
+	.inputValidator(renameGenreInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		return renameGenreInDatabase(data.genreId, data.name, user.id);
+	});
+
+export const deleteGenre = createServerFn({ method: "POST" })
+	.inputValidator(deleteGenreInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await deleteGenreInDatabase(data.genreId, user.id);
+	});

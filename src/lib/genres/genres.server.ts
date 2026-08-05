@@ -1,7 +1,19 @@
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import { db } from "#/database/index";
-import { genres, mediaItemInstances, mediaItems } from "#/database/schema";
+import {
+	type Genre,
+	genres,
+	mediaItemInstances,
+	mediaItems,
+} from "#/database/schema";
+import type { TaxonomyEntry, TaxonomyMutationResult } from "#/lib/taxonomy";
+import {
+	isDuplicateNameError,
+	removeValueFromViewFilters,
+	renameValueInViewFilters,
+	requireNonEmptyName,
+} from "#/lib/taxonomy.server";
 
 /**
  * Find an existing genre row for (userId, name), or create one.
@@ -89,4 +101,159 @@ export async function fetchGenreDetails(genreId: number, userId: string) {
 			completedAt: completedAtMap.get(item.id) ?? null,
 		})),
 	};
+}
+
+/**
+ * Every genre the user owns, including unused ones, with how many of their items
+ * carry it. The user predicate sits in the join rather than the where clause so
+ * another user's items can't inflate the count and an unused genre still
+ * reports zero.
+ */
+export async function getGenresWithUsage(
+	userId: string,
+): Promise<TaxonomyEntry[]> {
+	return db
+		.select({
+			id: genres.id,
+			name: genres.name,
+			itemCount: count(mediaItems.id),
+		})
+		.from(genres)
+		.leftJoin(
+			mediaItems,
+			and(eq(mediaItems.genreId, genres.id), eq(mediaItems.userId, userId)),
+		)
+		.where(eq(genres.userId, userId))
+		.groupBy(genres.id)
+		.orderBy(asc(genres.name));
+}
+
+/**
+ * Creates a genre the user asked for by name. Reports a name they already own as
+ * a conflict rather than absorbing it, because creating is an explicit intent —
+ * unlike `findOrCreateGenre`, which reuses an existing row on purpose.
+ *
+ * Saved view filters need no rewrite: a name absent from `genres` can only
+ * appear in one as a stale entry, and creating the genre legitimately revives it.
+ */
+export async function createGenre(
+	name: string,
+	userId: string,
+): Promise<TaxonomyMutationResult> {
+	const trimmedName = requireNonEmptyName(name);
+
+	const existingGenre = await findGenreByName(trimmedName, userId);
+	if (existingGenre !== undefined) {
+		return { status: "conflict" };
+	}
+
+	return insertGenre(trimmedName, userId);
+}
+
+/**
+ * Renames one of the user's genres, keeping their saved view filters pointed at
+ * it. Rejects a name they already own instead of merging the two genres.
+ *
+ * Item metadata is deliberately left alone: `media_items.genre_id` is the
+ * authoritative genre, and the `metadata.genres` array is provider-seeded data
+ * that `saveMediaItemGenre` never syncs either.
+ */
+export async function renameGenre(
+	genreId: number,
+	name: string,
+	userId: string,
+): Promise<TaxonomyMutationResult> {
+	const trimmedName = requireNonEmptyName(name);
+	const genre = await findOwnedGenre(genreId, userId);
+
+	if (genre.name === trimmedName) {
+		return { status: "ok" };
+	}
+
+	const conflictingGenre = await findGenreByName(trimmedName, userId);
+	if (conflictingGenre !== undefined) {
+		return { status: "conflict" };
+	}
+
+	const result = await updateGenreName(genreId, trimmedName);
+	if (result.status === "conflict") {
+		return result;
+	}
+
+	await renameValueInViewFilters(userId, "genres", genre.name, trimmedName);
+	return { status: "ok" };
+}
+
+/**
+ * Deletes one of the user's genres. The `media_items.genre_id` foreign key is
+ * declared `set null`, so Postgres clears the column on every item that
+ * referenced it while the items themselves survive — no manual update needed.
+ */
+export async function deleteGenre(
+	genreId: number,
+	userId: string,
+): Promise<void> {
+	const genre = await findOwnedGenre(genreId, userId);
+
+	await db.delete(genres).where(eq(genres.id, genreId));
+	await removeValueFromViewFilters(userId, "genres", genre.name);
+}
+
+// ---- Private helpers
+
+async function findOwnedGenre(genreId: number, userId: string): Promise<Genre> {
+	const [genre] = await db
+		.select()
+		.from(genres)
+		.where(and(eq(genres.id, genreId), eq(genres.userId, userId)));
+
+	if (!genre) {
+		throw new Error(`Genre ${genreId} not found`);
+	}
+
+	return genre;
+}
+
+async function findGenreByName(
+	name: string,
+	userId: string,
+): Promise<Genre | undefined> {
+	const [genre] = await db
+		.select()
+		.from(genres)
+		.where(and(eq(genres.userId, userId), eq(genres.name, name)));
+
+	return genre;
+}
+
+async function insertGenre(
+	name: string,
+	userId: string,
+): Promise<TaxonomyMutationResult> {
+	try {
+		await db.insert(genres).values({ userId, name });
+	} catch (error) {
+		if (isDuplicateNameError(error)) {
+			return { status: "conflict" };
+		}
+		throw error;
+	}
+
+	return { status: "ok" };
+}
+
+async function updateGenreName(
+	genreId: number,
+	name: string,
+): Promise<TaxonomyMutationResult> {
+	try {
+		await db.update(genres).set({ name }).where(eq(genres.id, genreId));
+	} catch (error) {
+		if (isDuplicateNameError(error)) {
+			return { status: "conflict" };
+		}
+		throw error;
+	}
+
+	return { status: "ok" };
 }

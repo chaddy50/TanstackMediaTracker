@@ -1,3 +1,4 @@
+import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("#/database/index", async () => {
@@ -10,14 +11,30 @@ vi.mock("#/features/screens/auth/session", () => ({
 	getRequiredUser: vi.fn(),
 }));
 
-import { MediaItemType } from "#/lib/enums";
+import {
+	type FilterAndSortOptions,
+	type Genre,
+	genres,
+	mediaItems,
+	views,
+} from "#/database/schema";
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { testDb } from "#/tests/integration/db";
 import {
 	insertGenre,
 	insertInstance,
 	insertMediaItem,
+	insertTag,
+	insertView,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { fetchGenreDetails } from "../genres.server";
+import {
+	createGenre,
+	deleteGenre,
+	fetchGenreDetails,
+	getGenresWithUsage,
+	renameGenre,
+} from "../genres.server";
 
 const USER_A = "user-a";
 const USER_B = "user-b";
@@ -28,6 +45,72 @@ const SHARED_EXTERNAL = {
 } as const;
 
 beforeEach(() => truncateAll());
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function insertItem(
+	title: string,
+	genreId?: number,
+	userId: string = USER_A,
+): Promise<number> {
+	return insertMediaItem({ userId, type: MediaItemType.BOOK, title, genreId });
+}
+
+async function readGenreRow(genreId: number): Promise<Genre | undefined> {
+	const [row] = await testDb
+		.select()
+		.from(genres)
+		.where(eq(genres.id, genreId));
+	return row;
+}
+
+async function readGenreRows(userId: string): Promise<Genre[]> {
+	return testDb
+		.select()
+		.from(genres)
+		.where(eq(genres.userId, userId))
+		.orderBy(asc(genres.name));
+}
+
+async function readGenreIdForItem(itemId: number): Promise<number | null> {
+	const [row] = await testDb
+		.select({ genreId: mediaItems.genreId })
+		.from(mediaItems)
+		.where(eq(mediaItems.id, itemId));
+
+	if (!row) throw new Error(`Media item ${itemId} not found`);
+	return row.genreId;
+}
+
+async function readItemMetadata(
+	itemId: number,
+): Promise<Record<string, unknown> | null> {
+	const [row] = await testDb
+		.select({ metadata: mediaItems.metadata })
+		.from(mediaItems)
+		.where(eq(mediaItems.id, itemId));
+
+	if (!row) throw new Error(`Media item ${itemId} not found`);
+	return row.metadata;
+}
+
+async function readViewFilters(viewId: number): Promise<FilterAndSortOptions> {
+	const [row] = await testDb
+		.select({ filters: views.filters })
+		.from(views)
+		.where(eq(views.id, viewId));
+
+	if (!row) throw new Error(`View ${viewId} not found`);
+	return row.filters;
+}
+
+/** Names with usage counts — the shape the assertions actually care about. */
+async function readUsage(userId: string) {
+	const rows = await getGenresWithUsage(userId);
+	return rows.map((row) => ({ name: row.name, itemCount: row.itemCount }));
+}
 
 describe("fetchGenreDetails", () => {
 	it("returns the genre's own items with their descriptive data", async () => {
@@ -135,5 +218,433 @@ describe("fetchGenreDetails", () => {
 		const details = await fetchGenreDetails(genreId, USER_A);
 
 		expect(details.items).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getGenresWithUsage
+// ---------------------------------------------------------------------------
+
+describe("getGenresWithUsage", () => {
+	it("returns the caller's genres with usage counts, ordered by name", async () => {
+		const fictionId = await insertGenre({ userId: USER_A, name: "Fiction" });
+		const sciFiId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertItem("First", fictionId);
+		await insertItem("Second", fictionId);
+		await insertItem("Third", sciFiId);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Fiction", itemCount: 2 },
+			{ name: "Sci-Fi", itemCount: 1 },
+		]);
+	});
+
+	it("returns an unused genre with a count of zero", async () => {
+		await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		expect(await readUsage(USER_A)).toEqual([{ name: "Sci-Fi", itemCount: 0 }]);
+	});
+
+	it("excludes another user's genres", async () => {
+		await insertGenre({ userId: USER_A, name: "Fiction" });
+		await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Fiction", itemCount: 0 },
+		]);
+	});
+
+	it("does not count another user's items against a same-named genre", async () => {
+		const ownGenreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const otherGenreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		await insertItem("Mine", ownGenreId);
+		await insertItem("Theirs", otherGenreId, USER_B);
+		await insertItem("Theirs Too", otherGenreId, USER_B);
+
+		expect(await readUsage(USER_A)).toEqual([{ name: "Sci-Fi", itemCount: 1 }]);
+	});
+
+	it("returns an empty list for a user with no genres", async () => {
+		await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+
+		expect(await getGenresWithUsage(USER_A)).toEqual([]);
+	});
+
+	it("does not count an item with no genre", async () => {
+		await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertItem("Ungenred");
+
+		expect(await readUsage(USER_A)).toEqual([{ name: "Sci-Fi", itemCount: 0 }]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// createGenre
+// ---------------------------------------------------------------------------
+
+describe("createGenre", () => {
+	it("creates the genre for the caller", async () => {
+		expect(await createGenre("Sci-Fi", USER_A)).toEqual({ status: "ok" });
+
+		expect(await readUsage(USER_A)).toEqual([{ name: "Sci-Fi", itemCount: 0 }]);
+	});
+
+	it("trims surrounding whitespace from the name", async () => {
+		expect(await createGenre("  Space Opera  ", USER_A)).toEqual({
+			status: "ok",
+		});
+
+		expect((await readGenreRows(USER_A)).map((row) => row.name)).toEqual([
+			"Space Opera",
+		]);
+	});
+
+	it("reports a name the caller already owns as a conflict", async () => {
+		await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		expect(await createGenre("Sci-Fi", USER_A)).toEqual({ status: "conflict" });
+
+		expect((await readGenreRows(USER_A)).map((row) => row.name)).toEqual([
+			"Sci-Fi",
+		]);
+	});
+
+	it("does not treat a name owned only by another user as a conflict", async () => {
+		const otherGenreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+
+		expect(await createGenre("Sci-Fi", USER_A)).toEqual({ status: "ok" });
+
+		const ownGenreRows = await readGenreRows(USER_A);
+		expect(ownGenreRows.map((row) => row.name)).toEqual(["Sci-Fi"]);
+		expect(ownGenreRows[0]?.id).not.toBe(otherGenreId);
+	});
+
+	it("does not treat a differently cased name as a conflict", async () => {
+		await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		expect(await createGenre("sci-fi", USER_A)).toEqual({ status: "ok" });
+
+		expect((await readGenreRows(USER_A)).map((row) => row.name).sort()).toEqual(
+			["Sci-Fi", "sci-fi"],
+		);
+	});
+
+	it("rejects a whitespace-only name", async () => {
+		await expect(createGenre("   ", USER_A)).rejects.toThrow(
+			"Taxonomy name cannot be empty",
+		);
+
+		expect(await readGenreRows(USER_A)).toEqual([]);
+	});
+
+	it("leaves saved view genre filters alone", async () => {
+		// A stale name in a view filter is legitimately revived by the create.
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		await createGenre("Sci-Fi", USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// renameGenre
+// ---------------------------------------------------------------------------
+
+describe("renameGenre", () => {
+	it("renames the caller's genre", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		expect(await renameGenre(genreId, "Space Opera", USER_A)).toEqual({
+			status: "ok",
+		});
+		expect((await readGenreRow(genreId))?.name).toBe("Space Opera");
+	});
+
+	it("trims surrounding whitespace from the new name", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		expect(await renameGenre(genreId, "  Space Opera  ", USER_A)).toEqual({
+			status: "ok",
+		});
+		expect((await readGenreRow(genreId))?.name).toBe("Space Opera");
+	});
+
+	it("reports a name the caller already owns as a conflict", async () => {
+		const sciFiId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const horrorId = await insertGenre({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Horror"] },
+		});
+
+		expect(await renameGenre(sciFiId, "Horror", USER_A)).toEqual({
+			status: "conflict",
+		});
+
+		expect((await readGenreRow(sciFiId))?.name).toBe("Sci-Fi");
+		expect((await readGenreRow(horrorId))?.name).toBe("Horror");
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Sci-Fi", "Horror"],
+		});
+	});
+
+	it("does not treat a name owned only by another user as a conflict", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertGenre({ userId: USER_B, name: "Space Opera" });
+
+		expect(await renameGenre(genreId, "Space Opera", USER_A)).toEqual({
+			status: "ok",
+		});
+		expect((await readGenreRow(genreId))?.name).toBe("Space Opera");
+	});
+
+	it("does not treat a genre's own current name as a conflict", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		expect(await renameGenre(genreId, "Sci-Fi", USER_A)).toEqual({
+			status: "ok",
+		});
+		expect((await readGenreRow(genreId))?.name).toBe("Sci-Fi");
+		expect(await readViewFilters(viewId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+
+	it("rejects a genre owned by another user and changes nothing", async () => {
+		const genreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_B,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		await expect(renameGenre(genreId, "Space Opera", USER_A)).rejects.toThrow(
+			`Genre ${genreId} not found`,
+		);
+
+		expect((await readGenreRow(genreId))?.name).toBe("Sci-Fi");
+		expect(await readViewFilters(viewId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+
+	it("rewrites the old name inside the caller's saved view genre filters", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertGenre({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Horror"] },
+		});
+
+		await renameGenre(genreId, "Space Opera", USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Space Opera", "Horror"],
+		});
+	});
+
+	it("leaves a saved tag filter of the same name untouched", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi"], genres: ["Sci-Fi"] },
+		});
+
+		await renameGenre(genreId, "Space Opera", USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			tags: ["Sci-Fi"],
+			genres: ["Space Opera"],
+		});
+	});
+
+	it("keeps every item's genre pointed at the renamed row", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const firstItemId = await insertItem("First", genreId);
+		const secondItemId = await insertItem("Second", genreId);
+
+		await renameGenre(genreId, "Space Opera", USER_A);
+
+		expect(await readGenreIdForItem(firstItemId)).toBe(genreId);
+		expect(await readGenreIdForItem(secondItemId)).toBe(genreId);
+	});
+
+	it("does not touch the provider-seeded genres in item metadata", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const itemId = await insertMediaItem({
+			userId: USER_A,
+			type: MediaItemType.BOOK,
+			title: "Dune",
+			genreId,
+			metadata: { genres: ["Sci-Fi"] },
+		});
+
+		await renameGenre(genreId, "Space Opera", USER_A);
+
+		expect(await readItemMetadata(itemId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+
+	it("rejects a whitespace-only name and changes nothing", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		await expect(renameGenre(genreId, "   ", USER_A)).rejects.toThrow(
+			"Taxonomy name cannot be empty",
+		);
+
+		expect((await readGenreRow(genreId))?.name).toBe("Sci-Fi");
+		expect(await readViewFilters(viewId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// deleteGenre
+// ---------------------------------------------------------------------------
+
+describe("deleteGenre", () => {
+	it("deletes the caller's genre row", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readGenreRow(genreId)).toBeUndefined();
+	});
+
+	it("nulls the genre on every referencing item while the items survive", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const firstItemId = await insertItem("First", genreId);
+		const secondItemId = await insertItem("Second", genreId);
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readGenreIdForItem(firstItemId)).toBeNull();
+		expect(await readGenreIdForItem(secondItemId)).toBeNull();
+	});
+
+	it("leaves other genres' item assignments intact", async () => {
+		const deletedGenreId = await insertGenre({
+			userId: USER_A,
+			name: "Sci-Fi",
+		});
+		const keptGenreId = await insertGenre({ userId: USER_A, name: "Horror" });
+		const deletedGenreItemId = await insertItem("First", deletedGenreId);
+		const keptGenreItemId = await insertItem("Second", keptGenreId);
+
+		await deleteGenre(deletedGenreId, USER_A);
+
+		expect(await readGenreIdForItem(deletedGenreItemId)).toBeNull();
+		expect(await readGenreIdForItem(keptGenreItemId)).toBe(keptGenreId);
+	});
+
+	it("deletes an unused genre without touching any item's genre", async () => {
+		const unusedGenreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const usedGenreId = await insertGenre({ userId: USER_A, name: "Horror" });
+		const itemId = await insertItem("First", usedGenreId);
+
+		await deleteGenre(unusedGenreId, USER_A);
+
+		expect(await readGenreRow(unusedGenreId)).toBeUndefined();
+		expect(await readGenreIdForItem(itemId)).toBe(usedGenreId);
+	});
+
+	it("rejects a genre owned by another user and changes nothing", async () => {
+		const genreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		const itemId = await insertItem("Theirs", genreId, USER_B);
+
+		await expect(deleteGenre(genreId, USER_A)).rejects.toThrow(
+			`Genre ${genreId} not found`,
+		);
+
+		expect((await readGenreRow(genreId))?.name).toBe("Sci-Fi");
+		expect(await readGenreIdForItem(itemId)).toBe(genreId);
+	});
+
+	it("strips the name from the caller's saved view genre filters", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertGenre({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: {
+				mediaTypes: [MediaItemType.BOOK],
+				sortBy: "title",
+				genres: ["Sci-Fi", "Horror"],
+			},
+		});
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			mediaTypes: [MediaItemType.BOOK],
+			sortBy: "title",
+			genres: ["Horror"],
+		});
+	});
+
+	it("removes the genres key entirely when the deleted genre was the only one", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: {
+				statuses: [MediaItemStatus.BACKLOG],
+				genres: ["Sci-Fi"],
+			},
+		});
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			statuses: [MediaItemStatus.BACKLOG],
+		});
+	});
+
+	it("leaves a saved tag filter of the same name untouched", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi"], genres: ["Sci-Fi"] },
+		});
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({ tags: ["Sci-Fi"] });
+	});
+
+	it("does not touch the provider-seeded genres in item metadata", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const itemId = await insertMediaItem({
+			userId: USER_A,
+			type: MediaItemType.BOOK,
+			title: "Dune",
+			genreId,
+			metadata: { genres: ["Sci-Fi"] },
+		});
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readGenreIdForItem(itemId)).toBeNull();
+		expect(await readItemMetadata(itemId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+
+	it("leaves another user's views and items alone", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const otherGenreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		const otherItemId = await insertItem("Theirs", otherGenreId, USER_B);
+		const otherViewId = await insertView({
+			userId: USER_B,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		await deleteGenre(genreId, USER_A);
+
+		expect(await readViewFilters(otherViewId)).toEqual({ genres: ["Sci-Fi"] });
+		expect(await readGenreIdForItem(otherItemId)).toBe(otherGenreId);
 	});
 });

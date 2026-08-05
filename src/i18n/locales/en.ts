@@ -250,6 +250,48 @@ export const en = {
 			saving: "Saving...",
 			saved: "Saved.",
 		},
+		/** Strings the shared taxonomy panel renders whatever entity it manages. */
+		taxonomy: {
+			add: "Add",
+			adding: "Adding...",
+			save: "Save",
+			cancel: "Cancel",
+			rename: "Rename",
+			delete: "Delete",
+			deleting: "Deleting...",
+			confirmDelete: "Yes, Delete",
+			deleteTitle: "Delete this entry?",
+			emptyNameError: "Enter a name.",
+			conflictError: "You already have one with that name.",
+		},
+		tags: {
+			title: "Tags",
+			description:
+				"Create, rename, or delete the tags you use to organize your library.",
+			empty: "You haven't created any tags yet.",
+			newPlaceholder: "New tag name",
+			usageCount_one: "{{count}} item",
+			usageCount_other: "{{count}} items",
+			deleteDescription: '"{{name}}" will be removed from your tags.',
+			deleteInUseDescription_one:
+				'"{{name}}" is used by {{count}} item. Deleting it will remove the tag from that item and from any saved views that filter on it.',
+			deleteInUseDescription_other:
+				'"{{name}}" is used by {{count}} items. Deleting it will remove the tag from those items and from any saved views that filter on it.',
+		},
+		genres: {
+			title: "Genres",
+			description:
+				"Create, rename, or delete the genres you use to categorize your library.",
+			empty: "You haven't created any genres yet.",
+			newPlaceholder: "New genre name",
+			usageCount_one: "{{count}} item",
+			usageCount_other: "{{count}} items",
+			deleteDescription: '"{{name}}" will be removed from your genres.',
+			deleteInUseDescription_one:
+				'"{{name}}" is used by {{count}} item. Deleting it will clear the genre on that item and remove it from any saved views that filter on it.',
+			deleteInUseDescription_other:
+				'"{{name}}" is used by {{count}} items. Deleting it will clear the genre on those items and remove it from any saved views that filter on it.',
+		},
 	},
 	views: {
 		newView: "New View",

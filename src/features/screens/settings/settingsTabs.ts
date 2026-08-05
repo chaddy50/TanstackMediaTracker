@@ -1,4 +1,6 @@
 import { DefaultsSection } from "./components/DefaultsSection";
+import { GenresSection } from "./components/GenresSection";
+import { TagsSection } from "./components/TagsSection";
 import type { SettingsTab, SettingsTabId } from "./types";
 
 /**
@@ -12,6 +14,18 @@ export const SETTINGS_TABS: SettingsTab[] = [
 		labelKey: "settings.defaults.title",
 		descriptionKey: "settings.defaults.description",
 		Component: DefaultsSection,
+	},
+	{
+		id: "tags",
+		labelKey: "settings.tags.title",
+		descriptionKey: "settings.tags.description",
+		Component: TagsSection,
+	},
+	{
+		id: "genres",
+		labelKey: "settings.genres.title",
+		descriptionKey: "settings.genres.description",
+		Component: GenresSection,
 	},
 ];
 

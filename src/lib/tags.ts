@@ -1,19 +1,60 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { db } from "#/database/index";
-import { mediaItemTags, tags } from "#/database/schema";
+import type { Tag } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
+import {
+	createTag as createTagInDatabase,
+	deleteTag as deleteTagInDatabase,
+	fetchTags,
+	getTagsWithUsage as getTagsWithUsageFromDatabase,
+	renameTag as renameTagInDatabase,
+	saveMediaItemTags as saveMediaItemTagsInDatabase,
+} from "#/lib/tags.server";
+
+/**
+ * A tag paired with how many of the user's items carry it. Declared here rather
+ * than in `tags.server.ts` so components can name the type without importing a
+ * `.server` module.
+ */
+export type TagWithUsageCount = Tag & { itemCount: number };
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+export const createTagInputSchema = z.object({
+	name: z.string().trim().min(1),
+});
+
+export const renameTagInputSchema = z.object({
+	tagId: z.number().int(),
+	name: z.string().trim().min(1),
+});
+
+export const deleteTagInputSchema = z.object({
+	tagId: z.number().int(),
+});
+
+// ---------------------------------------------------------------------------
+// Read
+// ---------------------------------------------------------------------------
 
 export const getTags = createServerFn({ method: "GET" }).handler(async () => {
 	const user = await getLoggedInUser();
-	return db
-		.select()
-		.from(tags)
-		.where(eq(tags.userId, user.id))
-		.orderBy(asc(tags.name));
+	return fetchTags(user.id);
 });
+
+export const getTagsWithUsage = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const user = await getLoggedInUser();
+		return getTagsWithUsageFromDatabase(user.id);
+	},
+);
+
+// ---------------------------------------------------------------------------
+// Write
+// ---------------------------------------------------------------------------
 
 export const saveMediaItemTags = createServerFn({ method: "POST" })
 	.inputValidator(
@@ -24,33 +65,26 @@ export const saveMediaItemTags = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
-		const { mediaItemId, tagNames } = data;
+		await saveMediaItemTagsInDatabase(data.mediaItemId, data.tagNames, user.id);
+	});
 
-		// Upsert tag names for this user, then resolve their IDs
-		if (tagNames.length > 0) {
-			await db
-				.insert(tags)
-				.values(tagNames.map((name) => ({ userId: user.id, name })))
-				.onConflictDoNothing();
-		}
+export const createTag = createServerFn({ method: "POST" })
+	.inputValidator(createTagInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		return createTagInDatabase(data.name, user.id);
+	});
 
-		const resolvedTagIds =
-			tagNames.length > 0
-				? await db
-						.select({ id: tags.id })
-						.from(tags)
-						.where(and(eq(tags.userId, user.id), inArray(tags.name, tagNames)))
-						.then((rows) => rows.map((row) => row.id))
-				: [];
+export const renameTag = createServerFn({ method: "POST" })
+	.inputValidator(renameTagInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		return renameTagInDatabase(data.tagId, data.name, user.id);
+	});
 
-		// Replace all tag associations for this media item
-		await db
-			.delete(mediaItemTags)
-			.where(eq(mediaItemTags.mediaItemId, mediaItemId));
-
-		if (resolvedTagIds.length > 0) {
-			await db
-				.insert(mediaItemTags)
-				.values(resolvedTagIds.map((tagId) => ({ mediaItemId, tagId })));
-		}
+export const deleteTag = createServerFn({ method: "POST" })
+	.inputValidator(deleteTagInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await deleteTagInDatabase(data.tagId, user.id);
 	});
