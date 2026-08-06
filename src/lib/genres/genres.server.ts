@@ -199,6 +199,50 @@ export async function deleteGenre(
 	await removeValueFromViewFilters(userId, "genres", genre.name);
 }
 
+/**
+ * Folds the source genre into the target: every item on the source moves to the
+ * target, and the source is deleted. Irreversible.
+ *
+ * An item has at most one genre, so no collision is possible and the target's
+ * item count is exactly the two counts added together.
+ */
+export async function mergeGenres(
+	sourceGenreId: number,
+	targetGenreId: number,
+	userId: string,
+): Promise<void> {
+	if (sourceGenreId === targetGenreId) {
+		throw new Error("Cannot merge a genre into itself");
+	}
+
+	const sourceGenre = await findOwnedGenre(sourceGenreId, userId);
+	const targetGenre = await findOwnedGenre(targetGenreId, userId);
+
+	await db.transaction(async (transaction) => {
+		// Repointing before the delete keeps the `set null` cascade from firing —
+		// otherwise these items would end up with no genre instead of the target.
+		await transaction
+			.update(mediaItems)
+			.set({ genreId: targetGenreId })
+			.where(
+				and(
+					eq(mediaItems.genreId, sourceGenreId),
+					eq(mediaItems.userId, userId),
+				),
+			);
+
+		await transaction.delete(genres).where(eq(genres.id, sourceGenreId));
+	});
+
+	// Outside the transaction because the helper closes over the pooled client.
+	await renameValueInViewFilters(
+		userId,
+		"genres",
+		sourceGenre.name,
+		targetGenre.name,
+	);
+}
+
 // ---- Private helpers
 
 async function findOwnedGenre(genreId: number, userId: string): Promise<Genre> {

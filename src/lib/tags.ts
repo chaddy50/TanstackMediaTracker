@@ -8,6 +8,7 @@ import {
 	deleteTag as deleteTagInDatabase,
 	fetchTags,
 	getTagsWithUsage as getTagsWithUsageFromDatabase,
+	mergeTags as mergeTagsInDatabase,
 	renameTag as renameTagInDatabase,
 	saveMediaItemTags as saveMediaItemTagsInDatabase,
 } from "#/lib/tags.server";
@@ -34,6 +35,15 @@ export const renameTagInputSchema = z.object({
 
 export const deleteTagInputSchema = z.object({
 	tagId: z.number().int(),
+});
+
+/**
+ * Equal ids are not rejected here — `mergeTags` owns that guard, so the
+ * condition has exactly one error path.
+ */
+export const mergeTagsInputSchema = z.object({
+	sourceTagId: z.number().int(),
+	targetTagId: z.number().int(),
 });
 
 // ---------------------------------------------------------------------------
@@ -87,4 +97,11 @@ export const deleteTag = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 		await deleteTagInDatabase(data.tagId, user.id);
+	});
+
+export const mergeTags = createServerFn({ method: "POST" })
+	.inputValidator(mergeTagsInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await mergeTagsInDatabase(data.sourceTagId, data.targetTagId, user.id);
 	});

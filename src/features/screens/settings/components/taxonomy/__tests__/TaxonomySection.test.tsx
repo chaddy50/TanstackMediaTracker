@@ -21,10 +21,24 @@ import type { TaxonomyEntry } from "#/lib/taxonomy";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({
-		t: (key: string, options?: { count?: number; name?: string }) => {
+		t: (
+			key: string,
+			options?: {
+				count?: number;
+				name?: string;
+				sourceName?: string;
+				targetName?: string;
+			},
+		) => {
 			const interpolations: string[] = [];
 			if (options?.name !== undefined) {
 				interpolations.push(options.name);
+			}
+			if (options?.sourceName !== undefined) {
+				interpolations.push(options.sourceName);
+			}
+			if (options?.targetName !== undefined) {
+				interpolations.push(options.targetName);
 			}
 			if (options?.count !== undefined) {
 				interpolations.push(String(options.count));
@@ -52,6 +66,7 @@ const listEntries = vi.fn<TaxonomySectionConfig["listEntries"]>();
 const createEntry = vi.fn<TaxonomySectionConfig["createEntry"]>();
 const renameEntry = vi.fn<TaxonomySectionConfig["renameEntry"]>();
 const deleteEntry = vi.fn<TaxonomySectionConfig["deleteEntry"]>();
+const mergeEntries = vi.fn<TaxonomySectionConfig["mergeEntries"]>();
 
 /** The tags-shaped config the single-run cases exercise. */
 function buildConfig(
@@ -65,6 +80,7 @@ function buildConfig(
 		createEntry,
 		renameEntry,
 		deleteEntry,
+		mergeEntries,
 		...overrides,
 	};
 }
@@ -95,6 +111,17 @@ async function startRenamingFirstEntry() {
 	return screen.getByDisplayValue("Sci-Fi");
 }
 
+/** Opens the merge dialog with the first row as its source. */
+async function openMergeDialogForFirstEntry() {
+	await waitForEntryRows();
+	fireEvent.click(screen.getAllByLabelText("settings.taxonomy.merge")[0]);
+	await waitFor(() => {
+		expect(
+			screen.getByText("settings.taxonomy.mergeTitle"),
+		).toBeInTheDocument();
+	});
+}
+
 function getCreateInput(i18nPrefix = "settings.tags") {
 	return screen.getByPlaceholderText(`${i18nPrefix}.newPlaceholder`);
 }
@@ -120,6 +147,7 @@ beforeEach(() => {
 	createEntry.mockResolvedValue({ status: "ok" });
 	renameEntry.mockResolvedValue({ status: "ok" });
 	deleteEntry.mockResolvedValue(undefined);
+	mergeEntries.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -446,6 +474,218 @@ describe("TaxonomySection", () => {
 	});
 });
 
+describe("TaxonomySection merging", () => {
+	it("renders a merge control on every row", async () => {
+		renderSection();
+
+		await waitForEntryRows();
+		expect(screen.getAllByLabelText("settings.taxonomy.merge")).toHaveLength(
+			entryFixtures.length,
+		);
+	});
+
+	it("opens the merge dialog for the clicked row as the source", async () => {
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+
+		// No target picked yet, so the copy asks for one rather than naming a blank.
+		expect(
+			screen.getByText("settings.tags.mergePrompt:Sci-Fi"),
+		).toBeInTheDocument();
+	});
+
+	it("offers the other entries as targets and not the clicked row", async () => {
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+
+		expect(screen.getByRole("button", { name: "Horror" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Sci-Fi" })).toBeNull();
+	});
+
+	it("calls mergeEntries with the source and the chosen target", async () => {
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(mergeEntries).toHaveBeenCalledTimes(1);
+		});
+		expect(mergeEntries).toHaveBeenCalledWith(1, 2);
+	});
+
+	it("invalidates the configured caches after a successful merge", async () => {
+		const config = buildConfig();
+		const { invalidateQueriesSpy } = renderSection(config);
+
+		await openMergeDialogForFirstEntry();
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(routerInvalidate).toHaveBeenCalled();
+		});
+		expectEntryConsumersRefreshed(invalidateQueriesSpy, config);
+	});
+
+	it("closes the dialog after a successful merge", async () => {
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(screen.queryByText("settings.taxonomy.mergeTitle")).toBeNull();
+		});
+	});
+
+	it("shows the merging label while the merge is in flight", async () => {
+		mergeEntries.mockReturnValue(new Promise(() => {}));
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(screen.getByText("settings.taxonomy.merging")).toBeDisabled();
+		});
+		expect(screen.queryByText("settings.taxonomy.confirmMerge")).toBeNull();
+	});
+
+	it("does not call mergeEntries when the dialog is cancelled", async () => {
+		renderSection();
+
+		await openMergeDialogForFirstEntry();
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.cancel"));
+
+		await waitFor(() => {
+			expect(screen.queryByText("settings.taxonomy.mergeTitle")).toBeNull();
+		});
+		expect(mergeEntries).not.toHaveBeenCalled();
+	});
+
+	it("offers a merge shortcut from the rename conflict, pre-selecting the colliding entry", async () => {
+		renameEntry.mockResolvedValue({ status: "conflict" });
+		renderSection();
+
+		const input = await startRenamingFirstEntry();
+		fireEvent.change(input, { target: { value: "Horror" } });
+		fireEvent.click(screen.getByText("settings.taxonomy.save"));
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.conflictError"),
+			).toBeInTheDocument();
+		});
+
+		fireEvent.click(
+			screen.getByText("settings.taxonomy.mergeConflictShortcut"),
+		);
+
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.mergeTitle"),
+			).toBeInTheDocument();
+		});
+		expect(screen.getByRole("button", { name: "Horror" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+
+		// The colliding entry is already the target, so confirm without picking.
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(mergeEntries).toHaveBeenCalledWith(1, 2);
+		});
+	});
+
+	it("does not offer the shortcut for the empty-name error", async () => {
+		renderSection();
+
+		const input = await startRenamingFirstEntry();
+		fireEvent.change(input, { target: { value: "   " } });
+		fireEvent.click(screen.getByText("settings.taxonomy.save"));
+
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.emptyNameError"),
+			).toBeInTheDocument();
+		});
+		expect(
+			screen.queryByText("settings.taxonomy.mergeConflictShortcut"),
+		).toBeNull();
+	});
+
+	it("leaves rename edit mode after a merge started from the conflict shortcut", async () => {
+		renameEntry.mockResolvedValue({ status: "conflict" });
+		renderSection();
+
+		const input = await startRenamingFirstEntry();
+		fireEvent.change(input, { target: { value: "Horror" } });
+		fireEvent.click(screen.getByText("settings.taxonomy.save"));
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.conflictError"),
+			).toBeInTheDocument();
+		});
+		fireEvent.click(
+			screen.getByText("settings.taxonomy.mergeConflictShortcut"),
+		);
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.confirmMerge"),
+			).toBeInTheDocument();
+		});
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(mergeEntries).toHaveBeenCalledWith(1, 2);
+		});
+		await waitFor(() => {
+			expect(screen.queryByDisplayValue("Horror")).toBeNull();
+		});
+		expect(screen.queryByText("settings.taxonomy.conflictError")).toBeNull();
+		expect(screen.getByText("Sci-Fi")).toBeInTheDocument();
+	});
+
+	it("shows the plain conflict error with no shortcut when the colliding name is not in the loaded list", async () => {
+		// A stale list can miss the entry the server collided with.
+		renameEntry.mockResolvedValue({ status: "conflict" });
+		renderSection();
+
+		const input = await startRenamingFirstEntry();
+		fireEvent.change(input, { target: { value: "Space Opera" } });
+		fireEvent.click(screen.getByText("settings.taxonomy.save"));
+
+		await waitFor(() => {
+			expect(
+				screen.getByText("settings.taxonomy.conflictError"),
+			).toBeInTheDocument();
+		});
+		expect(
+			screen.queryByText("settings.taxonomy.mergeConflictShortcut"),
+		).toBeNull();
+		expect(screen.queryByText("settings.taxonomy.mergeTitle")).toBeNull();
+	});
+
+	it("does not offer merge when the list holds a single entry", async () => {
+		listEntries.mockResolvedValue([entryFixtures[0]]);
+		renderSection();
+
+		await waitForEntryRows();
+		expect(screen.queryByLabelText("settings.taxonomy.merge")).toBeNull();
+		expect(
+			screen.getByLabelText("settings.taxonomy.rename"),
+		).toBeInTheDocument();
+	});
+});
+
 const configShapes = [
 	{
 		entity: "tags",
@@ -501,6 +741,23 @@ describe.each(configShapes)(
 					screen.getByText(`${shape.i18nPrefix}.empty`),
 				).toBeInTheDocument();
 			});
+			expect(document.body.textContent).not.toContain(shape.otherPrefix);
+		});
+
+		it("renders the merge dialog's strings under the config's prefix", async () => {
+			renderSection(config);
+
+			await openMergeDialogForFirstEntry();
+			expect(
+				screen.getByText("settings.taxonomy.mergeTargetLabel"),
+			).toBeInTheDocument();
+			expect(
+				screen.getByText(`${shape.i18nPrefix}.mergePrompt:Sci-Fi`),
+			).toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+			expect(
+				screen.getByText(`${shape.i18nPrefix}.mergeDescription:Sci-Fi:Horror`),
+			).toBeInTheDocument();
 			expect(document.body.textContent).not.toContain(shape.otherPrefix);
 		});
 

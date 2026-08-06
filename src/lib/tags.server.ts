@@ -134,6 +134,60 @@ export async function deleteTag(tagId: number, userId: string): Promise<void> {
 	await removeValueFromViewFilters(userId, "tags", tag.name);
 }
 
+/**
+ * Folds the source tag into the target: every item carrying the source ends up
+ * carrying the target, and the source is deleted. Irreversible.
+ *
+ * An item already carrying both ends up with one link, not two, so the target's
+ * item count can come out lower than the two counts added together.
+ */
+export async function mergeTags(
+	sourceTagId: number,
+	targetTagId: number,
+	userId: string,
+): Promise<void> {
+	if (sourceTagId === targetTagId) {
+		throw new Error("Cannot merge a tag into itself");
+	}
+
+	const sourceTag = await findOwnedTag(sourceTagId, userId);
+	const targetTag = await findOwnedTag(targetTagId, userId);
+
+	await db.transaction(async (transaction) => {
+		const sourceLinks = await transaction
+			.select({ mediaItemId: mediaItemTags.mediaItemId })
+			.from(mediaItemTags)
+			.where(eq(mediaItemTags.tagId, sourceTagId));
+
+		if (sourceLinks.length > 0) {
+			// An item carrying both tags already has the target row, and the
+			// composite primary key would reject the duplicate — let it fall through.
+			await transaction
+				.insert(mediaItemTags)
+				.values(
+					sourceLinks.map(({ mediaItemId }) => ({
+						mediaItemId,
+						tagId: targetTagId,
+					})),
+				)
+				.onConflictDoNothing();
+		}
+
+		// Deleting the source cascades its remaining junction rows away.
+		await transaction.delete(tags).where(eq(tags.id, sourceTagId));
+	});
+
+	// Outside the transaction because the helper closes over the pooled client.
+	// A crash in this window leaves a saved view naming a tag that is gone, which
+	// is cosmetic and matches what rename and delete already risk.
+	await renameValueInViewFilters(
+		userId,
+		"tags",
+		sourceTag.name,
+		targetTag.name,
+	);
+}
+
 // ---- Private helpers
 
 async function findOwnedTag(tagId: number, userId: string): Promise<Tag> {

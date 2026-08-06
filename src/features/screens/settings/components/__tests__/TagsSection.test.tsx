@@ -12,6 +12,7 @@ import {
 	createTag,
 	deleteTag,
 	getTagsWithUsage,
+	mergeTags,
 	renameTag,
 	type TagWithUsageCount,
 } from "#/lib/tags";
@@ -41,6 +42,7 @@ vi.mock("#/lib/tags", () => ({
 	createTag: vi.fn(),
 	renameTag: vi.fn(),
 	deleteTag: vi.fn(),
+	mergeTags: vi.fn(),
 }));
 
 const routerInvalidate = vi.fn();
@@ -97,6 +99,7 @@ beforeEach(() => {
 	vi.mocked(createTag).mockResolvedValue({ status: "ok" });
 	vi.mocked(renameTag).mockResolvedValue({ status: "ok" });
 	vi.mocked(deleteTag).mockResolvedValue(undefined);
+	vi.mocked(mergeTags).mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -171,6 +174,26 @@ describe("TagsSection", () => {
 
 		await waitFor(() => {
 			expect(deleteTag).toHaveBeenCalledWith({ data: { tagId: 1 } });
+		});
+	});
+
+	it("merges a tag through mergeTags", async () => {
+		renderTagsSection();
+
+		await waitForTagRows();
+		fireEvent.click(screen.getAllByLabelText("settings.taxonomy.merge")[0]);
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: "Horror" }),
+			).toBeInTheDocument();
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Horror" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(mergeTags).toHaveBeenCalledWith({
+				data: { sourceTagId: 1, targetTagId: 2 },
+			});
 		});
 	});
 

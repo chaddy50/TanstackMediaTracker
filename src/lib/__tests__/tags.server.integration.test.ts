@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MediaItemType } from "#/lib/enums";
 
@@ -35,6 +35,7 @@ import {
 	createTag,
 	deleteTag,
 	getTagsWithUsage,
+	mergeTags,
 	renameTag,
 } from "../tags.server";
 
@@ -72,6 +73,15 @@ async function readLinkedItemIds(tagId: number): Promise<number[]> {
 		.orderBy(asc(mediaItemTags.mediaItemId));
 
 	return rows.map((row) => row.mediaItemId);
+}
+
+async function readAllMediaItemIds(): Promise<number[]> {
+	const rows = await testDb
+		.select({ id: mediaItems.id })
+		.from(mediaItems)
+		.orderBy(asc(mediaItems.id));
+
+	return rows.map((row) => row.id);
 }
 
 async function readViewFilters(viewId: number): Promise<FilterAndSortOptions> {
@@ -394,5 +404,311 @@ describe("createTag", () => {
 		);
 
 		expect(await readTagRows(USER_A)).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// mergeTags
+// ---------------------------------------------------------------------------
+
+describe("mergeTags", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("moves every item carrying the source onto the target and deletes the source row", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First");
+		const secondItemId = await insertItem("Second");
+		await linkTag(firstItemId, sourceId);
+		await linkTag(secondItemId, sourceId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readLinkedItemIds(targetId)).toEqual([
+			firstItemId,
+			secondItemId,
+		]);
+		expect(await readTagRow(sourceId)).toBeUndefined();
+	});
+
+	it("keeps a single junction row for an item that already carried both", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const itemId = await insertItem("First");
+		await linkTag(itemId, sourceId);
+		await linkTag(itemId, targetId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readLinkedItemIds(targetId)).toEqual([itemId]);
+	});
+
+	it("counts an item carrying both entries once, not twice", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const bothItemId = await insertItem("Both");
+		const sourceOnlyItemId = await insertItem("Source Only");
+		const targetOnlyItemId = await insertItem("Target Only");
+		await linkTag(bothItemId, sourceId);
+		await linkTag(bothItemId, targetId);
+		await linkTag(sourceOnlyItemId, sourceId);
+		await linkTag(targetOnlyItemId, targetId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 3 },
+		]);
+	});
+
+	it("leaves no junction row pointing at the deleted source", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First");
+		const secondItemId = await insertItem("Second");
+		await linkTag(firstItemId, sourceId);
+		await linkTag(secondItemId, sourceId);
+		await linkTag(secondItemId, targetId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readLinkedItemIds(sourceId)).toEqual([]);
+	});
+
+	it("leaves the media items themselves intact", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First");
+		const secondItemId = await insertItem("Second");
+		const untaggedItemId = await insertItem("Untagged");
+		await linkTag(firstItemId, sourceId);
+		await linkTag(secondItemId, targetId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readAllMediaItemIds()).toEqual([
+			firstItemId,
+			secondItemId,
+			untaggedItemId,
+		]);
+	});
+
+	it("merges an unused source without changing the target's count", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const itemId = await insertItem("First");
+		await linkTag(itemId, targetId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 1 },
+		]);
+		expect(await readTagRow(sourceId)).toBeUndefined();
+	});
+
+	it("merges into an unused target, which inherits every item", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First");
+		const secondItemId = await insertItem("Second");
+		await linkTag(firstItemId, sourceId);
+		await linkTag(secondItemId, sourceId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 2 },
+		]);
+	});
+
+	it("rewrites the source name to the target in saved view filters", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		await insertTag({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi", "Horror"] },
+		});
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readViewFilterTags(viewId)).toEqual(["Space Opera", "Horror"]);
+	});
+
+	it("de-duplicates a view that filters on both names, preserving first-seen order", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		await insertTag({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Space Opera", "Sci-Fi", "Horror"] },
+		});
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readViewFilterTags(viewId)).toEqual(["Space Opera", "Horror"]);
+	});
+
+	it("leaves the sibling genres filter key untouched", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: {
+				tags: ["Sci-Fi", "Horror"],
+				genres: ["Sci-Fi", "Horror"],
+			},
+		});
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			tags: ["Space Opera", "Horror"],
+			genres: ["Sci-Fi", "Horror"],
+		});
+	});
+
+	it("does not touch another user's views listing the same names", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const otherViewId = await insertView({
+			userId: USER_B,
+			filters: { tags: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readViewFilterTags(otherViewId)).toEqual([
+			"Sci-Fi",
+			"Space Opera",
+		]);
+	});
+
+	it("rejects merging a tag into itself and changes nothing", async () => {
+		const tagId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const itemId = await insertItem("First");
+		await linkTag(itemId, tagId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi"] },
+		});
+
+		await expect(mergeTags(tagId, tagId, USER_A)).rejects.toThrow(
+			"Cannot merge a tag into itself",
+		);
+
+		expect((await readTagRow(tagId))?.name).toBe("Sci-Fi");
+		expect(await readLinkedItemIds(tagId)).toEqual([itemId]);
+		expect(await readViewFilterTags(viewId)).toEqual(["Sci-Fi"]);
+	});
+
+	it("rejects a source owned by another user and changes nothing", async () => {
+		const sourceId = await insertTag({ userId: USER_B, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const otherItemId = await insertItem("Theirs", USER_B);
+		await linkTag(otherItemId, sourceId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await expect(mergeTags(sourceId, targetId, USER_A)).rejects.toThrow(
+			`Tag ${sourceId} not found`,
+		);
+
+		expect((await readTagRow(sourceId))?.name).toBe("Sci-Fi");
+		expect((await readTagRow(targetId))?.name).toBe("Space Opera");
+		expect(await readLinkedItemIds(sourceId)).toEqual([otherItemId]);
+		expect(await readViewFilterTags(viewId)).toEqual(["Sci-Fi", "Space Opera"]);
+	});
+
+	it("rejects a target owned by another user and changes nothing", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_B, name: "Space Opera" });
+		const itemId = await insertItem("First");
+		await linkTag(itemId, sourceId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await expect(mergeTags(sourceId, targetId, USER_A)).rejects.toThrow(
+			`Tag ${targetId} not found`,
+		);
+
+		expect((await readTagRow(sourceId))?.name).toBe("Sci-Fi");
+		expect((await readTagRow(targetId))?.name).toBe("Space Opera");
+		expect(await readLinkedItemIds(sourceId)).toEqual([itemId]);
+		expect(await readViewFilterTags(viewId)).toEqual(["Sci-Fi", "Space Opera"]);
+	});
+
+	it("leaves another user's identically-named tag and its links intact", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const otherTagId = await insertTag({ userId: USER_B, name: "Sci-Fi" });
+		const itemId = await insertItem("Mine");
+		const otherItemId = await insertItem("Theirs", USER_B);
+		await linkTag(itemId, sourceId);
+		await linkTag(otherItemId, otherTagId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect((await readTagRow(otherTagId))?.name).toBe("Sci-Fi");
+		expect(await readLinkedItemIds(otherTagId)).toEqual([otherItemId]);
+	});
+
+	it("rolls back the relink and the delete together when the transaction fails", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First");
+		const secondItemId = await insertItem("Second");
+		await linkTag(firstItemId, sourceId);
+		await linkTag(secondItemId, sourceId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { tags: ["Sci-Fi", "Space Opera"] },
+		});
+
+		// The only deterministic way to fail mid-transaction — and it doubles as
+		// proof that `mergeTags` really wraps its writes in one.
+		const realTransaction = testDb.transaction.bind(testDb);
+		vi.spyOn(testDb, "transaction").mockImplementation((callback) =>
+			realTransaction(async (transaction) => {
+				await callback(transaction);
+				throw new Error("forced rollback");
+			}),
+		);
+
+		await expect(mergeTags(sourceId, targetId, USER_A)).rejects.toThrow(
+			"forced rollback",
+		);
+
+		expect((await readTagRow(sourceId))?.name).toBe("Sci-Fi");
+		expect(await readLinkedItemIds(sourceId)).toEqual([
+			firstItemId,
+			secondItemId,
+		]);
+		expect(await readLinkedItemIds(targetId)).toEqual([]);
+		// The view rewrite runs after the transaction, so a failed one never
+		// reaches it.
+		expect(await readViewFilterTags(viewId)).toEqual(["Sci-Fi", "Space Opera"]);
+	});
+
+	it("drops the source out of the usage list, target still ordered by name", async () => {
+		const sourceId = await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertTag({ userId: USER_A, name: "Space Opera" });
+		await insertTag({ userId: USER_A, name: "Horror" });
+		const itemId = await insertItem("First");
+		await linkTag(itemId, sourceId);
+
+		await mergeTags(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Horror", itemCount: 0 },
+			{ name: "Space Opera", itemCount: 1 },
+		]);
 	});
 });

@@ -12,6 +12,7 @@ import {
 	createGenre,
 	deleteGenre,
 	getGenresWithUsage,
+	mergeGenres,
 	renameGenre,
 } from "#/lib/genres/genres";
 import type { TaxonomyEntry } from "#/lib/taxonomy";
@@ -42,6 +43,7 @@ vi.mock("#/lib/genres/genres", () => ({
 	createGenre: vi.fn(),
 	renameGenre: vi.fn(),
 	deleteGenre: vi.fn(),
+	mergeGenres: vi.fn(),
 }));
 
 const routerInvalidate = vi.fn();
@@ -85,6 +87,7 @@ beforeEach(() => {
 	vi.mocked(createGenre).mockResolvedValue({ status: "ok" });
 	vi.mocked(renameGenre).mockResolvedValue({ status: "ok" });
 	vi.mocked(deleteGenre).mockResolvedValue(undefined);
+	vi.mocked(mergeGenres).mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -164,6 +167,26 @@ describe("GenresSection", () => {
 
 		await waitFor(() => {
 			expect(deleteGenre).toHaveBeenCalledWith({ data: { genreId: 1 } });
+		});
+	});
+
+	it("merges a genre through mergeGenres", async () => {
+		renderGenresSection();
+
+		await waitForGenreRows();
+		fireEvent.click(screen.getAllByLabelText("settings.taxonomy.merge")[0]);
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: "Sci-Fi" }),
+			).toBeInTheDocument();
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Sci-Fi" }));
+		fireEvent.click(screen.getByText("settings.taxonomy.confirmMerge"));
+
+		await waitFor(() => {
+			expect(mergeGenres).toHaveBeenCalledWith({
+				data: { sourceGenreId: 1, targetGenreId: 2 },
+			});
 		});
 	});
 

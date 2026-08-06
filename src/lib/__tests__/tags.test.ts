@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createTagInputSchema,
 	deleteTagInputSchema,
+	mergeTagsInputSchema,
 	renameTagInputSchema,
 } from "../tags";
 
@@ -57,6 +58,45 @@ describe("deleteTagInputSchema", () => {
 
 	it("rejects a non-numeric tagId", () => {
 		expect(deleteTagInputSchema.safeParse({ tagId: "x" }).success).toBe(false);
+	});
+});
+
+/**
+ * Equal ids are deliberately absent here — `mergeTags` owns that guard, so the
+ * schema only has to pin the shape.
+ */
+describe("mergeTagsInputSchema", () => {
+	it("accepts two integer ids", () => {
+		expect(
+			mergeTagsInputSchema.parse({ sourceTagId: 1, targetTagId: 2 }),
+		).toEqual({ sourceTagId: 1, targetTagId: 2 });
+	});
+
+	it("rejects a non-integer sourceTagId", () => {
+		expect(
+			mergeTagsInputSchema.safeParse({ sourceTagId: 1.5, targetTagId: 2 })
+				.success,
+		).toBe(false);
+	});
+
+	it("rejects a non-integer targetTagId", () => {
+		expect(
+			mergeTagsInputSchema.safeParse({ sourceTagId: 1, targetTagId: 2.5 })
+				.success,
+		).toBe(false);
+	});
+
+	it("rejects a missing targetTagId", () => {
+		expect(mergeTagsInputSchema.safeParse({ sourceTagId: 1 }).success).toBe(
+			false,
+		);
+	});
+
+	it("rejects a non-numeric id", () => {
+		expect(
+			mergeTagsInputSchema.safeParse({ sourceTagId: "x", targetTagId: 2 })
+				.success,
+		).toBe(false);
 	});
 });
 

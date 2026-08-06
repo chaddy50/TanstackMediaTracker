@@ -11,6 +11,7 @@ import {
 	fetchGenreDetails,
 	findOrCreateGenre,
 	getGenresWithUsage as getGenresWithUsageFromDatabase,
+	mergeGenres as mergeGenresInDatabase,
 	renameGenre as renameGenreInDatabase,
 } from "#/lib/genres/genres.server";
 
@@ -29,6 +30,15 @@ export const renameGenreInputSchema = z.object({
 
 export const deleteGenreInputSchema = z.object({
 	genreId: z.number().int(),
+});
+
+/**
+ * Equal ids are not rejected here — `mergeGenres` owns that guard, so the
+ * condition has exactly one error path.
+ */
+export const mergeGenresInputSchema = z.object({
+	sourceGenreId: z.number().int(),
+	targetGenreId: z.number().int(),
 });
 
 // ---------------------------------------------------------------------------
@@ -103,4 +113,15 @@ export const deleteGenre = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 		await deleteGenreInDatabase(data.genreId, user.id);
+	});
+
+export const mergeGenres = createServerFn({ method: "POST" })
+	.inputValidator(mergeGenresInputSchema)
+	.handler(async ({ data }) => {
+		const user = await getLoggedInUser();
+		await mergeGenresInDatabase(
+			data.sourceGenreId,
+			data.targetGenreId,
+			user.id,
+		);
 	});

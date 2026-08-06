@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createGenreInputSchema,
 	deleteGenreInputSchema,
+	mergeGenresInputSchema,
 	renameGenreInputSchema,
 } from "../genres";
 
@@ -53,6 +54,45 @@ describe("deleteGenreInputSchema", () => {
 		expect(deleteGenreInputSchema.safeParse({ genreId: "x" }).success).toBe(
 			false,
 		);
+	});
+});
+
+/**
+ * Equal ids are deliberately absent here — `mergeGenres` owns that guard, so the
+ * schema only has to pin the shape.
+ */
+describe("mergeGenresInputSchema", () => {
+	it("accepts two integer ids", () => {
+		expect(
+			mergeGenresInputSchema.parse({ sourceGenreId: 1, targetGenreId: 2 }),
+		).toEqual({ sourceGenreId: 1, targetGenreId: 2 });
+	});
+
+	it("rejects a non-integer sourceGenreId", () => {
+		expect(
+			mergeGenresInputSchema.safeParse({ sourceGenreId: 1.5, targetGenreId: 2 })
+				.success,
+		).toBe(false);
+	});
+
+	it("rejects a non-integer targetGenreId", () => {
+		expect(
+			mergeGenresInputSchema.safeParse({ sourceGenreId: 1, targetGenreId: 2.5 })
+				.success,
+		).toBe(false);
+	});
+
+	it("rejects a missing targetGenreId", () => {
+		expect(mergeGenresInputSchema.safeParse({ sourceGenreId: 1 }).success).toBe(
+			false,
+		);
+	});
+
+	it("rejects a non-numeric id", () => {
+		expect(
+			mergeGenresInputSchema.safeParse({ sourceGenreId: "x", targetGenreId: 2 })
+				.success,
+		).toBe(false);
 	});
 });
 

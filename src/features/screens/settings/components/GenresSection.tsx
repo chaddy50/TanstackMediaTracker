@@ -2,6 +2,7 @@ import {
 	createGenre,
 	deleteGenre,
 	getGenresWithUsage,
+	mergeGenres,
 	renameGenre,
 } from "#/lib/genres/genres";
 import { TaxonomySection } from "./taxonomy/TaxonomySection";
@@ -22,5 +23,10 @@ const GENRES_CONFIG: TaxonomySectionConfig = {
 		renameGenre({ data: { genreId: entryId, name } }),
 	deleteEntry: async (entryId) => {
 		await deleteGenre({ data: { genreId: entryId } });
+	},
+	mergeEntries: async (sourceId, targetId) => {
+		await mergeGenres({
+			data: { sourceGenreId: sourceId, targetGenreId: targetId },
+		});
 	},
 };

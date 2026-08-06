@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { Pencil, Trash2 } from "lucide-react";
+import { Merge, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +8,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import type { TaxonomyEntry } from "#/lib/taxonomy";
 import { DeleteTaxonomyEntryDialog } from "./DeleteTaxonomyEntryDialog";
+import { MergeTaxonomyEntryDialog } from "./MergeTaxonomyEntryDialog";
 import type { TaxonomySectionConfig } from "./types";
 
 interface TaxonomySectionProps {
@@ -42,6 +43,22 @@ export function TaxonomySection({ config }: TaxonomySectionProps) {
 	const [pendingDeleteEntry, setPendingDeleteEntry] =
 		useState<TaxonomyEntry | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	const [pendingMergeEntry, setPendingMergeEntry] =
+		useState<TaxonomyEntry | null>(null);
+	const [preselectedMergeTargetId, setPreselectedMergeTargetId] = useState<
+		number | null
+	>(null);
+	const [isMerging, setIsMerging] = useState(false);
+
+	/**
+	 * The entry the failed rename collided with, when it is one we have loaded.
+	 * A stale list can miss it, in which case the conflict stays a plain error.
+	 */
+	const collidingEntry =
+		renameErrorKey === "settings.taxonomy.conflictError"
+			? entryList.find((entry) => entry.name === draftName.trim())
+			: undefined;
 
 	/** Everything that reads this entity, plus the loaders behind the item lists. */
 	async function refreshEntryConsumers() {
@@ -106,6 +123,33 @@ export function TaxonomySection({ config }: TaxonomySectionProps) {
 			await refreshEntryConsumers();
 		} finally {
 			setIsSaving(false);
+		}
+	}
+
+	function handleStartMerge(entry: TaxonomyEntry, targetId: number | null) {
+		setPendingMergeEntry(entry);
+		setPreselectedMergeTargetId(targetId);
+	}
+
+	function handleCancelMerge() {
+		setPendingMergeEntry(null);
+		setPreselectedMergeTargetId(null);
+	}
+
+	async function handleConfirmMerge(targetId: number) {
+		if (pendingMergeEntry === null) {
+			return;
+		}
+
+		setIsMerging(true);
+		try {
+			await config.mergeEntries(pendingMergeEntry.id, targetId);
+			handleCancelMerge();
+			// A merge can start from the rename conflict, so leave edit mode too.
+			handleCancelRename();
+			await refreshEntryConsumers();
+		} finally {
+			setIsMerging(false);
 		}
 	}
 
@@ -225,6 +269,16 @@ export function TaxonomySection({ config }: TaxonomySectionProps) {
 											>
 												<Pencil className="size-4" />
 											</Button>
+											{entryList.length > 1 && (
+												<Button
+													onClick={() => handleStartMerge(entry, null)}
+													variant="ghost"
+													size="icon"
+													aria-label={t("settings.taxonomy.merge")}
+												>
+													<Merge className="size-4" />
+												</Button>
+											)}
 											<Button
 												onClick={() => setPendingDeleteEntry(entry)}
 												variant="ghost"
@@ -238,15 +292,42 @@ export function TaxonomySection({ config }: TaxonomySectionProps) {
 								)}
 
 								{isEditing && renameErrorKey !== null && (
-									<p className="text-sm text-destructive">
-										{t(renameErrorKey as never)}
-									</p>
+									<div className="flex items-center gap-2">
+										<p className="text-sm text-destructive">
+											{t(renameErrorKey as never)}
+										</p>
+										{collidingEntry !== undefined && (
+											<Button
+												onClick={() =>
+													handleStartMerge(entry, collidingEntry.id)
+												}
+												variant="link"
+												size="sm"
+												className="h-auto p-0 text-sm"
+											>
+												{t("settings.taxonomy.mergeConflictShortcut")}
+											</Button>
+										)}
+									</div>
 								)}
 							</li>
 						);
 					})}
 				</ul>
 			)}
+
+			<MergeTaxonomyEntryDialog
+				isOpen={pendingMergeEntry !== null}
+				i18nPrefix={config.i18nPrefix}
+				sourceEntry={pendingMergeEntry}
+				targetEntries={entryList.filter(
+					(entry) => entry.id !== pendingMergeEntry?.id,
+				)}
+				preselectedTargetId={preselectedMergeTargetId}
+				isMerging={isMerging}
+				onCancel={handleCancelMerge}
+				onConfirm={handleConfirmMerge}
+			/>
 
 			<DeleteTaxonomyEntryDialog
 				isOpen={pendingDeleteEntry !== null}

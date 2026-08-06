@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("#/database/index", async () => {
 	const { testDb } = await import("#/tests/integration/db");
@@ -33,6 +33,7 @@ import {
 	deleteGenre,
 	fetchGenreDetails,
 	getGenresWithUsage,
+	mergeGenres,
 	renameGenre,
 } from "../genres.server";
 
@@ -82,6 +83,15 @@ async function readGenreIdForItem(itemId: number): Promise<number | null> {
 
 	if (!row) throw new Error(`Media item ${itemId} not found`);
 	return row.genreId;
+}
+
+async function readAllMediaItemIds(): Promise<number[]> {
+	const rows = await testDb
+		.select({ id: mediaItems.id })
+		.from(mediaItems)
+		.orderBy(asc(mediaItems.id));
+
+	return rows.map((row) => row.id);
 }
 
 async function readItemMetadata(
@@ -646,5 +656,292 @@ describe("deleteGenre", () => {
 
 		expect(await readViewFilters(otherViewId)).toEqual({ genres: ["Sci-Fi"] });
 		expect(await readGenreIdForItem(otherItemId)).toBe(otherGenreId);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// mergeGenres
+// ---------------------------------------------------------------------------
+
+describe("mergeGenres", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("repoints every item on the source onto the target and deletes the source row", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First", sourceId);
+		const secondItemId = await insertItem("Second", sourceId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readGenreIdForItem(firstItemId)).toBe(targetId);
+		expect(await readGenreIdForItem(secondItemId)).toBe(targetId);
+		expect(await readGenreRow(sourceId)).toBeUndefined();
+	});
+
+	it("adds the item counts exactly", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertItem("First", sourceId);
+		await insertItem("Second", sourceId);
+		await insertItem("Third", targetId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 3 },
+		]);
+	});
+
+	it("leaves the items intact and never nulls genre_id", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First", sourceId);
+		const secondItemId = await insertItem("Second", sourceId);
+		const targetItemId = await insertItem("Third", targetId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readAllMediaItemIds()).toEqual([
+			firstItemId,
+			secondItemId,
+			targetItemId,
+		]);
+		expect(await readGenreIdForItem(firstItemId)).not.toBeNull();
+		expect(await readGenreIdForItem(secondItemId)).not.toBeNull();
+		expect(await readGenreIdForItem(targetItemId)).not.toBeNull();
+	});
+
+	it("merges an unused source without changing the target's count", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const itemId = await insertItem("First", targetId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 1 },
+		]);
+		expect(await readGenreRow(sourceId)).toBeUndefined();
+		expect(await readGenreIdForItem(itemId)).toBe(targetId);
+	});
+
+	it("merges into an unused target, which inherits every item", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertItem("First", sourceId);
+		await insertItem("Second", sourceId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Space Opera", itemCount: 2 },
+		]);
+	});
+
+	it("does not touch metadata.genres on any relinked item", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const itemId = await insertMediaItem({
+			userId: USER_A,
+			type: MediaItemType.BOOK,
+			title: "Dune",
+			genreId: sourceId,
+			metadata: { genres: ["Sci-Fi"] },
+		});
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readItemMetadata(itemId)).toEqual({ genres: ["Sci-Fi"] });
+		expect(await readGenreIdForItem(itemId)).toBe(targetId);
+	});
+
+	it("rewrites the source name to the target in saved view filters", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertGenre({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Horror"] },
+		});
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Space Opera", "Horror"],
+		});
+	});
+
+	it("de-duplicates a view that filters on both names, preserving first-seen order", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertGenre({ userId: USER_A, name: "Horror" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Space Opera", "Sci-Fi", "Horror"] },
+		});
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Space Opera", "Horror"],
+		});
+	});
+
+	it("leaves the sibling tags filter key untouched", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertTag({ userId: USER_A, name: "Sci-Fi" });
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: {
+				tags: ["Sci-Fi", "Horror"],
+				genres: ["Sci-Fi", "Horror"],
+			},
+		});
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readViewFilters(viewId)).toEqual({
+			tags: ["Sci-Fi", "Horror"],
+			genres: ["Space Opera", "Horror"],
+		});
+	});
+
+	it("does not touch another user's views listing the same names", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const otherViewId = await insertView({
+			userId: USER_B,
+			filters: { genres: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readViewFilters(otherViewId)).toEqual({
+			genres: ["Sci-Fi", "Space Opera"],
+		});
+	});
+
+	it("rejects merging a genre into itself and changes nothing", async () => {
+		const genreId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const itemId = await insertItem("First", genreId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi"] },
+		});
+
+		await expect(mergeGenres(genreId, genreId, USER_A)).rejects.toThrow(
+			"Cannot merge a genre into itself",
+		);
+
+		expect((await readGenreRow(genreId))?.name).toBe("Sci-Fi");
+		expect(await readGenreIdForItem(itemId)).toBe(genreId);
+		expect(await readViewFilters(viewId)).toEqual({ genres: ["Sci-Fi"] });
+	});
+
+	it("rejects a source owned by another user and changes nothing", async () => {
+		const sourceId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const otherItemId = await insertItem("Theirs", sourceId, USER_B);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await expect(mergeGenres(sourceId, targetId, USER_A)).rejects.toThrow(
+			`Genre ${sourceId} not found`,
+		);
+
+		expect((await readGenreRow(sourceId))?.name).toBe("Sci-Fi");
+		expect((await readGenreRow(targetId))?.name).toBe("Space Opera");
+		expect(await readGenreIdForItem(otherItemId)).toBe(sourceId);
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Sci-Fi", "Space Opera"],
+		});
+	});
+
+	it("rejects a target owned by another user and changes nothing", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_B, name: "Space Opera" });
+		const itemId = await insertItem("First", sourceId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Space Opera"] },
+		});
+
+		await expect(mergeGenres(sourceId, targetId, USER_A)).rejects.toThrow(
+			`Genre ${targetId} not found`,
+		);
+
+		expect((await readGenreRow(sourceId))?.name).toBe("Sci-Fi");
+		expect((await readGenreRow(targetId))?.name).toBe("Space Opera");
+		expect(await readGenreIdForItem(itemId)).toBe(sourceId);
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Sci-Fi", "Space Opera"],
+		});
+	});
+
+	it("leaves another user's items and identically-named genre alone", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const otherGenreId = await insertGenre({ userId: USER_B, name: "Sci-Fi" });
+		await insertItem("Mine", sourceId);
+		const otherItemId = await insertItem("Theirs", otherGenreId, USER_B);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect((await readGenreRow(otherGenreId))?.name).toBe("Sci-Fi");
+		expect(await readGenreIdForItem(otherItemId)).toBe(otherGenreId);
+	});
+
+	it("rolls back the repoint and the delete together when the transaction fails", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		const firstItemId = await insertItem("First", sourceId);
+		const secondItemId = await insertItem("Second", sourceId);
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { genres: ["Sci-Fi", "Space Opera"] },
+		});
+
+		// The only deterministic way to fail mid-transaction — and it doubles as
+		// proof that `mergeGenres` really wraps its writes in one.
+		const realTransaction = testDb.transaction.bind(testDb);
+		vi.spyOn(testDb, "transaction").mockImplementation((callback) =>
+			realTransaction(async (transaction) => {
+				await callback(transaction);
+				throw new Error("forced rollback");
+			}),
+		);
+
+		await expect(mergeGenres(sourceId, targetId, USER_A)).rejects.toThrow(
+			"forced rollback",
+		);
+
+		expect((await readGenreRow(sourceId))?.name).toBe("Sci-Fi");
+		expect(await readGenreIdForItem(firstItemId)).toBe(sourceId);
+		expect(await readGenreIdForItem(secondItemId)).toBe(sourceId);
+		// The view rewrite runs after the transaction, so a failed one never
+		// reaches it.
+		expect(await readViewFilters(viewId)).toEqual({
+			genres: ["Sci-Fi", "Space Opera"],
+		});
+	});
+
+	it("drops the source out of the usage list, target still ordered by name", async () => {
+		const sourceId = await insertGenre({ userId: USER_A, name: "Sci-Fi" });
+		const targetId = await insertGenre({ userId: USER_A, name: "Space Opera" });
+		await insertGenre({ userId: USER_A, name: "Horror" });
+		await insertItem("First", sourceId);
+
+		await mergeGenres(sourceId, targetId, USER_A);
+
+		expect(await readUsage(USER_A)).toEqual([
+			{ name: "Horror", itemCount: 0 },
+			{ name: "Space Opera", itemCount: 1 },
+		]);
 	});
 });

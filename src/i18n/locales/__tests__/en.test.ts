@@ -21,6 +21,20 @@ const SHARED_TAXONOMY_UI_KEYS = [
 ];
 
 /**
+ * The entity-agnostic keys the merge control and `MergeTaxonomyEntryDialog`
+ * hand to `t`, whichever taxonomy they are managing.
+ */
+const MERGE_TAXONOMY_UI_KEYS = [
+	"settings.taxonomy.merge",
+	"settings.taxonomy.mergeTitle",
+	"settings.taxonomy.merging",
+	"settings.taxonomy.confirmMerge",
+	"settings.taxonomy.mergeTargetLabel",
+	"settings.taxonomy.mergeConflictShortcut",
+	"settings.taxonomy.noMergeTargets",
+];
+
+/**
  * The per-entity key suffixes the panel resolves under its config's i18n prefix.
  * i18next plural keys only exist in the locale as `_one`/`_other`, so those are
  * listed suffixed.
@@ -35,6 +49,8 @@ const PER_ENTITY_UI_KEY_SUFFIXES = [
 	"deleteDescription",
 	"deleteInUseDescription_one",
 	"deleteInUseDescription_other",
+	"mergePrompt",
+	"mergeDescription",
 ];
 
 const TAXONOMY_ENTITIES = ["tags", "genres"];
@@ -51,6 +67,14 @@ describe("en locale", () => {
 
 	it("defines every shared taxonomy key the panel renders", () => {
 		for (const key of SHARED_TAXONOMY_UI_KEYS) {
+			const value = resolveKey(en, key);
+			expect(value, key).toBeTypeOf("string");
+			expect(value, key).toBeTruthy();
+		}
+	});
+
+	it("defines every shared taxonomy merge key the panel and dialog render", () => {
+		for (const key of MERGE_TAXONOMY_UI_KEYS) {
 			const value = resolveKey(en, key);
 			expect(value, key).toBeTypeOf("string");
 			expect(value, key).toBeTruthy();

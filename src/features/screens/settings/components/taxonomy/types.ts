@@ -20,4 +20,6 @@ export type TaxonomySectionConfig = {
 		name: string,
 	) => Promise<TaxonomyMutationResult>;
 	deleteEntry: (entryId: number) => Promise<void>;
+	/** Folds `sourceId` into `targetId` and deletes the source. Irreversible. */
+	mergeEntries: (sourceId: number, targetId: number) => Promise<void>;
 };

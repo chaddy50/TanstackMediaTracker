@@ -1,4 +1,10 @@
-import { createTag, deleteTag, getTagsWithUsage, renameTag } from "#/lib/tags";
+import {
+	createTag,
+	deleteTag,
+	getTagsWithUsage,
+	mergeTags,
+	renameTag,
+} from "#/lib/tags";
 import { TaxonomySection } from "./taxonomy/TaxonomySection";
 import type { TaxonomySectionConfig } from "./taxonomy/types";
 
@@ -23,5 +29,8 @@ const TAGS_CONFIG: TaxonomySectionConfig = {
 	renameEntry: (entryId, name) => renameTag({ data: { tagId: entryId, name } }),
 	deleteEntry: async (entryId) => {
 		await deleteTag({ data: { tagId: entryId } });
+	},
+	mergeEntries: async (sourceId, targetId) => {
+		await mergeTags({ data: { sourceTagId: sourceId, targetTagId: targetId } });
 	},
 };

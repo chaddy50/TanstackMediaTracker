@@ -263,6 +263,13 @@ export const en = {
 			deleteTitle: "Delete this entry?",
 			emptyNameError: "Enter a name.",
 			conflictError: "You already have one with that name.",
+			merge: "Merge",
+			mergeTitle: "Merge into another entry?",
+			mergeTargetLabel: "Merge into",
+			confirmMerge: "Yes, Merge",
+			merging: "Merging...",
+			mergeConflictShortcut: "Merge them instead",
+			noMergeTargets: "There's nothing to merge this into yet.",
 		},
 		tags: {
 			title: "Tags",
@@ -277,6 +284,9 @@ export const en = {
 				'"{{name}}" is used by {{count}} item. Deleting it will remove the tag from that item and from any saved views that filter on it.',
 			deleteInUseDescription_other:
 				'"{{name}}" is used by {{count}} items. Deleting it will remove the tag from those items and from any saved views that filter on it.',
+			mergePrompt: 'Select a tag to merge "{{sourceName}}" into.',
+			mergeDescription:
+				'Every item tagged "{{sourceName}}" will be tagged "{{targetName}}" instead, and "{{sourceName}}" will be deleted. This cannot be undone.',
 		},
 		genres: {
 			title: "Genres",
@@ -291,6 +301,9 @@ export const en = {
 				'"{{name}}" is used by {{count}} item. Deleting it will clear the genre on that item and remove it from any saved views that filter on it.',
 			deleteInUseDescription_other:
 				'"{{name}}" is used by {{count}} items. Deleting it will clear the genre on those items and remove it from any saved views that filter on it.',
+			mergePrompt: 'Select a genre to merge "{{sourceName}}" into.',
+			mergeDescription:
+				'Every item in "{{sourceName}}" will move to "{{targetName}}", and "{{sourceName}}" will be deleted. This cannot be undone.',
 		},
 	},
 	views: {
