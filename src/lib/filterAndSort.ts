@@ -5,7 +5,7 @@ import {
 	mediaTypeEnum,
 	purchaseStatusEnum,
 } from "#/database/schema";
-import type { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
+import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import { SERIES_SORT_FIELDS, VIEW_ITEM_SORT_FIELDS } from "#/lib/sortFields";
 
 /**
@@ -50,4 +50,66 @@ export function isFilteredToSingleStatus(
 	statuses: MediaItemStatus[] | null | undefined,
 ): boolean {
 	return statuses?.length === 1;
+}
+
+/**
+ * True when a completed count is worth showing — that is, when the filters still
+ * let it vary. A view of finished items has a completed count equal to its
+ * total, and a view that excludes them has one that is always zero.
+ */
+export function shouldShowCompletedCount(
+	statuses: MediaItemStatus[] | null | undefined,
+): boolean {
+	return !isCountDeterminedByFilter(statuses, MediaItemStatus.COMPLETED);
+}
+
+/**
+ * True when the filters pin the results to finished items and nothing else.
+ *
+ * Such a view is a record of what has been read/watched/played, so what was paid
+ * for along the way is beside the point — callers use this to drop the purchased
+ * count as well.
+ */
+export function isFilteredToCompletedOnly(
+	statuses: MediaItemStatus[] | null | undefined,
+): boolean {
+	return (
+		isFilteredToSingleStatus(statuses) &&
+		statuses?.[0] === MediaItemStatus.COMPLETED
+	);
+}
+
+/** True when a dropped count is worth showing. See {@link shouldShowCompletedCount}. */
+export function shouldShowDroppedCount(
+	statuses: MediaItemStatus[] | null | undefined,
+): boolean {
+	return !isCountDeterminedByFilter(statuses, MediaItemStatus.DROPPED);
+}
+
+/** True when a purchased count is worth showing. See {@link shouldShowCompletedCount}. */
+export function shouldShowPurchasedCount(
+	purchaseStatuses: PurchaseStatus[] | null | undefined,
+): boolean {
+	return !isCountDeterminedByFilter(purchaseStatuses, PurchaseStatus.PURCHASED);
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the filter alone already fixes the count of `value`, leaving it no
+ * room to differ from either zero or the result total.
+ */
+function isCountDeterminedByFilter<T>(
+	selected: T[] | null | undefined,
+	value: T,
+): boolean {
+	if (!selected?.length) {
+		return false;
+	}
+	if (!selected.includes(value)) {
+		return true;
+	}
+	return selected.length === 1;
 }

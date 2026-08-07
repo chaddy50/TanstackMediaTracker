@@ -7,8 +7,11 @@ import {
 	viewItemOrder,
 	views,
 } from "#/database/schema";
-import { runOrderableItemQuery } from "#/lib/queries/itemQuery.server";
-import type { ItemQueryItem } from "#/lib/queries/types";
+import {
+	runItemStatsQuery,
+	runOrderableItemQuery,
+} from "#/lib/queries/itemQuery.server";
+import type { ItemQueryItem, ItemStats } from "#/lib/queries/types";
 import { CUSTOM_ITEM_SORT_FIELD } from "#/lib/sortFields";
 
 /**
@@ -36,6 +39,24 @@ export async function handleGetViewOrderItems(
 		userId,
 		viewId,
 	);
+}
+
+export async function handleGetViewStats(
+	viewId: number,
+	userId: string,
+	titleQuery: string | undefined,
+): Promise<ItemStats | null> {
+	const view = await findOwnedView(viewId, userId);
+	if (view.subject !== "items") {
+		return null;
+	}
+
+	const filters = {
+		...(view.filters ?? {}),
+		titleQuery,
+	} as FilterAndSortOptions;
+
+	return runItemStatsQuery(filters, userId);
 }
 
 /**

@@ -29,6 +29,13 @@ export type ItemQueryItem = {
 	rating: number;
 };
 
+export type ItemStats = {
+	totalCount: number;
+	completedCount: number;
+	purchasedCount: number;
+	droppedCount: number;
+};
+
 /**
  * How many items reorder mode will load. Dragging must cover the whole result
  * set — a partial page would let one drop rewrite positions for items the user

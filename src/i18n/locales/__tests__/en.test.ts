@@ -55,6 +55,14 @@ const PER_ENTITY_UI_KEY_SUFFIXES = [
 
 const TAXONOMY_ENTITIES = ["tags", "genres"];
 
+/** Exactly the keys `StatsBar` hands to `t`, in the order it renders them. */
+const STATS_UI_KEYS = [
+	"stats.items",
+	"stats.completed",
+	"stats.purchased",
+	"stats.dropped",
+];
+
 describe("en locale", () => {
 	it("resolves a label and description for every registered settings tab", () => {
 		for (const tab of SETTINGS_TABS) {
@@ -75,6 +83,14 @@ describe("en locale", () => {
 
 	it("defines every shared taxonomy merge key the panel and dialog render", () => {
 		for (const key of MERGE_TAXONOMY_UI_KEYS) {
+			const value = resolveKey(en, key);
+			expect(value, key).toBeTypeOf("string");
+			expect(value, key).toBeTruthy();
+		}
+	});
+
+	it("defines every stats key the bar renders", () => {
+		for (const key of STATS_UI_KEYS) {
 			const value = resolveKey(en, key);
 			expect(value, key).toBeTypeOf("string");
 			expect(value, key).toBeTruthy();

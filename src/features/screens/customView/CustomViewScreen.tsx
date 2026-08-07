@@ -7,6 +7,7 @@ import { useInfiniteScroll } from "#/components/hooks/useInfiniteScroll";
 import { InfiniteScrollLoader } from "#/components/InfiniteScrollLoader";
 import { MediaItemList } from "#/components/MediaItemList";
 import { SeriesList } from "#/components/SeriesList";
+import { StatsBar } from "#/components/StatsBar";
 import { Button } from "#/components/ui/button";
 import { SearchInput } from "#/features/navigation/topBar/components/SearchInput";
 import { TopBar } from "#/features/navigation/topBar/TopBar";
@@ -35,7 +36,7 @@ type PaginatedResult<T> = { items: T[]; hasMore: boolean };
 const route = getRouteApi("/_authenticated/_app/views/$viewId");
 
 export function ViewScreen() {
-	const { view, results } = route.useLoaderData();
+	const { view, results, stats } = route.useLoaderData();
 	const search = route.useSearch();
 	const router = useRouter();
 	const queryClient = useQueryClient();
@@ -171,6 +172,11 @@ export function ViewScreen() {
 		<div className="min-h-screen bg-background text-foreground">
 			<TopBar
 				title={view.name}
+				below={
+					!isReordering && stats ? (
+						<StatsBar stats={stats} filters={view.filters} />
+					) : null
+				}
 				right={
 					<>
 						{/* Searching while reordering would narrow the grid, and a drop

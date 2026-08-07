@@ -27,7 +27,11 @@ import {
 	linkTag,
 	truncateAll,
 } from "#/tests/integration/helpers";
-import { runItemQuery, runOrderableItemQuery } from "../itemQuery.server";
+import {
+	runItemQuery,
+	runItemStatsQuery,
+	runOrderableItemQuery,
+} from "../itemQuery.server";
 
 const USER = "test-user";
 
@@ -1137,5 +1141,395 @@ describe("runOrderableItemQuery", () => {
 		);
 
 		expect(result.map((item) => item.title)).toEqual(["Zebra", "Apple"]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runItemStatsQuery — aggregate math
+// ---------------------------------------------------------------------------
+
+describe("runItemStatsQuery aggregate math", () => {
+	it("counts every matching item, not just the first loaded page", async () => {
+		for (let itemIndex = 0; itemIndex < 60; itemIndex++) {
+			await insertItem({
+				title: `Item ${String(itemIndex).padStart(3, "0")}`,
+			});
+		}
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(60);
+	});
+
+	it("counts completed and dropped as separate buckets of the total", async () => {
+		await insertItem({ title: "Done One", status: MediaItemStatus.COMPLETED });
+		await insertItem({ title: "Done Two", status: MediaItemStatus.COMPLETED });
+		await insertItem({
+			title: "Done Three",
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertItem({ title: "Queued One", status: MediaItemStatus.BACKLOG });
+		await insertItem({ title: "Queued Two", status: MediaItemStatus.BACKLOG });
+		await insertItem({ title: "Abandoned", status: MediaItemStatus.DROPPED });
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats).toMatchObject({
+			totalCount: 6,
+			completedCount: 3,
+			droppedCount: 1,
+		});
+	});
+
+	it("counts purchased items", async () => {
+		await insertItem({
+			title: "Bought One",
+			purchaseStatus: PurchaseStatus.PURCHASED,
+		});
+		await insertItem({
+			title: "Bought Two",
+			purchaseStatus: PurchaseStatus.PURCHASED,
+		});
+		await insertItem({
+			title: "Wishlist",
+			purchaseStatus: PurchaseStatus.WANT_TO_BUY,
+		});
+		await insertItem({
+			title: "Unowned",
+			purchaseStatus: PurchaseStatus.NOT_PURCHASED,
+		});
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.purchasedCount).toBe(2);
+	});
+
+	it("counts a purchased item in both the purchased and dropped buckets", async () => {
+		await insertItem({
+			title: "Bought and abandoned",
+			purchaseStatus: PurchaseStatus.PURCHASED,
+			status: MediaItemStatus.DROPPED,
+		});
+		await insertItem({
+			title: "Bought and pending release",
+			purchaseStatus: PurchaseStatus.PURCHASED,
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.purchasedCount).toBe(2);
+		expect(stats.droppedCount).toBe(1);
+	});
+
+	it("leaves non-done, non-dropped statuses out of both buckets", async () => {
+		await insertItem({ title: "Backlog", status: MediaItemStatus.BACKLOG });
+		await insertItem({ title: "Next Up", status: MediaItemStatus.NEXT_UP });
+		await insertItem({
+			title: "In Progress",
+			status: MediaItemStatus.IN_PROGRESS,
+		});
+		await insertItem({ title: "On Hold", status: MediaItemStatus.ON_HOLD });
+		await insertItem({
+			title: "Waiting",
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(5);
+		expect(stats.completedCount).toBe(0);
+		expect(stats.droppedCount).toBe(0);
+	});
+
+	it("returns all zeros when nothing matches", async () => {
+		const stats = await runItemStatsQuery({}, USER);
+
+		// An aggregate over no rows still yields one row, so every field reads 0
+		// rather than the query coming back empty.
+		expect(stats).toEqual({
+			totalCount: 0,
+			completedCount: 0,
+			purchasedCount: 0,
+			droppedCount: 0,
+		});
+	});
+
+	it("counts an item with several completed instances once", async () => {
+		const itemId = await insertItem({
+			title: "Re-read",
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertInstance({ mediaItemId: itemId, completedAt: "2023-01-01" });
+		await insertInstance({ mediaItemId: itemId, completedAt: "2024-01-01" });
+		await insertInstance({ mediaItemId: itemId, completedAt: "2025-01-01" });
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(1);
+		expect(stats.completedCount).toBe(1);
+	});
+
+	it("counts an item carrying several selected tags once", async () => {
+		const itemId = await insertItem({ title: "Multi Tagged" });
+		const firstTagId = await insertTag({ userId: USER, name: "a" });
+		const secondTagId = await insertTag({ userId: USER, name: "b" });
+		await linkTag(itemId, firstTagId);
+		await linkTag(itemId, secondTagId);
+
+		const stats = await runItemStatsQuery({ tags: ["a", "b"] }, USER);
+
+		expect(stats.totalCount).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runItemStatsQuery — filter parity with the list query
+// ---------------------------------------------------------------------------
+
+describe("runItemStatsQuery filters", () => {
+	it("scopes counts to the requesting user", async () => {
+		await insertItem({ title: "Mine" });
+		await insertItem({ title: "Theirs", userId: "other-user" });
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("honors the media type filter", async () => {
+		await insertItem({ title: "Book", type: MediaItemType.BOOK });
+		await insertItem({ title: "Movie", type: MediaItemType.MOVIE });
+
+		const stats = await runItemStatsQuery(
+			{ mediaTypes: [MediaItemType.BOOK] },
+			USER,
+		);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("honors the status filter", async () => {
+		await insertItem({ title: "Done", status: MediaItemStatus.COMPLETED });
+		await insertItem({ title: "Queued", status: MediaItemStatus.BACKLOG });
+
+		const stats = await runItemStatsQuery(
+			{ statuses: [MediaItemStatus.COMPLETED] },
+			USER,
+		);
+
+		expect(stats.totalCount).toBe(1);
+		expect(stats.completedCount).toBe(stats.totalCount);
+	});
+
+	it("honors the purchase status filter", async () => {
+		await insertItem({
+			title: "Bought",
+			purchaseStatus: PurchaseStatus.PURCHASED,
+		});
+		await insertItem({
+			title: "Wishlist",
+			purchaseStatus: PurchaseStatus.WANT_TO_BUY,
+		});
+
+		const stats = await runItemStatsQuery(
+			{ purchaseStatuses: [PurchaseStatus.PURCHASED] },
+			USER,
+		);
+
+		expect(stats.totalCount).toBe(1);
+		expect(stats.purchasedCount).toBe(stats.totalCount);
+	});
+
+	it("honors the completed date range", async () => {
+		const inRangeId = await insertItem({ title: "In Range" });
+		const outOfRangeId = await insertItem({ title: "Out of Range" });
+		await insertInstance({ mediaItemId: inRangeId, completedAt: "2025-06-15" });
+		await insertInstance({
+			mediaItemId: outOfRangeId,
+			completedAt: "2024-12-31",
+		});
+
+		const stats = await runItemStatsQuery(
+			{ completedDateStart: "2025-01-01", completedDateEnd: "2025-12-31" },
+			USER,
+		);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("honors completedThisYear", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-03-01"));
+
+		const thisYearId = await insertItem({ title: "This Year" });
+		const lastYearId = await insertItem({ title: "Last Year" });
+		await insertInstance({
+			mediaItemId: thisYearId,
+			completedAt: "2026-01-15",
+		});
+		await insertInstance({
+			mediaItemId: lastYearId,
+			completedAt: "2025-12-31",
+		});
+
+		const stats = await runItemStatsQuery({ completedThisYear: true }, USER);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("honors a real tag filter", async () => {
+		const taggedId = await insertItem({ title: "Tagged" });
+		await insertItem({ title: "Untagged" });
+		const tagId = await insertTag({ userId: USER, name: "favorites" });
+		await linkTag(taggedId, tagId);
+
+		const stats = await runItemStatsQuery({ tags: ["favorites"] }, USER);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("honors the blank tag sentinel", async () => {
+		const taggedId = await insertItem({ title: "Tagged" });
+		await insertItem({ title: "Untagged" });
+		const tagId = await insertTag({ userId: USER, name: "favorites" });
+		await linkTag(taggedId, tagId);
+
+		const stats = await runItemStatsQuery({ tags: [BLANK_FILTER_VALUE] }, USER);
+
+		expect(stats.totalCount).toBe(1);
+	});
+
+	it("does not count items matched via another user's tag", async () => {
+		const itemId = await insertItem({ title: "Mine" });
+		const otherUserTagId = await insertTag({
+			userId: "other-user",
+			name: "favorites",
+		});
+		await linkTag(itemId, otherUserTagId);
+
+		const stats = await runItemStatsQuery({ tags: ["favorites"] }, USER);
+
+		expect(stats.totalCount).toBe(0);
+	});
+
+	it("honors a real genre filter and the blank genre sentinel", async () => {
+		const genreId = await insertGenre({ userId: USER, name: "Fantasy" });
+		await insertItem({ title: "Fantasy Book", genreId });
+		await insertItem({ title: "No Genre" });
+
+		const fantasyStats = await runItemStatsQuery({ genres: ["Fantasy"] }, USER);
+		const blankStats = await runItemStatsQuery(
+			{ genres: [BLANK_FILTER_VALUE] },
+			USER,
+		);
+
+		expect(fantasyStats.totalCount).toBe(1);
+		expect(blankStats.totalCount).toBe(1);
+	});
+
+	it("honors the title query and the creator query", async () => {
+		const creatorId = await insertCreator({
+			userId: USER,
+			name: "Christopher Nolan",
+		});
+		await insertItem({ title: "Dune" });
+		await insertItem({ title: "Foundation" });
+		await insertItem({
+			title: "Inception",
+			type: MediaItemType.MOVIE,
+			creatorId,
+		});
+
+		const titleStats = await runItemStatsQuery({ titleQuery: "dun" }, USER);
+		const creatorStats = await runItemStatsQuery(
+			{ creatorQuery: "nolan" },
+			USER,
+		);
+
+		expect(titleStats.totalCount).toBe(1);
+		expect(creatorStats.totalCount).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runItemStatsQuery — agreement with the list query
+// ---------------------------------------------------------------------------
+
+describe("runItemStatsQuery agreement with runItemQuery", () => {
+	it("totals agree with the list query under combined filters", async () => {
+		const matchId = await insertItem({
+			title: "Match",
+			type: MediaItemType.BOOK,
+			status: MediaItemStatus.COMPLETED,
+		});
+		const tagId = await insertTag({ userId: USER, name: "favorites" });
+		await linkTag(matchId, tagId);
+
+		await insertItem({
+			title: "Wrong type",
+			type: MediaItemType.MOVIE,
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertItem({
+			title: "Wrong status",
+			type: MediaItemType.BOOK,
+			status: MediaItemStatus.BACKLOG,
+		});
+
+		const filters = {
+			mediaTypes: [MediaItemType.BOOK],
+			statuses: [MediaItemStatus.COMPLETED],
+			tags: ["favorites"],
+		};
+		const stats = await runItemStatsQuery(filters, USER);
+		const listed = await runItemQuery(filters, USER);
+
+		expect(stats.totalCount).toBe(listed.items.length);
+	});
+
+	it("totals agree with the list query across several pages", async () => {
+		for (let itemIndex = 0; itemIndex < 60; itemIndex++) {
+			await insertItem({
+				title: `Item ${String(itemIndex).padStart(3, "0")}`,
+			});
+		}
+
+		const stats = await runItemStatsQuery({}, USER);
+		const firstPage = await runItemQuery({}, USER, 0);
+		const secondPage = await runItemQuery({}, USER, 48);
+
+		expect(stats.totalCount).toBe(
+			firstPage.items.length + secondPage.items.length,
+		);
+	});
+
+	it("agrees with the rows the list returns on every count", async () => {
+		const statuses = Object.values(MediaItemStatus);
+		const purchaseStatuses = Object.values(PurchaseStatus);
+		for (let itemIndex = 0; itemIndex < 21; itemIndex++) {
+			await insertItem({
+				title: `Item ${String(itemIndex).padStart(3, "0")}`,
+				status: statuses[itemIndex % statuses.length],
+				purchaseStatus: purchaseStatuses[itemIndex % purchaseStatuses.length],
+			});
+		}
+
+		const stats = await runItemStatsQuery({}, USER);
+		const listed = await runItemQuery({}, USER);
+		const items = listed.items;
+
+		expect(stats).toEqual({
+			totalCount: items.length,
+			completedCount: items.filter(
+				(item) => item.status === MediaItemStatus.COMPLETED,
+			).length,
+			purchasedCount: items.filter(
+				(item) => item.purchaseStatus === PurchaseStatus.PURCHASED,
+			).length,
+			droppedCount: items.filter(
+				(item) => item.status === MediaItemStatus.DROPPED,
+			).length,
+		});
 	});
 });

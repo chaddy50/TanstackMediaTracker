@@ -27,11 +27,12 @@ import {
 	tags,
 	viewItemOrder,
 } from "#/database/schema";
-import { MediaItemStatus } from "#/lib/enums";
+import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
 import { BLANK_FILTER_VALUE } from "#/lib/genres/constants";
 import { syncSeriesStatus } from "#/lib/queries/seriesQuery.server";
 import {
 	type ItemQueryItem,
+	type ItemStats,
 	REORDERABLE_ITEM_LIMIT,
 } from "#/lib/queries/types";
 import { CUSTOM_ITEM_SORT_FIELD } from "#/lib/sortFields";
@@ -375,6 +376,56 @@ export async function runOrderableItemQuery(
 }
 
 // ---------------------------------------------------------------------------
+// runItemStatsQuery
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregate counts for the items a set of filters selects.
+ *
+ * It shares `buildItemFilterConditions` with the list query rather than counting
+ * the rows a page returned: the stats describe the whole result set, and reusing
+ * the one condition builder is what keeps the numbers from drifting away from
+ * the list they sit above.
+ *
+ * There is no view id to pass — a view's filters arrive in `filters`, and the
+ * view id only ever fed the sort, which an aggregate has no use for.
+ */
+export async function runItemStatsQuery(
+	filters: FilterAndSortOptions,
+	userId: string,
+): Promise<ItemStats> {
+	const conditions = buildItemFilterConditions(filters, userId);
+
+	// The joins the filter conditions reach into. The latest-instance LATERAL of
+	// the list query is absent on purpose: it only backs the rating and
+	// completed-at sort columns, and the completed-date filter is a self-contained
+	// EXISTS.
+	const [row] = await db
+		.select({
+			totalCount: sql<string>`count(*)`,
+			completedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.status} = ${MediaItemStatus.COMPLETED})`,
+			purchasedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.purchaseStatus} = ${PurchaseStatus.PURCHASED})`,
+			droppedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.status} = ${MediaItemStatus.DROPPED})`,
+		})
+		.from(mediaItems)
+		.leftJoin(series, eq(mediaItems.seriesId, series.id))
+		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
+		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
+		.where(and(...conditions));
+
+	const totalCount = toCount(row?.totalCount);
+	const completedCount = toCount(row?.completedCount);
+	const droppedCount = toCount(row?.droppedCount);
+
+	return {
+		totalCount,
+		completedCount,
+		purchasedCount: toCount(row?.purchasedCount),
+		droppedCount,
+	};
+}
+
+// ---------------------------------------------------------------------------
 // transitionReleasedItems
 // ---------------------------------------------------------------------------
 
@@ -499,4 +550,9 @@ function toItemQueryItem({
 	...item
 }: ItemQueryRow): ItemQueryItem {
 	return { ...item, rating: parseFloat(latestRating ?? "") || 0 };
+}
+
+/** `count(*)` is a bigint, which node-postgres hands back as a string. */
+function toCount(value: string | undefined): number {
+	return Number(value ?? 0);
 }

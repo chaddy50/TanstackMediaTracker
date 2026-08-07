@@ -5,6 +5,7 @@ import { REORDERABLE_ITEM_LIMIT } from "#/lib/queries/types";
 import {
 	normalizeSortField,
 	runItemQuery,
+	runItemStatsQuery,
 	runOrderableItemQuery,
 	transitionReleasedItems,
 } from "../itemQuery.server";
@@ -334,6 +335,107 @@ describe("runOrderableItemQuery", () => {
 		);
 
 		expect(result[0].rating).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runItemStatsQuery
+// ---------------------------------------------------------------------------
+
+/** The raw aggregate row Postgres hands back: bigint counts arrive as strings. */
+type StatsQueryRow = {
+	totalCount: string;
+	completedCount: string;
+	purchasedCount: string;
+	droppedCount: string;
+};
+
+/**
+ * The aggregate select terminates at `.where()` rather than at `.offset()`, so
+ * it needs its own chain. `limit`/`offset` are present purely so a test can
+ * assert the aggregate never paginates.
+ */
+function makeStatsQueryChain(resolvedRow: StatsQueryRow) {
+	const chain: Record<string, unknown> = {};
+	for (const method of ["from", "leftJoin"]) {
+		chain[method] = vi.fn(() => chain);
+	}
+	chain.where = vi.fn().mockResolvedValue([resolvedRow]);
+	const limitFn = vi.fn(() => chain);
+	const offsetFn = vi.fn(() => chain);
+	chain.limit = limitFn;
+	chain.offset = offsetFn;
+	return { chain, limitFn, offsetFn };
+}
+
+describe("runItemStatsQuery", () => {
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("coerces bigint counts returned as strings into numbers", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeStatsQueryChain({
+			totalCount: "10",
+			completedCount: "4",
+			purchasedCount: "6",
+			droppedCount: "1",
+		});
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const stats = await runItemStatsQuery({}, "user-1");
+
+		for (const value of Object.values(stats)) {
+			expect(value).toBeTypeOf("number");
+		}
+		expect(stats.totalCount).toBe(10);
+		expect(stats.completedCount).toBe(4);
+		expect(stats.purchasedCount).toBe(6);
+		expect(stats.droppedCount).toBe(1);
+	});
+
+	it("coerces a zero row to numeric zeros, not string zeros", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeStatsQueryChain({
+			totalCount: "0",
+			completedCount: "0",
+			purchasedCount: "0",
+			droppedCount: "0",
+		});
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const stats = await runItemStatsQuery({}, "user-1");
+
+		expect(stats).toEqual({
+			totalCount: 0,
+			completedCount: 0,
+			purchasedCount: 0,
+			droppedCount: 0,
+		});
+		for (const value of Object.values(stats)) {
+			expect(value).toBeTypeOf("number");
+		}
+	});
+
+	it("issues one un-paginated aggregate rather than a page of rows", async () => {
+		const { db } = await import("#/database/index");
+		const { chain, limitFn, offsetFn } = makeStatsQueryChain({
+			totalCount: "10",
+			completedCount: "4",
+			purchasedCount: "6",
+			droppedCount: "1",
+		});
+		const selectFn = vi.fn(() => chain);
+		// @ts-expect-error — assigning to mocked module
+		db.select = selectFn;
+
+		await runItemStatsQuery({}, "user-1");
+
+		expect(selectFn).toHaveBeenCalledOnce();
+		expect(limitFn).not.toHaveBeenCalled();
+		expect(offsetFn).not.toHaveBeenCalled();
 	});
 });
 

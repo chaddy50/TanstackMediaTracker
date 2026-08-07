@@ -8,6 +8,12 @@ export const en = {
 		clearFilters: "Clear filters",
 		applyFilters: "Apply",
 	},
+	stats: {
+		items: "Items",
+		completed: "Completed",
+		purchased: "Purchased",
+		dropped: "Dropped",
+	},
 	series: {
 		title: "Series",
 		empty: "No series found.",

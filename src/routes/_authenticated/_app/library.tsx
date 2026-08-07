@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LibraryScreen } from "#/features/screens/library/LibraryScreen";
-import { getLibrary } from "#/features/screens/library/library";
+import {
+	getLibrary,
+	getLibraryStats,
+} from "#/features/screens/library/library";
 import {
 	applyLibrarySortDefaults,
 	getUserSettings,
@@ -13,8 +16,11 @@ export const Route = createFileRoute("/_authenticated/_app/library")({
 	loader: async ({ deps }) => {
 		const settings = await getUserSettings();
 		const effectiveDeps = applyLibrarySortDefaults(deps, settings);
-		const data = await getLibrary({ data: effectiveDeps });
-		return { ...data, settings };
+		const [data, stats] = await Promise.all([
+			getLibrary({ data: effectiveDeps }),
+			getLibraryStats({ data: effectiveDeps }),
+		]);
+		return { ...data, stats, settings };
 	},
 	component: LibraryScreen,
 });

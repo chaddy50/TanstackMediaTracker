@@ -12,6 +12,7 @@ import { getLoggedInUser } from "#/features/screens/auth/session";
 import {
 	findOwnedView,
 	handleGetViewOrderItems,
+	handleGetViewStats,
 	handleReorderViewItems,
 } from "#/features/screens/customView/view.server";
 import { filterAndSortOptionsSchema } from "#/lib/filterAndSort";
@@ -79,6 +80,18 @@ export const getViewOrderItems = createServerFn({ method: "GET" })
 	.handler(async ({ data: { viewId } }) => {
 		const user = await getLoggedInUser();
 		return handleGetViewOrderItems(viewId, user.id);
+	});
+
+export const getViewStats = createServerFn({ method: "GET" })
+	.inputValidator(
+		z.object({
+			viewId: z.number(),
+			titleQuery: z.string().optional(),
+		}),
+	)
+	.handler(async ({ data: { viewId, titleQuery } }) => {
+		const user = await getLoggedInUser();
+		return handleGetViewStats(viewId, user.id, titleQuery);
 	});
 
 export type ViewResults = Awaited<ReturnType<typeof getViewResults>>;

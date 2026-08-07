@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FilterAndSortOptions, ViewSubject } from "#/database/schema";
 import { ViewScreen } from "#/features/screens/customView/CustomViewScreen";
 import { MediaItemStatus, MediaItemType, PurchaseStatus } from "#/lib/enums";
+import type { ItemStats } from "#/lib/queries/types";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -34,11 +35,21 @@ function simulateLoaderRefresh() {
 	loaderResults = { items: [], hasMore: false };
 }
 
+// Series views carry no per-item stats, so the loader hands back null for them.
+const EMPTY_STATS: ItemStats = {
+	totalCount: 0,
+	completedCount: 0,
+	purchasedCount: 0,
+	droppedCount: 0,
+};
+
+let stats: ItemStats | null = EMPTY_STATS;
+
 const routerInvalidate = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
-		useLoaderData: () => ({ view, results: loaderResults }),
+		useLoaderData: () => ({ view, results: loaderResults, stats }),
 		useSearch: () => ({}),
 	}),
 	useRouter: () => ({
@@ -67,6 +78,22 @@ vi.mock("#/components/MediaItemList", () => ({
 	},
 }));
 
+// StatsBar's own rendering is covered by its suite; here only the hand-off and
+// the screen's decision to show it at all matter.
+let capturedStats: ItemStats | undefined;
+let capturedFilters: FilterAndSortOptions | null | undefined;
+
+vi.mock("#/components/StatsBar", () => ({
+	StatsBar: (props: {
+		stats: ItemStats;
+		filters?: FilterAndSortOptions | null;
+	}) => {
+		capturedStats = props.stats;
+		capturedFilters = props.filters;
+		return <div data-testid="stats-bar" />;
+	},
+}));
+
 vi.mock("#/components/SeriesList", () => ({ SeriesList: () => null }));
 
 vi.mock("#/features/screens/customView/EditViewDialog", () => ({
@@ -74,7 +101,18 @@ vi.mock("#/features/screens/customView/EditViewDialog", () => ({
 }));
 // Renders the action slot so the reorder toggle is reachable.
 vi.mock("#/features/navigation/topBar/TopBar", () => ({
-	TopBar: ({ right }: { right?: React.ReactNode }) => <div>{right}</div>,
+	TopBar: ({
+		right,
+		below,
+	}: {
+		right?: React.ReactNode;
+		below?: React.ReactNode;
+	}) => (
+		<div>
+			{right}
+			<div data-testid="top-bar-below">{below}</div>
+		</div>
+	),
 }));
 vi.mock("#/features/navigation/topBar/components/SearchInput", () => ({
 	SearchInput: () => null,
@@ -114,6 +152,9 @@ vi.mock("#/components/hooks/useInfiniteScroll", () => ({
 afterEach(cleanup);
 beforeEach(() => {
 	view = { id: 1, name: "Owned books", subject: "items" };
+	stats = EMPTY_STATS;
+	capturedStats = undefined;
+	capturedFilters = undefined;
 	capturedShouldShowPurchaseStatus = undefined;
 	capturedShouldShowStatus = undefined;
 	wasMediaItemListRendered = false;
@@ -222,6 +263,85 @@ describe("ViewScreen status badge visibility", () => {
 
 		expect(capturedShouldShowStatus).toBe(false);
 		expect(capturedShouldShowPurchaseStatus).toBe(true);
+	});
+});
+
+describe("ViewScreen stats bar", () => {
+	it("renders the stats bar for an item view", () => {
+		render(<ViewScreen />);
+
+		expect(screen.getByTestId("stats-bar")).toBeInTheDocument();
+	});
+
+	// The bar hides counts the view's own filters have already settled, so it
+	// needs those filters.
+	it("hands the bar the view's filters", () => {
+		view.filters = { statuses: [MediaItemStatus.COMPLETED] };
+
+		render(<ViewScreen />);
+
+		expect(capturedFilters).toEqual({
+			statuses: [MediaItemStatus.COMPLETED],
+		});
+	});
+
+	// The bar belongs to the sticky header, so it stays on screen while the grid
+	// scrolls underneath it.
+	it("renders the bar in the top bar rather than in the scrolling list", () => {
+		render(<ViewScreen />);
+
+		expect(screen.getByTestId("top-bar-below")).toContainElement(
+			screen.getByTestId("stats-bar"),
+		);
+	});
+
+	// Series views count series, not items, so there is nothing for the bar to say.
+	it("renders no stats bar for a series view", () => {
+		view = { id: 2, name: "Owned series", subject: "series" };
+		stats = null;
+
+		render(<ViewScreen />);
+
+		expect(screen.queryByTestId("stats-bar")).not.toBeInTheDocument();
+	});
+
+	it("hides the stats bar while reordering", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+
+		expect(await screen.findByTestId("reorderable-grid")).toBeInTheDocument();
+		expect(screen.queryByTestId("stats-bar")).not.toBeInTheDocument();
+	});
+
+	it("restores the stats bar when reordering ends", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.doneReordering" }),
+		);
+
+		await screen.findByTestId("media-item-list");
+		expect(screen.getByTestId("stats-bar")).toBeInTheDocument();
+	});
+
+	it("forwards the loader's stats unchanged", () => {
+		const loaderStats: ItemStats = {
+			totalCount: 12,
+			completedCount: 5,
+			purchasedCount: 4,
+			droppedCount: 1,
+		};
+		stats = loaderStats;
+
+		render(<ViewScreen />);
+
+		expect(capturedStats).toBe(loaderStats);
 	});
 });
 

@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { runItemQuery } from "#/lib/queries/itemQuery.server";
 
 // Redirect all db calls to the test database.
@@ -30,6 +30,7 @@ import {
 } from "#/tests/integration/helpers";
 import {
 	handleGetViewOrderItems,
+	handleGetViewStats,
 	handleReorderViewItems,
 } from "../view.server";
 
@@ -42,8 +43,17 @@ beforeEach(() => truncateAll());
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function insertItem(title: string, userId: string = USER_A) {
-	return insertMediaItem({ userId, type: MediaItemType.BOOK, title });
+async function insertItem(
+	title: string,
+	userId: string = USER_A,
+	overrides: { type?: MediaItemType; status?: MediaItemStatus } = {},
+) {
+	return insertMediaItem({
+		userId,
+		type: overrides.type ?? MediaItemType.BOOK,
+		title,
+		status: overrides.status,
+	});
 }
 
 async function readOrderRows(viewId: number) {
@@ -229,6 +239,110 @@ describe("handleGetViewOrderItems", () => {
 		await expect(handleGetViewOrderItems(viewId, USER_A)).rejects.toThrow(
 			`View ${viewId} is not an item view`,
 		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// handleGetViewStats
+// ---------------------------------------------------------------------------
+
+describe("handleGetViewStats", () => {
+	it("returns stats over the view's saved filters", async () => {
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { statuses: [MediaItemStatus.COMPLETED] },
+		});
+		await insertItem("Done One", USER_A, {
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertItem("Done Two", USER_A, {
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertItem("Queued", USER_A, { status: MediaItemStatus.BACKLOG });
+
+		const stats = await handleGetViewStats(viewId, USER_A, undefined);
+
+		expect(stats).toMatchObject({
+			totalCount: 2,
+			completedCount: 2,
+		});
+	});
+
+	it("returns null for a series-subject view", async () => {
+		const viewId = await insertView({ userId: USER_A, subject: "series" });
+
+		await expect(
+			handleGetViewStats(viewId, USER_A, undefined),
+		).resolves.toBeNull();
+	});
+
+	it("rejects a view owned by another user", async () => {
+		const viewId = await insertView({ userId: USER_B });
+
+		await expect(handleGetViewStats(viewId, USER_A, undefined)).rejects.toThrow(
+			`View ${viewId} not found`,
+		);
+	});
+
+	it("rejects a view id that does not exist", async () => {
+		await expect(
+			handleGetViewStats(999_999, USER_A, undefined),
+		).rejects.toThrow("View 999999 not found");
+	});
+
+	it("narrows the counts by the title query", async () => {
+		const viewId = await insertView({ userId: USER_A });
+		await insertItem("Dune");
+		await insertItem("Foundation");
+
+		const stats = await handleGetViewStats(viewId, USER_A, "dun");
+
+		expect(stats?.totalCount).toBe(1);
+	});
+
+	it("leaves the saved filters intact when no title query is given", async () => {
+		const viewId = await insertView({ userId: USER_A });
+		await insertItem("Dune");
+		await insertItem("Foundation");
+
+		const stats = await handleGetViewStats(viewId, USER_A, undefined);
+
+		expect(stats?.totalCount).toBe(2);
+	});
+
+	it("applies the title query on top of, not instead of, the saved filters", async () => {
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: { mediaTypes: [MediaItemType.BOOK] },
+		});
+		await insertItem("Dune", USER_A, { type: MediaItemType.MOVIE });
+		await insertItem("Dune", USER_A, { type: MediaItemType.BOOK });
+		await insertItem("Foundation", USER_A, { type: MediaItemType.BOOK });
+
+		const stats = await handleGetViewStats(viewId, USER_A, "dune");
+
+		expect(stats?.totalCount).toBe(1);
+	});
+
+	it("counts the whole result set past one page", async () => {
+		const viewId = await insertView({ userId: USER_A });
+		for (let itemIndex = 0; itemIndex < 60; itemIndex++) {
+			await insertItem(`Item ${String(itemIndex).padStart(3, "0")}`);
+		}
+
+		const stats = await handleGetViewStats(viewId, USER_A, undefined);
+
+		expect(stats?.totalCount).toBe(60);
+	});
+
+	it("counts only the requesting user's items", async () => {
+		const viewId = await insertView({ userId: USER_A });
+		await insertItem("Mine");
+		await insertItem("Theirs", USER_B);
+
+		const stats = await handleGetViewStats(viewId, USER_A, undefined);
+
+		expect(stats?.totalCount).toBe(1);
 	});
 });
 

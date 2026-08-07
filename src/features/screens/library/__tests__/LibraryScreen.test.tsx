@@ -1,20 +1,29 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FilterAndSortOptions } from "#/database/schema";
 import { LibraryScreen } from "#/features/screens/library/LibraryScreen";
 import { MediaItemStatus, PurchaseStatus } from "#/lib/enums";
+import type { ItemStats } from "#/lib/queries/types";
 
 vi.mock("react-i18next", () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+const EMPTY_STATS: ItemStats = {
+	totalCount: 0,
+	completedCount: 0,
+	purchasedCount: 0,
+	droppedCount: 0,
+};
+
 let search: FilterAndSortOptions = {};
 let settings: unknown = null;
+let stats: ItemStats = EMPTY_STATS;
 
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
-		useLoaderData: () => ({ items: [], hasMore: false, settings }),
+		useLoaderData: () => ({ items: [], hasMore: false, stats, settings }),
 		useSearch: () => search,
 	}),
 }));
@@ -31,11 +40,33 @@ vi.mock("#/components/MediaItemList", () => ({
 	}) => {
 		capturedShouldShowPurchaseStatus = props.shouldShowPurchaseStatus;
 		capturedShouldShowStatus = props.shouldShowStatus;
-		return null;
+		return <div data-testid="media-item-list" />;
 	},
 }));
 
-vi.mock("#/features/navigation/topBar/TopBar", () => ({ TopBar: () => null }));
+// StatsBar's own rendering — including the hidden zero-total state — is covered
+// by its suite; here only the hand-off matters.
+let capturedStats: ItemStats | undefined;
+let capturedFilters: FilterAndSortOptions | null | undefined;
+
+vi.mock("#/components/StatsBar", () => ({
+	StatsBar: (props: {
+		stats: ItemStats;
+		filters?: FilterAndSortOptions | null;
+	}) => {
+		capturedStats = props.stats;
+		capturedFilters = props.filters;
+		return <div data-testid="stats-bar" />;
+	},
+}));
+
+// The stats bar renders in the top bar's `below` slot, so the stub has to pass
+// that slot through for the screen's hand-off to be observable.
+vi.mock("#/features/navigation/topBar/TopBar", () => ({
+	TopBar: ({ below }: { below?: React.ReactNode }) => (
+		<div data-testid="top-bar-below">{below}</div>
+	),
+}));
 vi.mock("#/features/navigation/topBar/components/SearchInput", () => ({
 	SearchInput: () => null,
 }));
@@ -59,8 +90,79 @@ afterEach(cleanup);
 beforeEach(() => {
 	search = {};
 	settings = null;
+	stats = EMPTY_STATS;
 	capturedShouldShowPurchaseStatus = undefined;
 	capturedShouldShowStatus = undefined;
+	capturedStats = undefined;
+	capturedFilters = undefined;
+});
+
+describe("LibraryScreen stats bar", () => {
+	it("hands the loader's stats straight to the bar", () => {
+		const loaderStats: ItemStats = {
+			totalCount: 12,
+			completedCount: 5,
+			purchasedCount: 4,
+			droppedCount: 1,
+		};
+		stats = loaderStats;
+
+		render(<LibraryScreen />);
+
+		expect(capturedStats).toBe(loaderStats);
+	});
+
+	it("renders the bar above the item list", () => {
+		stats = { ...EMPTY_STATS, totalCount: 3 };
+
+		render(<LibraryScreen />);
+
+		const statsBar = screen.getByTestId("stats-bar");
+		const mediaItemList = screen.getByTestId("media-item-list");
+		expect(
+			statsBar.compareDocumentPosition(mediaItemList) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	// The bar hides counts the filters have already settled, so it needs the same
+	// search the list ran with — defaults applied and all.
+	it("hands the bar the search the list ran with", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		settings = {
+			defaultLibrarySortBy: "title",
+			defaultLibrarySortDirection: "asc",
+		};
+
+		render(<LibraryScreen />);
+
+		expect(capturedFilters).toMatchObject({
+			statuses: [MediaItemStatus.COMPLETED],
+			sortBy: "title",
+		});
+	});
+
+	// The bar belongs to the sticky header, so it stays on screen while the list
+	// scrolls underneath it.
+	it("renders the bar in the top bar rather than in the scrolling list", () => {
+		stats = { ...EMPTY_STATS, totalCount: 3 };
+
+		render(<LibraryScreen />);
+
+		expect(screen.getByTestId("top-bar-below")).toContainElement(
+			screen.getByTestId("stats-bar"),
+		);
+	});
+
+	// Hiding an empty summary is StatsBar's call, not the screen's.
+	it("delegates the zero-total hidden state rather than deciding itself", () => {
+		stats = EMPTY_STATS;
+
+		render(<LibraryScreen />);
+
+		expect(screen.getByTestId("stats-bar")).toBeInTheDocument();
+		expect(capturedStats).toEqual(EMPTY_STATS);
+	});
 });
 
 describe("LibraryScreen purchase badge visibility", () => {

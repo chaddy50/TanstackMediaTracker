@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "#/components/hooks/useInfiniteScroll";
 import { InfiniteScrollLoader } from "#/components/InfiniteScrollLoader";
 import { MediaItemList } from "#/components/MediaItemList";
+import { StatsBar } from "#/components/StatsBar";
 import { FilterAndSortButton } from "#/features/filterAndSort/FilterAndSortButton";
 import { SearchInput } from "#/features/navigation/topBar/components/SearchInput";
 import { TopBar } from "#/features/navigation/topBar/TopBar";
@@ -40,6 +41,7 @@ export function LibraryScreen() {
 		<div className="min-h-screen bg-background text-foreground">
 			<TopBar
 				title={t("library.title")}
+				below={<StatsBar stats={loaderData.stats} filters={effectiveSearch} />}
 				right={
 					<>
 						<SearchInput
