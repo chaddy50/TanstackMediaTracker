@@ -46,10 +46,16 @@ type SearchHit = {
 	release_year?: number;
 };
 
-// Step 3: fetch series description and completion status by name
+// Step 3: fetch series description and completion status by name.
+// Ordered by books_count for the same duplicate-row reason as SERIES_BOOKS_QUERY
+// below — the stub duplicates carry no description.
 const SERIES_INFO_QUERY = `
   query SeriesInfo($name: String!) {
-    series(where: { name: { _eq: $name } }, limit: 1) {
+    series(
+      where: { name: { _eq: $name } }
+      order_by: { books_count: desc }
+      limit: 1
+    ) {
       description
       is_completed
     }
@@ -65,9 +71,55 @@ const CREATOR_BIO_QUERY = `
   }
 `;
 
+// Step 5: fetch every book in a series, in reading order.
+// Hardcover holds duplicate series rows under one name — "The Unselected
+// Journals of Emma M. Lion" exists twice, once as an empty stub — so order by
+// books_count to land on the populated row rather than whichever comes first.
+const SERIES_BOOKS_QUERY = `
+  query SeriesBooks($name: String!) {
+    series(
+      where: { name: { _eq: $name } }
+      order_by: { books_count: desc }
+      limit: 1
+    ) {
+      book_series(order_by: { position: asc }) {
+        position
+        book {
+          id
+          title
+          description
+          pages
+          release_year
+          image {
+            url
+          }
+          contributions {
+            author {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 type SeriesInfoResult = {
 	description: string | null;
 	is_completed: boolean | null;
+};
+
+type SeriesBookEntry = {
+	position: number | null;
+	book: {
+		id: number;
+		title: string;
+		description?: string | null;
+		pages?: number | null;
+		release_year?: number | null;
+		image?: { url: string } | null;
+		contributions?: Array<{ author?: { name: string } | null }> | null;
+	} | null;
 };
 
 type CreatorBioResult = {
@@ -104,6 +156,14 @@ async function gql<T>(
 	return data as T;
 }
 
+/** Hardcover returns protocol-relative paths like "assets.hardcover.app/...". */
+function toAbsoluteImageUrl(
+	url: string | null | undefined,
+): string | undefined {
+	if (!url) return undefined;
+	return url.startsWith("http") ? url : `https://${url}`;
+}
+
 function parseHits(results: unknown): SearchHit[] {
 	if (Array.isArray(results)) return results as SearchHit[];
 	// Typesense-wrapped format: { hits: [{ document: {...} }] }
@@ -131,6 +191,60 @@ export async function fetchSeriesInfo(
 		description: row.description ?? null,
 		isComplete: row.is_completed ?? false,
 	};
+}
+
+/**
+ * Every book Hardcover lists for a series, in reading order.
+ *
+ * Returns [] rather than throwing on any failure — the only caller renders a
+ * supplementary section of the series page, so an upstream outage or a rate
+ * limit should leave that section empty rather than break the page.
+ */
+export async function fetchSeriesBooks(
+	name: string,
+): Promise<ExternalSearchResult[]> {
+	if (!API_KEY) return [];
+
+	let data: { series: Array<{ book_series: SeriesBookEntry[] }> } | null = null;
+	try {
+		data = await gql<{ series: Array<{ book_series: SeriesBookEntry[] }> }>(
+			SERIES_BOOKS_QUERY,
+			{ name },
+		);
+	} catch {
+		// gql throws RateLimitError on a 429; every other failure returns null.
+		return [];
+	}
+
+	const entries = data?.series[0]?.book_series;
+	if (!entries) return [];
+
+	return entries.flatMap((entry) => {
+		const { book } = entry;
+		if (!book) return [];
+
+		return [
+			{
+				externalId: String(book.id),
+				externalSource: "hardcover",
+				type: MediaItemType.BOOK,
+				title: book.title,
+				description: book.description ?? undefined,
+				coverImageUrl: toAbsoluteImageUrl(book.image?.url),
+				releaseDate: releaseYearToDate(book.release_year),
+				metadata: {
+					// handleAddToLibrary reads metadata.series to file the added item
+					// under this series — without it the item would never appear in the
+					// series' library grid.
+					series: name,
+					seriesBookNumber:
+						entry.position === null ? undefined : String(entry.position),
+					author: book.contributions?.[0]?.author?.name,
+					pageCount: book.pages ?? undefined,
+				},
+			},
+		];
+	});
 }
 
 export async function fetchCreatorBio(
@@ -166,16 +280,9 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 	const imageData = await gql<{ books: BookImage[] }>(IMAGES_QUERY, { ids });
 	// Key by string so it matches hit.id (also a string from Typesense)
 	const imageById = new Map(
-		(imageData?.books ?? []).map((b) => {
-			const url = b.image?.url;
-			// Hardcover returns protocol-relative paths like "assets.hardcover.app/..."
-			const fullUrl = url
-				? url.startsWith("http")
-					? url
-					: `https://${url}`
-				: undefined;
-			return [String(b.id), fullUrl] as const;
-		}),
+		(imageData?.books ?? []).map(
+			(b) => [String(b.id), toAbsoluteImageUrl(b.image?.url)] as const,
+		),
 	);
 
 	return hits.map((hit) => {

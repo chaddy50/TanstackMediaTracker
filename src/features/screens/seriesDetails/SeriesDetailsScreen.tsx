@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { DeleteButton } from "#/components/DeleteButton";
 import { TopBar } from "#/features/navigation/topBar/TopBar";
+import { MissingSeriesItems } from "./components/MissingSeriesItems";
 import { SeriesInfo } from "./components/SeriesInfo";
 import { SeriesItems } from "./components/SeriesItems";
 import { deleteSeries } from "./seriesDetails";
@@ -40,6 +41,10 @@ export function SeriesDetailsScreen() {
 			<div className="px-6 py-8 max-w-5xl mx-auto">
 				<SeriesInfo seriesDetails={seriesDetails} />
 				<SeriesItems items={seriesDetails.items} />
+				<MissingSeriesItems
+					seriesId={seriesDetails.id}
+					seriesType={seriesDetails.type}
+				/>
 			</div>
 		</div>
 	);

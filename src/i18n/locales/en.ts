@@ -156,6 +156,12 @@ export const en = {
 		ongoing: "Ongoing",
 		edit: "Edit Series",
 		delete: "Delete Series",
+		missingItems: "Not in Your Library",
+		missingItemsCount_one: "{{count}} item",
+		missingItemsCount_other: "{{count}} items",
+		missingItemsLoading: "Loading…",
+		missingItemsEmpty: "Nothing else found for this series.",
+		missingItemsError: "Couldn't load items for this series.",
 	},
 	dashboard: {
 		title: "Dashboard",

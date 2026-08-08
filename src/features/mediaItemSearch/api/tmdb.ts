@@ -177,6 +177,88 @@ export async function fetchTvShowDetails(showId: string): Promise<{
 	}
 }
 
+type TmdbCollectionSearchResult = {
+	id: number;
+	name: string;
+};
+
+/**
+ * TMDB ranks collection matches loosely — searching its own exact collection
+ * name for "The Lord of the Rings Collection" puts "The Making of The Lord of
+ * the Rings Collection" first — so prefer an exact name match and fall back to
+ * the top hit only when nothing matches outright.
+ */
+function pickCollectionMatch(
+	results: TmdbCollectionSearchResult[],
+	collectionName: string,
+): TmdbCollectionSearchResult | undefined {
+	const exactMatch = results.find(
+		(result) => result.name.toLowerCase() === collectionName.toLowerCase(),
+	);
+	return exactMatch ?? results[0];
+}
+
+type TmdbCollectionDetails = {
+	parts?: TmdbMovie[];
+};
+
+/**
+ * Every movie TMDB lists in a collection, looked up by the collection's name.
+ *
+ * Returns [] rather than throwing on any failure — the only caller renders a
+ * supplementary section of the series page, so an upstream outage or a missing
+ * API key should leave that section empty rather than break the page.
+ */
+export async function fetchCollectionMovies(
+	collectionName: string,
+): Promise<ExternalSearchResult[]> {
+	try {
+		const searchParams = new URLSearchParams({
+			query: collectionName,
+			api_key: getApiKey(),
+			language: "en-US",
+		});
+		const searchRes = await fetch(
+			`https://api.themoviedb.org/3/search/collection?${searchParams.toString()}`,
+		);
+		if (!searchRes.ok) return [];
+
+		const searchData: TmdbResponse<TmdbCollectionSearchResult> =
+			await searchRes.json();
+		const bestMatch = pickCollectionMatch(searchData.results, collectionName);
+		if (!bestMatch) return [];
+
+		const detailParams = new URLSearchParams({
+			api_key: getApiKey(),
+			language: "en-US",
+		});
+		const detailRes = await fetch(
+			`https://api.themoviedb.org/3/collection/${bestMatch.id}?${detailParams.toString()}`,
+		);
+		if (!detailRes.ok) return [];
+
+		const detailData: TmdbCollectionDetails = await detailRes.json();
+
+		return (detailData.parts ?? []).map((movie) => ({
+			externalId: String(movie.id),
+			externalSource: "tmdb",
+			type: MediaItemType.MOVIE,
+			title: movie.title,
+			description: movie.overview || undefined,
+			coverImageUrl: movie.poster_path
+				? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+				: undefined,
+			releaseDate: movie.release_date || undefined,
+			// handleAddToLibrary reads metadata.series to file the added item under
+			// this series — without it the item would never appear in the series'
+			// library grid.
+			metadata: { series: collectionName },
+		}));
+	} catch {
+		return [];
+	}
+}
+
 type TmdbPersonSearchResult = {
 	id: number;
 };

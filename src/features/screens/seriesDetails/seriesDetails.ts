@@ -13,6 +13,7 @@ import {
 	series,
 } from "#/database/schema";
 import { getLoggedInUser } from "#/features/screens/auth/session";
+import { getMissingSeriesItems as getMissingSeriesItemsForUser } from "#/features/screens/seriesDetails/missingSeriesItems.server";
 import { updateSeriesMetadata as updateSeriesMetadataForUser } from "#/features/screens/seriesDetails/seriesDetails.server";
 import { MediaItemStatus, NextItemStatus } from "#/lib/enums";
 
@@ -106,6 +107,22 @@ export const getSeriesDetails = createServerFn({ method: "GET" })
 
 export type SeriesDetails = Awaited<ReturnType<typeof getSeriesDetails>>;
 export type SeriesItem = SeriesDetails["items"][number];
+
+/**
+ * Deliberately kept out of the route loader — it calls an external API, and the
+ * section that consumes it is collapsed by default, so only an expand should
+ * pay that cost.
+ */
+export const getMissingSeriesItems = createServerFn({ method: "GET" })
+	.inputValidator(z.object({ seriesId: z.number() }))
+	.handler(async ({ data: { seriesId } }) => {
+		const user = await getLoggedInUser();
+		return getMissingSeriesItemsForUser(seriesId, user.id);
+	});
+
+export type MissingSeriesItem = Awaited<
+	ReturnType<typeof getMissingSeriesItems>
+>[number];
 
 export const updateSeriesStatus = createServerFn({ method: "POST" })
 	.inputValidator(

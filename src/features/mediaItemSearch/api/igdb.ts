@@ -174,13 +174,46 @@ export async function fetchGameDeveloper(
 	}
 }
 
+const GAME_FIELDS =
+	"fields name,cover.url,first_release_date,summary,genres.name,collections.name,involved_companies.developer,involved_companies.company.name,involved_companies.company.description;";
+
+function toSearchResult(
+	game: IgdbGame,
+	timeToBeat?: IgdbTimeToBeatMetadata,
+): ExternalSearchResult {
+	const developerCompany = game.involved_companies?.find((c) => c.developer);
+
+	return {
+		externalId: String(game.id),
+		externalSource: "igdb",
+		type: MediaItemType.VIDEO_GAME,
+		title: game.name,
+		description: game.summary || undefined,
+		coverImageUrl: game.cover?.url
+			? `https:${game.cover.url.replace("t_thumb", "t_cover_big_2x")}`
+			: undefined,
+		releaseDate: game.first_release_date
+			? new Date(game.first_release_date * 1000).toISOString().split("T")[0]
+			: undefined,
+		metadata: {
+			genres: game.genres?.map((g) => g.name),
+			...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
+			...(developerCompany ? { developer: developerCompany.company.name } : {}),
+			...(developerCompany?.company.description
+				? { developerBio: developerCompany.company.description }
+				: {}),
+			...(timeToBeat ?? {}),
+		},
+	};
+}
+
 export async function search(query: string): Promise<ExternalSearchResult[]> {
 	const clientId = process.env.IGDB_CLIENT_ID;
 	if (!clientId) throw new Error("IGDB_CLIENT_ID is not set");
 
 	const accessToken = await getAccessToken();
 
-	const body = `fields name,cover.url,first_release_date,summary,genres.name,collections.name,involved_companies.developer,involved_companies.company.name,involved_companies.company.description; search "${query.replace(/"/g, "")}"; limit 10;`;
+	const body = `${GAME_FIELDS} search "${query.replace(/"/g, "")}"; limit 10;`;
 
 	const result = await fetch("https://api.igdb.com/v4/games", {
 		method: "POST",
@@ -201,33 +234,46 @@ export async function search(query: string): Promise<ExternalSearchResult[]> {
 		accessToken,
 	);
 
-	return games.map((game) => ({
-		externalId: String(game.id),
-		externalSource: "igdb",
-		type: MediaItemType.VIDEO_GAME,
-		title: game.name,
-		description: game.summary || undefined,
-		coverImageUrl: game.cover?.url
-			? `https:${game.cover.url.replace("t_thumb", "t_cover_big_2x")}`
-			: undefined,
-		releaseDate: game.first_release_date
-			? new Date(game.first_release_date * 1000).toISOString().split("T")[0]
-			: undefined,
-		metadata: (() => {
-			const developerCompany = game.involved_companies?.find(
-				(c) => c.developer,
-			);
-			return {
-				genres: game.genres?.map((g) => g.name),
-				...(game.collections?.[0] ? { series: game.collections[0].name } : {}),
-				...(developerCompany
-					? { developer: developerCompany.company.name }
-					: {}),
-				...(developerCompany?.company.description
-					? { developerBio: developerCompany.company.description }
-					: {}),
-				...(timesToBeatByGameId.get(game.id) ?? {}),
-			};
-		})(),
-	}));
+	return games.map((game) =>
+		toSearchResult(game, timesToBeatByGameId.get(game.id)),
+	);
+}
+
+/**
+ * Every game IGDB files under a collection, looked up by the collection's name.
+ *
+ * Returns [] rather than throwing on any failure — unlike search(), whose caller
+ * surfaces errors — because the only caller renders a supplementary section of
+ * the series page that should stay empty rather than break it.
+ *
+ * Skips the time-to-beat lookup that search() does: it is a per-item detail no
+ * card displays, and it would double the calls this makes.
+ */
+export async function fetchCollectionGames(
+	collectionName: string,
+): Promise<ExternalSearchResult[]> {
+	const clientId = process.env.IGDB_CLIENT_ID;
+	if (!clientId) return [];
+
+	try {
+		const accessToken = await getAccessToken();
+
+		const body = `${GAME_FIELDS} where collections.name = "${collectionName.replace(/"/g, "")}"; limit 50;`;
+
+		const result = await fetch("https://api.igdb.com/v4/games", {
+			method: "POST",
+			headers: {
+				"Client-ID": clientId,
+				Authorization: `Bearer ${accessToken}`,
+				"Content-Type": "text/plain",
+			},
+			body,
+		});
+		if (!result.ok) return [];
+
+		const games: IgdbGame[] = await result.json();
+		return games.map((game) => toSearchResult(game));
+	} catch {
+		return [];
+	}
 }

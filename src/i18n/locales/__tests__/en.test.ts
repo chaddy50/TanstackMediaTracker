@@ -55,6 +55,25 @@ const PER_ENTITY_UI_KEY_SUFFIXES = [
 
 const TAXONOMY_ENTITIES = ["tags", "genres"];
 
+/**
+ * The keys `MissingSeriesItems` hands to `t`. i18next plural keys only exist in
+ * the locale as `_one`/`_other`, so the count is listed suffixed.
+ */
+const MISSING_SERIES_ITEMS_UI_KEYS = [
+	"seriesDetails.missingItems",
+	"seriesDetails.missingItemsCount_one",
+	"seriesDetails.missingItemsCount_other",
+	"seriesDetails.missingItemsLoading",
+	"seriesDetails.missingItemsEmpty",
+	"seriesDetails.missingItemsError",
+];
+
+/** The add-to-library keys `MissingSeriesItemCard` reuses from the search popup. */
+const MISSING_SERIES_ITEM_CARD_UI_KEYS = [
+	"search.addToLibrary",
+	"search.adding",
+];
+
 /** Exactly the keys `StatsBar` hands to `t`, in the order it renders them. */
 const STATS_UI_KEYS = [
 	"stats.items",
@@ -91,6 +110,22 @@ describe("en locale", () => {
 
 	it("defines every stats key the bar renders", () => {
 		for (const key of STATS_UI_KEYS) {
+			const value = resolveKey(en, key);
+			expect(value, key).toBeTypeOf("string");
+			expect(value, key).toBeTruthy();
+		}
+	});
+
+	it("defines every missing-items key the series section renders", () => {
+		for (const key of MISSING_SERIES_ITEMS_UI_KEYS) {
+			const value = resolveKey(en, key);
+			expect(value, key).toBeTypeOf("string");
+			expect(value, key).toBeTruthy();
+		}
+	});
+
+	it("defines the add-to-library keys the missing-item card reuses", () => {
+		for (const key of MISSING_SERIES_ITEM_CARD_UI_KEYS) {
 			const value = resolveKey(en, key);
 			expect(value, key).toBeTypeOf("string");
 			expect(value, key).toBeTruthy();
