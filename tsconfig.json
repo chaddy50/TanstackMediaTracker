@@ -1,5 +1,10 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  // .claude/worktrees holds linked worktrees inside this checkout. Their sources
+  // would otherwise be typechecked here, with "#/*" wrongly resolving to this
+  // checkout's src. Listing node_modules is required: naming "exclude" at all
+  // replaces the default that would have covered it.
+  "exclude": ["node_modules", ".claude"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

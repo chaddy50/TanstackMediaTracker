@@ -1,3 +1,6 @@
+import { z } from "zod";
+
+import { mediaTypeEnum } from "#/database/schema";
 import type { ExternalSearchResult } from "#/features/mediaItemSearch/api/types";
 import type { MediaItemStatus, MediaItemType } from "#/lib/enums";
 
@@ -13,3 +16,11 @@ export type SearchResultWithStatus = ExternalSearchResult & {
 };
 
 export type SearchType = "all" | MediaItemType;
+
+/**
+ * Runtime schema for the search type. Must live here rather than in
+ * mediaItemSearch.server.ts: searchMedia calls it at module scope to build its
+ * input validator, and *.server modules are stripped from the client graph — so
+ * importing it from there leaves it undefined and throws on import.
+ */
+export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);

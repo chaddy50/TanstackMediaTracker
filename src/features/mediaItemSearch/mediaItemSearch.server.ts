@@ -1,8 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { z } from "zod";
 
 import { db } from "#/database/index";
-import { mediaItems, mediaTypeEnum, series } from "#/database/schema";
+import { mediaItems, series } from "#/database/schema";
 import * as hardcover from "#/features/mediaItemSearch/api/hardcover";
 import * as igdb from "#/features/mediaItemSearch/api/igdb";
 import * as itunes from "#/features/mediaItemSearch/api/itunes";
@@ -13,8 +12,6 @@ import { resolveCreatorName } from "#/lib/creator";
 import { MediaItemStatus, MediaItemType } from "#/lib/enums";
 import { syncSeriesStatus } from "#/lib/queries/seriesQuery.server";
 import type { SearchResultWithStatus } from "./types";
-
-export const typeSchema = z.enum([...mediaTypeEnum.enumValues, "all"] as const);
 
 /**
  * Flattens settled API call results, silently dropping any that rejected.

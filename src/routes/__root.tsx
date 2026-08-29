@@ -68,9 +68,25 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
-		if ("serviceWorker" in navigator) {
-			void navigator.serviceWorker.register("/sw.js", { scope: "/" });
+		if (!("serviceWorker" in navigator)) {
+			return;
 		}
+
+		if (import.meta.env.PROD) {
+			void navigator.serviceWorker.register("/sw.js", { scope: "/" });
+			return;
+		}
+
+		// VitePWA only emits /sw.js for production builds, so registering it here
+		// threw a 404 on every dev page load. Worse, a worker installed by an
+		// earlier production build keeps controlling localhost and serves its
+		// precached bundle over the dev server — the page paints correctly, then
+		// the stale assets take over. Clear them out instead.
+		void navigator.serviceWorker.getRegistrations().then((registrations) => {
+			for (const registration of registrations) {
+				void registration.unregister();
+			}
+		});
 	}, []);
 
 	return (

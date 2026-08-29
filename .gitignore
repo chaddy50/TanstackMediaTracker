@@ -19,5 +19,6 @@ media-tracker-plan.md
 common-components-usage.md
 interview-questions.md
 CODE_REVIEW.md
-.githooks/pre-push
-.githooks/pre-commit
+# Local git hooks. Ignored as a whole so the symlink that setup-worktree.mjs
+# drops in each worktree is ignored too, not just the hook files inside.
+.githooks

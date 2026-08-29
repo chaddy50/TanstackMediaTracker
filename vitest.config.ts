@@ -10,7 +10,14 @@ export default defineConfig({
 			["src/features/**", "jsdom"],
 		],
 		setupFiles: ["./src/tests/setup.ts"],
-		exclude: ["**/*.integration.test.ts", "**/node_modules/**"],
+		// .claude/worktrees holds linked worktrees *inside* this checkout, each with
+		// its own src/ — without excluding it, a run from the main checkout collects
+		// every worktree's tests too.
+		exclude: [
+			"**/*.integration.test.ts",
+			"**/node_modules/**",
+			"**/.claude/**",
+		],
 		env: {
 			// Unit tests never connect, but importing src/database builds a drizzle
 			// client eagerly and requires a URL. Integration tests use their own

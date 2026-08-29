@@ -6,11 +6,15 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks || true",
+    "prepare": "git config core.hooksPath .githooks || true && node scripts/setup-worktree.mjs",
+    "setup:worktree": "node scripts/setup-worktree.mjs",
+    "predev": "node scripts/setup-worktree.mjs",
     "dev": "dotenv -e .env -- sh -c \"NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000\"",
     "build": "vite build && cp instrument.server.mjs .output/server",
     "preview": "vite preview",
+    "pretest": "node scripts/setup-worktree.mjs",
     "test": "vitest run",
+    "pretest:integration": "node scripts/setup-worktree.mjs",
     "test:integration": "dotenv -e .env.test -- vitest run --config vitest.config.integration.ts",
     "typecheck": "tsc --noEmit",
     "format": "biome format",

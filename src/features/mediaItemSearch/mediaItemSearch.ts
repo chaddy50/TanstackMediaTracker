@@ -9,8 +9,8 @@ import {
 	handleCreateCustomItem,
 	handleUpdatePodcastArcEpisodes,
 	performMediaSearch,
-	typeSchema,
 } from "#/features/mediaItemSearch/mediaItemSearch.server";
+import { typeSchema } from "#/features/mediaItemSearch/types";
 import { getLoggedInUser } from "#/features/screens/auth/session";
 import { MediaItemStatus } from "#/lib/enums";
 
