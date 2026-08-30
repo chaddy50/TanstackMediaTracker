@@ -57,7 +57,7 @@ export function SeasonReviewRow({
 						{dateRange && (
 							<span className="text-muted-foreground text-sm">{dateRange}</span>
 						)}
-						<RatingStars rating={seasonReview.rating} shouldShowValue={true} />
+						<RatingStars rating={seasonReview.rating} shouldShowValue />
 					</div>
 					<Button
 						variant="ghost"
