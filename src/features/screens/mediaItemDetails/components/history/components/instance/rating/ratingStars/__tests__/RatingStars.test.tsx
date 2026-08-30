@@ -24,6 +24,23 @@ function getFillLevels() {
 		.map((star) => star.getAttribute("data-fill"));
 }
 
+/**
+ * Which half of a star was clicked comes from its box, and jsdom lays nothing
+ * out, so the box is stubbed and the click aimed at one side of it.
+ */
+function clickStarHalf(starNumber: number, half: "left" | "right") {
+	const star = screen
+		.getAllByTestId("rating-star")
+		[starNumber - 1].querySelector("svg") as SVGSVGElement;
+	const left = 100;
+	const width = 20;
+	star.getBoundingClientRect = () => ({ left, width }) as unknown as DOMRect;
+
+	fireEvent.click(star, {
+		clientX: half === "left" ? left + width / 4 : left + (width * 3) / 4,
+	});
+}
+
 afterEach(cleanup);
 
 describe("RatingStars", () => {
@@ -102,12 +119,38 @@ describe("RatingStars", () => {
 		expect(screen.getByTestId("rating-stars")).toHaveClass("justify-center");
 	});
 
+	it("sets a whole rating when a stored 3.8 is drawn as four full stars", () => {
+		const updateRating = vi.fn();
+		renderRatingStars({ rating: 3.8, updateRating });
+
+		clickStarHalf(4, "right");
+
+		expect(updateRating).toHaveBeenCalledWith(4);
+	});
+
+	it("clears the rating when the star matching the stored value is clicked", () => {
+		const updateRating = vi.fn();
+		renderRatingStars({ rating: 4, updateRating });
+
+		clickStarHalf(4, "right");
+
+		expect(updateRating).toHaveBeenCalledWith(0);
+	});
+
+	it("records a half rating from the left side of a star", () => {
+		const updateRating = vi.fn();
+		renderRatingStars({ rating: 2, updateRating });
+
+		clickStarHalf(4, "left");
+
+		expect(updateRating).toHaveBeenCalledWith(3.5);
+	});
+
 	it("forwards the update handler to each star", () => {
 		const updateRating = vi.fn();
 		renderRatingStars({ rating: 2, updateRating });
 
-		const fifthStar = screen.getAllByTestId("rating-star")[4];
-		fireEvent.click(fifthStar.querySelector("svg") as SVGSVGElement);
+		clickStarHalf(5, "right");
 
 		expect(updateRating).toHaveBeenCalledWith(5);
 	});

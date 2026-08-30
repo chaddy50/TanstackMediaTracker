@@ -5,9 +5,12 @@ import { RatingStar } from "#/features/screens/mediaItemDetails/components/histo
 type RatingStarProps = Parameters<typeof RatingStar>[0];
 
 function renderRatingStar(overrides: Partial<RatingStarProps> = {}) {
+	const rating = overrides.rating ?? 1;
 	const props: RatingStarProps = {
 		starNumber: 1,
-		rating: 1,
+		rating,
+		// Every caller but the raw-vs-rounded cases draws the rating it stores.
+		roundedRating: rating,
 		...overrides,
 	};
 	return { ...render(<RatingStar {...props} />), props };
@@ -15,6 +18,20 @@ function renderRatingStar(overrides: Partial<RatingStarProps> = {}) {
 
 function getStars(container: HTMLElement) {
 	return Array.from(container.querySelectorAll("svg"));
+}
+
+/**
+ * Which half of a star was clicked comes from its box, and jsdom lays nothing
+ * out, so the box is stubbed and the click aimed at one side of it.
+ */
+function clickStarHalf(star: SVGSVGElement, half: "left" | "right") {
+	const left = 100;
+	const width = 20;
+	star.getBoundingClientRect = () => ({ left, width }) as unknown as DOMRect;
+
+	fireEvent.click(star, {
+		clientX: half === "left" ? left + width / 4 : left + (width * 3) / 4,
+	});
 }
 
 afterEach(cleanup);
@@ -81,7 +98,7 @@ describe("RatingStar", () => {
 		}
 	});
 
-	it("sets the whole star number when a star is clicked", () => {
+	it("sets the whole star number when its right half is clicked", () => {
 		const updateRating = vi.fn();
 		const { container } = renderRatingStar({
 			starNumber: 4,
@@ -89,9 +106,22 @@ describe("RatingStar", () => {
 			updateRating,
 		});
 
-		fireEvent.click(getStars(container)[0]);
+		clickStarHalf(getStars(container)[0], "right");
 
 		expect(updateRating).toHaveBeenCalledWith(4);
+	});
+
+	it("sets a half rating when the left half of a star is clicked", () => {
+		const updateRating = vi.fn();
+		const { container } = renderRatingStar({
+			starNumber: 4,
+			rating: 2,
+			updateRating,
+		});
+
+		clickStarHalf(getStars(container)[0], "left");
+
+		expect(updateRating).toHaveBeenCalledWith(3.5);
 	});
 
 	it("clears the rating when the star matching it is clicked", () => {
@@ -102,12 +132,12 @@ describe("RatingStar", () => {
 			updateRating,
 		});
 
-		fireEvent.click(getStars(container)[0]);
+		clickStarHalf(getStars(container)[0], "right");
 
 		expect(updateRating).toHaveBeenCalledWith(0);
 	});
 
-	it("does not clear a half-rounded rating on click", () => {
+	it("clears the rating when the half matching it is clicked", () => {
 		const updateRating = vi.fn();
 		const { container } = renderRatingStar({
 			starNumber: 4,
@@ -115,7 +145,34 @@ describe("RatingStar", () => {
 			updateRating,
 		});
 
-		fireEvent.click(getStars(container)[0]);
+		clickStarHalf(getStars(container)[0], "left");
+
+		expect(updateRating).toHaveBeenCalledWith(0);
+	});
+
+	it("does not clear a half rating when the whole star is clicked", () => {
+		const updateRating = vi.fn();
+		const { container } = renderRatingStar({
+			starNumber: 4,
+			rating: 3.5,
+			updateRating,
+		});
+
+		clickStarHalf(getStars(container)[0], "right");
+
+		expect(updateRating).toHaveBeenCalledWith(4);
+	});
+
+	it("clears against the stored rating, not the one it draws", () => {
+		const updateRating = vi.fn();
+		const { container } = renderRatingStar({
+			starNumber: 4,
+			rating: 3.8,
+			roundedRating: 4,
+			updateRating,
+		});
+
+		clickStarHalf(getStars(container)[0], "right");
 
 		expect(updateRating).toHaveBeenCalledWith(4);
 	});
