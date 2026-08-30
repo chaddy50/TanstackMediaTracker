@@ -8,16 +8,20 @@ import {
 	runItemStatsQuery,
 	transitionReleasedItems,
 } from "#/lib/queries/itemQuery.server";
+import { MAX_QUERY_LIMIT } from "#/lib/queries/types";
 
 export const getLibrary = createServerFn({ method: "GET" })
 	.inputValidator(
-		filterAndSortOptionsSchema.extend({ offset: z.number().default(0) }),
+		filterAndSortOptionsSchema.extend({
+			offset: z.number().default(0),
+			limit: z.number().int().min(1).max(MAX_QUERY_LIMIT).optional(),
+		}),
 	)
 	.handler(async ({ data }) => {
 		const user = await getLoggedInUser();
 		await transitionReleasedItems(user.id);
-		const { offset, ...filters } = data;
-		return runItemQuery(filters, user.id, offset);
+		const { offset, limit, ...filters } = data;
+		return runItemQuery(filters, user.id, offset, undefined, limit);
 	});
 
 export type LibraryItem = Awaited<

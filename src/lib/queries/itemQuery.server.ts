@@ -33,6 +33,7 @@ import { syncSeriesStatus } from "#/lib/queries/seriesQuery.server";
 import {
 	type ItemQueryItem,
 	type ItemStats,
+	MAX_QUERY_LIMIT,
 	REORDERABLE_ITEM_LIMIT,
 } from "#/lib/queries/types";
 import { CUSTOM_ITEM_SORT_FIELD } from "#/lib/sortFields";
@@ -345,13 +346,15 @@ export async function runItemQuery(
 	userId: string,
 	offset: number = 0,
 	viewId?: number,
+	limit: number = PAGE_SIZE,
 ): Promise<{ items: ItemQueryItem[]; hasMore: boolean }> {
+	const pageLimit = Math.min(limit, MAX_QUERY_LIMIT);
 	const rawItems = await buildItemSelectQuery(filters, userId, viewId)
-		.limit(PAGE_SIZE + 1)
+		.limit(pageLimit + 1)
 		.offset(offset);
 
-	const hasMore = rawItems.length > PAGE_SIZE;
-	const items = rawItems.slice(0, PAGE_SIZE).map(toItemQueryItem);
+	const hasMore = rawItems.length > pageLimit;
+	const items = rawItems.slice(0, pageLimit).map(toItemQueryItem);
 
 	return { items, hasMore };
 }

@@ -21,11 +21,15 @@ const EMPTY_STATS: ItemStats = {
 let search: FilterAndSortOptions = {};
 let settings: unknown = null;
 let stats: ItemStats = EMPTY_STATS;
+let historyEntryKey = "entry-1";
 
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
 		useLoaderData: () => ({ items: [], hasMore: false, stats, settings }),
 		useSearch: () => search,
+	}),
+	useRouter: () => ({
+		state: { location: { state: { __TSR_key: historyEntryKey } } },
 	}),
 }));
 
@@ -79,12 +83,19 @@ vi.mock("#/features/filterAndSort/FilterAndSortButton", () => ({
 vi.mock("#/features/screens/library/library", () => ({ getLibrary: vi.fn() }));
 
 // jsdom has no IntersectionObserver, which the real hook constructs on mount.
+// The options are captured because the cache key the screen derives is the screen's
+// responsibility; the hook's own behaviour is covered by its suite.
+let capturedCacheKey: string | undefined;
+
 vi.mock("#/components/hooks/useInfiniteScroll", () => ({
-	useInfiniteScroll: () => ({
-		allItems: [],
-		isLoadingMore: false,
-		sentinelRef: { current: null },
-	}),
+	useInfiniteScroll: (options: { cacheKey: string }) => {
+		capturedCacheKey = options.cacheKey;
+		return {
+			allItems: [],
+			isLoadingMore: false,
+			sentinelRef: { current: null },
+		};
+	},
 }));
 
 afterEach(cleanup);
@@ -92,10 +103,12 @@ beforeEach(() => {
 	search = {};
 	settings = null;
 	stats = EMPTY_STATS;
+	historyEntryKey = "entry-1";
 	capturedShouldShowPurchaseStatus = undefined;
 	capturedShouldShowStatus = undefined;
 	capturedStats = undefined;
 	capturedFilters = undefined;
+	capturedCacheKey = undefined;
 });
 
 describe("LibraryScreen stats bar", () => {
@@ -287,5 +300,90 @@ describe("LibraryScreen status badge visibility", () => {
 
 		expect(capturedShouldShowStatus).toBe(false);
 		expect(capturedShouldShowPurchaseStatus).toBe(true);
+	});
+});
+
+// The cache key is what keeps the loaded pages — and therefore the scroll
+// position — attached to the right query when returning from a media item.
+describe("LibraryScreen infinite scroll cache key", () => {
+	it("derives the key from the search the list ran with", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		settings = {
+			defaultLibrarySortBy: "title",
+			defaultLibrarySortDirection: "asc",
+		};
+
+		render(<LibraryScreen />);
+
+		expect(capturedCacheKey).toContain("library:");
+		expect(capturedCacheKey).toContain("title");
+		expect(capturedCacheKey).toContain(MediaItemStatus.COMPLETED);
+	});
+
+	it("gives two different searches two different keys", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		render(<LibraryScreen />);
+		const completedKey = capturedCacheKey;
+
+		cleanup();
+		search = { statuses: [MediaItemStatus.BACKLOG] };
+		render(<LibraryScreen />);
+
+		expect(capturedCacheKey).not.toBe(completedKey);
+	});
+
+	it("keeps the key stable across renders of an equivalent search", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		render(<LibraryScreen />);
+		const firstKey = capturedCacheKey;
+
+		cleanup();
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		render(<LibraryScreen />);
+
+		expect(capturedCacheKey).toBe(firstKey);
+	});
+
+	// Reaching the library from the sidebar is a new history entry, so the pages
+	// scrolled in on the previous visit must not come back with it.
+	it("changes the key when the visit is a new history entry", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		render(<LibraryScreen />);
+		const firstVisitKey = capturedCacheKey;
+
+		cleanup();
+		historyEntryKey = "entry-2";
+		render(<LibraryScreen />);
+
+		expect(capturedCacheKey).not.toBe(firstVisitKey);
+	});
+
+	// A navigation flips the router's location before the next screen renders, while
+	// the library is still on screen. Reacting to that would reset the visible list
+	// to page one and collapse the scroll container on the way into an item.
+	it("keeps the key while the list is still mounted during a navigation away", () => {
+		search = { statuses: [MediaItemStatus.COMPLETED] };
+		const { rerender } = render(<LibraryScreen />);
+		const mountedKey = capturedCacheKey;
+
+		historyEntryKey = "entry-navigating-away";
+		rerender(<LibraryScreen />);
+
+		expect(capturedCacheKey).toBe(mountedKey);
+	});
+
+	// The key and the paged query have to describe the same list, or the cache
+	// restores rows the fetch would never have returned.
+	it("builds the key from the same search the sort defaults produced", () => {
+		search = {};
+		settings = {
+			defaultLibrarySortBy: "rating",
+			defaultLibrarySortDirection: "desc",
+		};
+
+		render(<LibraryScreen />);
+
+		expect(capturedCacheKey).toContain("rating");
+		expect(capturedCacheKey).toContain("desc");
 	});
 });

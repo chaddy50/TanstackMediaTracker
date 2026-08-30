@@ -25,6 +25,7 @@ import {
 	NextItemStatus,
 } from "#/lib/enums";
 import { inferSeriesStatus } from "#/lib/queries/seriesStatus";
+import { MAX_QUERY_LIMIT } from "#/lib/queries/types";
 
 // ---------------------------------------------------------------------------
 // runSeriesQuery
@@ -47,7 +48,9 @@ export async function runSeriesQuery(
 	filters: FilterAndSortOptions,
 	userId: string,
 	offset: number = 0,
+	limit: number = PAGE_SIZE,
 ): Promise<{ items: SeriesQueryItem[]; hasMore: boolean }> {
+	const pageLimit = Math.min(limit, MAX_QUERY_LIMIT);
 	const conditions = [
 		eq(series.userId, userId),
 		filters.mediaTypes?.length
@@ -137,11 +140,11 @@ export async function runSeriesQuery(
 		.from(series)
 		.where(and(...conditions))
 		.orderBy(...dbOrderClauses)
-		.limit(PAGE_SIZE + 1)
+		.limit(pageLimit + 1)
 		.offset(offset);
 
-	const hasMore = rawRows.length > PAGE_SIZE;
-	const pageRows = rawRows.slice(0, PAGE_SIZE);
+	const hasMore = rawRows.length > pageLimit;
+	const pageRows = rawRows.slice(0, pageLimit);
 
 	const items = pageRows.map((s) => ({
 		...s,

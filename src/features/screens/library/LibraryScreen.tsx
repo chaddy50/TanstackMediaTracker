@@ -2,6 +2,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "#/components/hooks/useInfiniteScroll";
+import { useListCacheKey } from "#/components/hooks/useListCacheKey";
 import { InfiniteScrollLoader } from "#/components/InfiniteScrollLoader";
 import { MediaItemList } from "#/components/MediaItemList";
 import { StatsBar } from "#/components/StatsBar";
@@ -28,13 +29,15 @@ export function LibraryScreen() {
 		effectiveSearch.purchaseStatuses,
 	);
 	const shouldShowStatus = !isFilteredToSingleStatus(effectiveSearch.statuses);
+	const cacheKey = useListCacheKey("library", effectiveSearch);
 
 	const { allItems, isLoadingMore, sentinelRef } =
 		useInfiniteScroll<LibraryItem>({
+			cacheKey,
 			initialItems: loaderData.items,
 			initialHasMore: loaderData.hasMore,
-			fetchMore: (offset) =>
-				getLibrary({ data: { ...effectiveSearch, offset } }),
+			fetchMore: (offset, limit) =>
+				getLibrary({ data: { ...effectiveSearch, offset, limit } }),
 		});
 
 	return (
