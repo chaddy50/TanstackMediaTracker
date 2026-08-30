@@ -45,17 +45,20 @@ const EMPTY_STATS: ItemStats = {
 };
 
 let stats: ItemStats | null = EMPTY_STATS;
+let viewSearch: { titleQuery?: string } = {};
+let historyEntryKey = "entry-1";
 
 const routerInvalidate = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
 	getRouteApi: () => ({
 		useLoaderData: () => ({ view, results: loaderResults, stats }),
-		useSearch: () => ({}),
+		useSearch: () => viewSearch,
 	}),
 	useRouter: () => ({
 		invalidate: routerInvalidate,
 		history: { back: vi.fn() },
+		state: { location: { state: { __TSR_key: historyEntryKey } } },
 	}),
 }));
 
@@ -142,18 +145,28 @@ vi.mock("#/features/screens/customView/view", () => ({
 }));
 
 // jsdom has no IntersectionObserver, which the real hook constructs on mount.
+// The options are captured because the cache key this screen derives is the screen's
+// responsibility; the hook's own behaviour is covered by its suite.
+let capturedCacheKey: string | undefined;
+
 vi.mock("#/components/hooks/useInfiniteScroll", () => ({
-	useInfiniteScroll: () => ({
-		allItems: [],
-		isLoadingMore: false,
-		sentinelRef: { current: null },
-	}),
+	useInfiniteScroll: (options: { cacheKey: string }) => {
+		capturedCacheKey = options.cacheKey;
+		return {
+			allItems: [],
+			isLoadingMore: false,
+			sentinelRef: { current: null },
+		};
+	},
 }));
 
 afterEach(cleanup);
 beforeEach(() => {
 	view = { id: 1, name: "Owned books", subject: "items" };
 	stats = EMPTY_STATS;
+	viewSearch = {};
+	historyEntryKey = "entry-1";
+	capturedCacheKey = undefined;
 	capturedStats = undefined;
 	capturedFilters = undefined;
 	capturedShouldShowPurchaseStatus = undefined;
@@ -597,5 +610,53 @@ describe("ViewScreen reorder hand-off under a deferred transition", () => {
 
 		expect(await screen.findByTestId("media-item-list")).toBeInTheDocument();
 		expect(screen.queryByTestId("reorderable-grid")).not.toBeInTheDocument();
+	});
+});
+
+// Every view pages through the same server fn, so the key is what stops one view's
+// loaded pages — and its scroll position — restoring underneath another.
+describe("ViewScreen infinite scroll cache key", () => {
+	it("derives the key from the view being shown", () => {
+		view = { id: 7, name: "Owned books", subject: "items" };
+
+		render(<ViewScreen />);
+
+		expect(capturedCacheKey).toContain("view:7");
+	});
+
+	it("gives two views two different keys", () => {
+		view = { id: 1, name: "Owned books", subject: "items" };
+		render(<ViewScreen />);
+		const firstViewKey = capturedCacheKey;
+
+		cleanup();
+		view = { id: 2, name: "Owned films", subject: "items" };
+		render(<ViewScreen />);
+
+		expect(capturedCacheKey).not.toBe(firstViewKey);
+	});
+
+	it("changes the key when the visit is a new history entry", () => {
+		render(<ViewScreen />);
+		const firstVisitKey = capturedCacheKey;
+
+		cleanup();
+		historyEntryKey = "entry-2";
+		render(<ViewScreen />);
+
+		expect(capturedCacheKey).not.toBe(firstVisitKey);
+	});
+
+	it("changes the key when the title query changes", () => {
+		viewSearch = {};
+		render(<ViewScreen />);
+		const unsearchedKey = capturedCacheKey;
+
+		cleanup();
+		viewSearch = { titleQuery: "dune" };
+		render(<ViewScreen />);
+
+		expect(capturedCacheKey).not.toBe(unsearchedKey);
+		expect(capturedCacheKey).toContain("dune");
 	});
 });

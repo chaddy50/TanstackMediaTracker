@@ -43,3 +43,10 @@ export type ItemStats = {
  * cannot see — so the list is unpaginated and capped instead.
  */
 export const REORDERABLE_ITEM_LIMIT = 500;
+
+/**
+ * Ceiling on a caller-supplied page limit. Returning to a list refreshes every row
+ * scrolled in so far in one query, and that count comes from the client, so it needs
+ * an upper bound before it reaches the database.
+ */
+export const MAX_QUERY_LIMIT = 500;

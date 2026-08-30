@@ -9,6 +9,10 @@ export function getRouter() {
 		context: getContext(),
 
 		scrollRestoration: true,
+		// Restoration only ever touches `window` unless the nested scrollers are named.
+		// Without this a forward navigation leaves the app's scroll container wherever
+		// the previous screen left it, because nothing scrolls it back to the top.
+		scrollToTopSelectors: ['[data-scroll-restoration-id="app-content"]'],
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 	});

@@ -4,6 +4,7 @@ import { ArrowUpDown, Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "#/components/hooks/useInfiniteScroll";
+import { useListCacheKey } from "#/components/hooks/useListCacheKey";
 import { InfiniteScrollLoader } from "#/components/InfiniteScrollLoader";
 import { MediaItemList } from "#/components/MediaItemList";
 import { SeriesList } from "#/components/SeriesList";
@@ -64,15 +65,17 @@ export function ViewScreen() {
 	const paginatedResults = results as
 		| PaginatedResult<LibraryItem>
 		| PaginatedResult<SeriesListItem>;
+	const cacheKey = useListCacheKey(`view:${view.id}`, search.titleQuery ?? "");
 
 	const { allItems, isLoadingMore, sentinelRef } = useInfiniteScroll<
 		LibraryItem | SeriesListItem
 	>({
+		cacheKey,
 		initialItems: paginatedResults.items,
 		initialHasMore: paginatedResults.hasMore,
-		fetchMore: (offset) =>
+		fetchMore: (offset, limit) =>
 			getViewResults({
-				data: { viewId: view.id, titleQuery: search.titleQuery, offset },
+				data: { viewId: view.id, titleQuery: search.titleQuery, offset, limit },
 			}).then(
 				(result) =>
 					result.results as PaginatedResult<LibraryItem | SeriesListItem>,
@@ -90,9 +93,12 @@ export function ViewScreen() {
 	 * order first. Waiting for the data identity to change is the only signal
 	 * that is actually tied to the thing being waited on.
 	 *
-	 * `useInfiniteScroll` copies the same loader data into its own state from an
-	 * effect declared above this one, so both land in one commit and the list's
-	 * first render already has the new order.
+	 * `useInfiniteScroll` re-pages from the same loader data in an effect declared
+	 * above this one. While only the first page is loaded it needs no extra fetch,
+	 * so both land in one commit and the list's first render already has the new
+	 * order. Once further pages have been scrolled in, refreshing them is a
+	 * round trip, so the list can briefly paint the pre-drag order for those rows
+	 * before the refreshed pages arrive.
 	 */
 	useEffect(() => {
 		if (!isFinishingReorder) {
