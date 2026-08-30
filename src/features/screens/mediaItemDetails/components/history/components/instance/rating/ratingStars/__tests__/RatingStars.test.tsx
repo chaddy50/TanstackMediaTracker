@@ -29,9 +29,8 @@ function getFillLevels() {
  * out, so the box is stubbed and the click aimed at one side of it.
  */
 function clickStarHalf(starNumber: number, half: "left" | "right") {
-	const star = screen
-		.getAllByTestId("rating-star")
-		[starNumber - 1].querySelector("svg") as SVGSVGElement;
+	const stars = screen.getAllByTestId("rating-star");
+	const star = stars[starNumber - 1].querySelector("svg") as SVGSVGElement;
 	const left = 100;
 	const width = 20;
 	star.getBoundingClientRect = () => ({ left, width }) as unknown as DOMRect;
