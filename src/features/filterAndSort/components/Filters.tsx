@@ -13,10 +13,10 @@ export type CompletionDateMode = "none" | "this-year" | "range";
 
 const ITEM_STATUSES = [
 	MediaItemStatus.BACKLOG,
+	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+	MediaItemStatus.ON_HOLD,
 	MediaItemStatus.NEXT_UP,
 	MediaItemStatus.IN_PROGRESS,
-	MediaItemStatus.ON_HOLD,
-	MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
 	MediaItemStatus.COMPLETED,
 	MediaItemStatus.DROPPED,
 ] as const;

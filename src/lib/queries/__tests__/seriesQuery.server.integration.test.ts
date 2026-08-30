@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MediaItemStatus, MediaItemType } from "#/lib/enums";
+import { MediaItemStatus, MediaItemType, NextItemStatus } from "#/lib/enums";
 
 vi.mock("#/database/index", async () => {
 	const { testDb } = await import("#/tests/integration/db");
@@ -250,6 +250,84 @@ describe("sort by name", () => {
 		expect(result.items.map((item) => item.name)).toEqual([
 			"Dune",
 			"The Expanse",
+		]);
+	});
+});
+
+describe("sort by status", () => {
+	const STATUS_RANKING = [
+		MediaItemStatus.BACKLOG,
+		MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		MediaItemStatus.ON_HOLD,
+		MediaItemStatus.NEXT_UP,
+		MediaItemStatus.IN_PROGRESS,
+		MediaItemStatus.COMPLETED,
+		MediaItemStatus.DROPPED,
+	];
+
+	it("returns waiting series ahead of on hold, next up and in progress when ascending", async () => {
+		for (const status of [...STATUS_RANKING].reverse()) {
+			await makeSeries({ name: status, status });
+		}
+
+		const result = await runSeriesQuery(
+			{ sortBy: "status", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.name)).toEqual(STATUS_RANKING);
+	});
+
+	it("breaks status ties by sortName", async () => {
+		await makeSeries({
+			name: "The Beta",
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+		await makeSeries({
+			name: "Alpha",
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+
+		const result = await runSeriesQuery(
+			{ sortBy: "status", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.name)).toEqual([
+			"Alpha",
+			"The Beta",
+		]);
+	});
+
+	it("leaves next item status ordering unchanged", async () => {
+		await insertSeries({
+			userId: USER,
+			name: "Waiting",
+			type: MediaItemType.BOOK,
+			nextItemStatus: NextItemStatus.WAITING_FOR_RELEASE,
+		});
+		await insertSeries({
+			userId: USER,
+			name: "Purchased",
+			type: MediaItemType.BOOK,
+			nextItemStatus: NextItemStatus.PURCHASED,
+		});
+		await insertSeries({
+			userId: USER,
+			name: "Available",
+			type: MediaItemType.BOOK,
+			nextItemStatus: NextItemStatus.AVAILABLE,
+		});
+
+		const result = await runSeriesQuery(
+			{ sortBy: "nextItemStatus", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.name)).toEqual([
+			"Purchased",
+			"Available",
+			"Waiting",
 		]);
 	});
 });
