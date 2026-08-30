@@ -73,10 +73,16 @@ export function useInfiniteScroll<T>({
 	useEffect(() => {
 		refreshTokenRef.current += 1;
 
+		function abandonRefreshInFlight() {
+			// Abandons a refresh still in flight, so its rows cannot land after the
+			// query has moved on.
+			refreshTokenRef.current += 1;
+		}
+
 		if (previousCacheKeyRef.current !== cacheKey) {
 			previousCacheKeyRef.current = cacheKey;
 			applyPageOne();
-			return;
+			return abandonRefreshInFlight;
 		}
 
 		const targetLength = offsetRef.current;
@@ -86,14 +92,14 @@ export function useInfiniteScroll<T>({
 		// refreshed order to land in the same commit as the loader data.
 		if (targetLength <= initialItems.length) {
 			applyPageOne();
-			return;
+			return abandonRefreshInFlight;
 		}
 
 		// Beyond the query ceiling the server would return fewer rows than are on
 		// screen, and a shorter list is exactly what clamps the restored scroll
 		// offset. Leave the cached rows in place instead.
 		if (targetLength > MAX_QUERY_LIMIT) {
-			return;
+			return abandonRefreshInFlight;
 		}
 
 		const refreshToken = refreshTokenRef.current;
@@ -114,6 +120,9 @@ export function useInfiniteScroll<T>({
 				setHasMore(result.hasMore);
 				hasMoreRef.current = result.hasMore;
 				offsetRef.current = result.items.length;
+			} catch {
+				// A refresh that fails leaves the cached rows on screen rather than
+				// emptying the list under the reader; the next visit tries again.
 			} finally {
 				isLoadingRef.current = false;
 			}
@@ -126,13 +135,9 @@ export function useInfiniteScroll<T>({
 			offsetRef.current = initialItems.length;
 		}
 
-		void refreshLoadedWindow();
+		refreshLoadedWindow();
 
-		return () => {
-			// Abandons a refresh still in flight, so its rows cannot land after the
-			// query has moved on.
-			refreshTokenRef.current += 1;
-		};
+		return abandonRefreshInFlight;
 	}, [cacheKey, initialItems, initialHasMore]);
 
 	useEffect(() => {

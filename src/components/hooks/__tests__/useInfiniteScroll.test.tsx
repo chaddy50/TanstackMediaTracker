@@ -44,12 +44,12 @@ function pagingFetch(
 	total = PAGE_SIZE * 4,
 	pageSize = PAGE_SIZE,
 ) {
-	return vi.fn(async (offset: number, limit: number = pageSize) => {
+	return vi.fn((offset: number, limit: number = pageSize) => {
 		const count = Math.max(0, Math.min(limit, total - offset));
-		return {
+		return Promise.resolve({
 			items: makePage(offset, label, count),
 			hasMore: offset + count < total,
-		};
+		});
 	});
 }
 
@@ -88,8 +88,22 @@ async function flush() {
 	});
 }
 
-async function fireSentinel() {
+/** Runs a synchronous body inside `act` and lets the resulting updates settle. */
+async function actSync(body: () => void) {
 	await act(async () => {
+		body();
+		await Promise.resolve();
+	});
+}
+
+/** A request that stays in flight, so a test can assert before it lands. */
+function neverSettles<T>(): Promise<T> {
+	// The executor deliberately ignores both callbacks.
+	return new Promise(() => undefined);
+}
+
+async function fireSentinel() {
+	await actSync(() => {
 		observerStub.trigger();
 	});
 	await flush();
@@ -124,7 +138,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="empty-cache"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -145,7 +159,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="remount"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -155,12 +169,12 @@ describe("useInfiniteScroll", () => {
 		first.unmount();
 
 		// A refresh that never resolves, so the assertion sees the seeded state alone.
-		const pendingFetch = vi.fn().mockReturnValue(new Promise(() => {}));
+		const pendingFetch = vi.fn().mockReturnValue(neverSettles());
 		render(
 			<TestList
 				cacheKey="remount"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={pendingFetch}
 			/>,
 		);
@@ -178,7 +192,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="same-key"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -190,7 +204,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="same-key"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -209,7 +223,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="refresh"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={staleFetch}
 			/>,
 		);
@@ -226,7 +240,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="refresh"
 				initialItems={makePage(0, "fresh")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={freshFetch}
 			/>,
 		);
@@ -256,7 +270,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="bounded-refresh"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -273,7 +287,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="bounded-refresh"
 				initialItems={makePage(0, "fresh")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={refreshFetch}
 			/>,
 		);
@@ -294,7 +308,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="over-ceiling"
 				initialItems={makePage(0, "stale", bigPage)}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -307,7 +321,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="over-ceiling"
 				initialItems={makePage(0, "fresh", bigPage)}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={remountFetch}
 			/>,
 		);
@@ -329,7 +343,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="filters-a"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -364,7 +378,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="paging-a"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -374,7 +388,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="paging-b"
 				initialItems={makePage(0, "other", 10)}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -398,7 +412,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="offset-seed"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -410,7 +424,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="offset-seed"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={remountFetch}
 			/>,
 		);
@@ -434,7 +448,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="exhausted"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
@@ -450,7 +464,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="exhausted"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={remountFetch}
 			/>,
 		);
@@ -472,7 +486,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="abandon"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={staleFetch}
 			/>,
 		);
@@ -493,7 +507,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="abandon"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={blockedFetch}
 			/>,
 		);
@@ -509,7 +523,7 @@ describe("useInfiniteScroll", () => {
 		await flush();
 		expect(renderedCount()).toBe(5);
 
-		await act(async () => {
+		await actSync(() => {
 			resolveRefresh({ items: makePage(PAGE_SIZE, "stale"), hasMore: true });
 		});
 		await flush();
@@ -529,19 +543,19 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="no-overlap"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={staleFetch}
 			/>,
 		);
 		await fireSentinel();
 		first.unmount();
 
-		const blockedFetch = vi.fn().mockReturnValue(new Promise(() => {}));
+		const blockedFetch = vi.fn().mockReturnValue(neverSettles());
 		render(
 			<TestList
 				cacheKey="no-overlap"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={blockedFetch}
 			/>,
 		);
@@ -560,7 +574,7 @@ describe("useInfiniteScroll", () => {
 				<TestList
 					cacheKey={cacheKey}
 					initialItems={makePage(0, "stale")}
-					initialHasMore={true}
+					initialHasMore
 					fetchMore={fetchMore}
 				/>,
 			);
@@ -579,12 +593,12 @@ describe("useInfiniteScroll", () => {
 		// Sixth distinct key pushes the cache over its bound.
 		await loadTwoPages("k5");
 
-		const pendingFetch = vi.fn().mockReturnValue(new Promise(() => {}));
+		const pendingFetch = vi.fn().mockReturnValue(neverSettles());
 		const evicted = render(
 			<TestList
 				cacheKey="k1"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={pendingFetch}
 			/>,
 		);
@@ -595,7 +609,7 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="k0"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={pendingFetch}
 			/>,
 		);
@@ -614,18 +628,18 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="loading-flag"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
 		await flush();
 
-		await act(async () => {
+		await actSync(() => {
 			observerStub.trigger();
 		});
 		expect(screen.getByTestId("isLoadingMore").textContent).toBe("true");
 
-		await act(async () => {
+		await actSync(() => {
 			resolveFetch({ items: makePage(PAGE_SIZE, "stale"), hasMore: false });
 		});
 		await flush();
@@ -645,20 +659,20 @@ describe("useInfiniteScroll", () => {
 			<TestList
 				cacheKey="no-double-fetch"
 				initialItems={makePage(0, "stale")}
-				initialHasMore={true}
+				initialHasMore
 				fetchMore={fetchMore}
 			/>,
 		);
 		await flush();
 
-		await act(async () => {
+		await actSync(() => {
 			observerStub.trigger();
 			observerStub.trigger();
 		});
 
 		expect(fetchMore).toHaveBeenCalledTimes(1);
 
-		await act(async () => {
+		await actSync(() => {
 			resolveFetch({ items: makePage(PAGE_SIZE, "stale"), hasMore: false });
 		});
 		await flush();
