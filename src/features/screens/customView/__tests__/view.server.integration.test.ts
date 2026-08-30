@@ -127,35 +127,85 @@ describe("handleReorderViewItems", () => {
 		]);
 	});
 
-	it("filters out items owned by another user without leaving a gap", async () => {
+	it("rejects an order containing another user's item and writes nothing", async () => {
 		const viewId = await insertView({ userId: USER_A });
 		const mineFirst = await insertItem("Mine first");
 		const theirs = await insertItem("Theirs", USER_B);
 		const mineSecond = await insertItem("Mine second");
+		await insertViewItemOrder({ viewId, mediaItemId: mineFirst, position: 0 });
 
-		await handleReorderViewItems(
-			viewId,
-			[mineFirst, theirs, mineSecond],
-			USER_A,
+		await expect(
+			handleReorderViewItems(viewId, [mineFirst, theirs, mineSecond], USER_A),
+		).rejects.toThrow(
+			`Reorder for view ${viewId} included items outside the view`,
 		);
 
 		expect(await readOrderRows(viewId)).toEqual([
 			{ viewId, mediaItemId: mineFirst, position: 0 },
-			{ viewId, mediaItemId: mineSecond, position: 1 },
 		]);
 	});
 
-	it("filters out ids that do not exist without leaving a gap", async () => {
+	it("rejects an order containing an id that does not exist", async () => {
 		const viewId = await insertView({ userId: USER_A });
 		const first = await insertItem("First");
 		const second = await insertItem("Second");
 
-		await handleReorderViewItems(viewId, [first, 999_999, second], USER_A);
+		await expect(
+			handleReorderViewItems(viewId, [first, 999_999, second], USER_A),
+		).rejects.toThrow(
+			`Reorder for view ${viewId} included items outside the view`,
+		);
 
-		expect(await readOrderRows(viewId)).toEqual([
-			{ viewId, mediaItemId: first, position: 0 },
-			{ viewId, mediaItemId: second, position: 1 },
+		expect(await readOrderRows(viewId)).toEqual([]);
+	});
+
+	// The reported bug: reorder mode was left open on one view while the sidebar
+	// switched to another, so the grid saved the first view's items against the
+	// second view's id.
+	it("rejects an order built from another view's items and writes nothing", async () => {
+		const bookView = await insertView({
+			userId: USER_A,
+			name: "Books",
+			filters: { mediaTypes: [MediaItemType.BOOK] },
+		});
+		const movieView = await insertView({
+			userId: USER_A,
+			name: "Movies",
+			filters: { mediaTypes: [MediaItemType.MOVIE] },
+		});
+		const book = await insertItem("Dune", USER_A, {
+			type: MediaItemType.BOOK,
+		});
+		const movie = await insertItem("Arrival", USER_A, {
+			type: MediaItemType.MOVIE,
+		});
+		await insertViewItemOrder({
+			viewId: movieView,
+			mediaItemId: movie,
+			position: 0,
+		});
+
+		await expect(
+			handleReorderViewItems(movieView, [book], USER_A),
+		).rejects.toThrow(
+			`Reorder for view ${movieView} included items outside the view`,
+		);
+
+		expect(await readOrderRows(movieView)).toEqual([
+			{ viewId: movieView, mediaItemId: movie, position: 0 },
 		]);
+		expect(await readOrderRows(bookView)).toEqual([]);
+	});
+
+	it("rejects a series view, which cannot be hand-ordered", async () => {
+		const viewId = await insertView({ userId: USER_A, subject: "series" });
+		const itemId = await insertItem("Gilgamesh");
+
+		await expect(
+			handleReorderViewItems(viewId, [itemId], USER_A),
+		).rejects.toThrow(`View ${viewId} is not an item view`);
+
+		expect(await readOrderRows(viewId)).toEqual([]);
 	});
 
 	it("leaves another view's order rows untouched", async () => {
@@ -186,6 +236,8 @@ describe("handleReorderViewItems", () => {
 		expect(await readOrderRows(viewId)).toEqual([]);
 	});
 
+	// Also pins that the out-of-view check counts de-duplicated ids: comparing
+	// against the raw array would reject a legitimate order with a repeat in it.
 	it("de-dupes repeated ids rather than colliding on the primary key", async () => {
 		const viewId = await insertView({ userId: USER_A });
 		const first = await insertItem("First");
@@ -380,14 +432,18 @@ describe("handleReorderViewItems sort switching", () => {
 	it("leaves the view's other filters untouched", async () => {
 		const viewId = await insertView({
 			userId: USER_A,
-			filters: { tags: ["Ancient Sumeria"], sortBy: "title" },
+			// The item has to satisfy the view's filters, or the reorder is refused
+			// for holding an id the view does not contain.
+			filters: { mediaTypes: [MediaItemType.BOOK], sortBy: "title" },
 		});
-		const itemId = await insertItem("Gilgamesh");
+		const itemId = await insertItem("Gilgamesh", USER_A, {
+			type: MediaItemType.BOOK,
+		});
 
 		await handleReorderViewItems(viewId, [itemId], USER_A);
 
 		expect(await readFilters(viewId)).toMatchObject({
-			tags: ["Ancient Sumeria"],
+			mediaTypes: [MediaItemType.BOOK],
 			sortBy: "custom",
 		});
 	});
@@ -416,6 +472,31 @@ describe("handleReorderViewItems sort switching", () => {
 		await insertItem("Gilgamesh");
 
 		await handleGetViewOrderItems(viewId, USER_A);
+
+		expect(await readFilters(viewId)).toMatchObject({
+			sortBy: "title",
+			sortDirection: "desc",
+		});
+	});
+
+	// Refusing the ids has to leave the view completely alone: flipping its sort
+	// would turn the reported bug from a wrong order into a wiped one.
+	it("does not switch the view when the ids are refused", async () => {
+		const viewId = await insertView({
+			userId: USER_A,
+			filters: {
+				mediaTypes: [MediaItemType.MOVIE],
+				sortBy: "title",
+				sortDirection: "desc",
+			},
+		});
+		const book = await insertItem("Gilgamesh", USER_A, {
+			type: MediaItemType.BOOK,
+		});
+
+		await expect(
+			handleReorderViewItems(viewId, [book], USER_A),
+		).rejects.toThrow();
 
 		expect(await readFilters(viewId)).toMatchObject({
 			sortBy: "title",
