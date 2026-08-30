@@ -57,7 +57,8 @@ export function RatingStars({
 				<RatingStar
 					key={starNumber}
 					starNumber={starNumber}
-					rating={roundedRating}
+					rating={rating}
+					roundedRating={roundedRating}
 					updateRating={updateRating}
 					isOnDarkBackground={isOnDarkBackground}
 					className={starClassName}

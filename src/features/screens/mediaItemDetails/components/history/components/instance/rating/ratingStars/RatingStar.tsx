@@ -1,10 +1,12 @@
 import { Star } from "lucide-react";
+import type { MouseEvent } from "react";
 import { getStarFillLevel } from "#/lib/rating";
 import { cn } from "#/lib/utils";
 
 interface RatingStarProps {
 	starNumber: number;
 	rating: number;
+	roundedRating: number;
 	updateRating?: (value: number) => void;
 	isOnDarkBackground?: boolean;
 	className?: string;
@@ -12,12 +14,13 @@ interface RatingStarProps {
 
 export function RatingStar({
 	rating,
+	roundedRating,
 	starNumber,
 	updateRating,
 	isOnDarkBackground = false,
 	className,
 }: RatingStarProps) {
-	const fillLevel = getStarFillLevel(starNumber, rating);
+	const fillLevel = getStarFillLevel(starNumber, roundedRating);
 	const shouldStarBeFilled = fillLevel === "full";
 	const shouldStarBeHalfFilled = fillLevel === "half";
 	const shouldStarBeClickable = !!updateRating;
@@ -42,11 +45,12 @@ export function RatingStar({
 				fill={shouldStarBeFilled ? "currentColor" : "none"}
 				onClick={
 					shouldStarBeClickable
-						? () => {
-								if (rating === starNumber) {
+						? (event) => {
+								const clickedRating = getClickedRating(event, starNumber);
+								if (rating === clickedRating) {
 									updateRating(0);
 								} else {
-									updateRating(starNumber);
+									updateRating(clickedRating);
 								}
 							}
 						: undefined
@@ -65,4 +69,14 @@ export function RatingStar({
 			)}
 		</span>
 	);
+}
+
+/** Each star is two targets: its left half records a `.5`, its right the whole. */
+function getClickedRating(
+	event: MouseEvent<SVGSVGElement>,
+	starNumber: number,
+): number {
+	const bounds = event.currentTarget.getBoundingClientRect();
+	const isLeftHalfClicked = event.clientX - bounds.left < bounds.width / 2;
+	return isLeftHalfClicked ? starNumber - 0.5 : starNumber;
 }
