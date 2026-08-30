@@ -1,9 +1,8 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "#/database/index";
 import {
 	type FilterAndSortOptions,
-	mediaItems,
 	viewItemOrder,
 	views,
 } from "#/database/schema";
@@ -60,9 +59,10 @@ export async function handleGetViewStats(
 }
 
 /**
- * Replaces a view's hand-built order outright. Ids the caller does not own are
- * dropped, and the survivors are renumbered contiguously so a filtered-out id
- * never leaves a hole in the sequence.
+ * Replaces a view's hand-built order outright. An order the view does not
+ * contain is refused outright rather than filtered down: a partial write here
+ * would clear the view's saved order and switch its sort on the strength of
+ * someone else's item list.
  *
  * Arranging a view by hand is also what switches it to custom order: the
  * positions written here are only honored while the view sorts by them, so a
@@ -76,8 +76,20 @@ export async function handleReorderViewItems(
 	userId: string,
 ): Promise<void> {
 	const view = await findOwnedView(viewId, userId);
+	if (view.subject !== "items") {
+		throw new Error(`View ${viewId} is not an item view`);
+	}
 
-	const idsToStore = await filterToOwnedItemIds(orderedMediaItemIds, userId);
+	const idsToStore = await filterToViewItemIds(
+		orderedMediaItemIds,
+		view,
+		userId,
+	);
+	if (idsToStore.length !== new Set(orderedMediaItemIds).size) {
+		throw new Error(
+			`Reorder for view ${viewId} included items outside the view`,
+		);
+	}
 
 	await db.transaction(async (tx) => {
 		await tx.delete(viewItemOrder).where(eq(viewItemOrder.viewId, viewId));
@@ -131,12 +143,15 @@ export async function findOwnedView(viewId: number, userId: string) {
 // ---------------------------------------------------------------------------
 
 /**
- * Narrows a caller-supplied id list to the ones that are really the user's,
- * preserving the given order. De-duplicating first is what keeps a repeated id
- * from colliding on the (viewId, mediaItemId) primary key.
+ * Narrows a caller-supplied id list to the items the view actually contains,
+ * preserving the given order. Membership subsumes ownership — the view's query
+ * is already scoped to the user — so an order built against a different view
+ * cannot survive this. De-duplicating first is what keeps a repeated id from
+ * colliding on the (viewId, mediaItemId) primary key.
  */
-async function filterToOwnedItemIds(
+async function filterToViewItemIds(
 	mediaItemIds: number[],
+	view: typeof views.$inferSelect,
 	userId: string,
 ): Promise<number[]> {
 	const uniqueIds = [...new Set(mediaItemIds)];
@@ -144,13 +159,12 @@ async function filterToOwnedItemIds(
 		return [];
 	}
 
-	const ownedRows = await db
-		.select({ id: mediaItems.id })
-		.from(mediaItems)
-		.where(
-			and(eq(mediaItems.userId, userId), inArray(mediaItems.id, uniqueIds)),
-		);
-	const ownedIds = new Set(ownedRows.map((row) => row.id));
+	const viewItems = await runOrderableItemQuery(
+		(view.filters ?? {}) as FilterAndSortOptions,
+		userId,
+		view.id,
+	);
+	const viewItemIds = new Set(viewItems.map((item) => item.id));
 
-	return uniqueIds.filter((id) => ownedIds.has(id));
+	return uniqueIds.filter((id) => viewItemIds.has(id));
 }
