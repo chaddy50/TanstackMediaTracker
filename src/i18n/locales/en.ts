@@ -142,6 +142,9 @@ export const en = {
 		subscriberFeedPlaceholder: "Paste your private subscriber feed URL",
 		loadEpisodes: "Load episodes",
 	},
+	rating: {
+		outOfFive: "{{rating}} out of 5",
+	},
 	fictionRating: {
 		setting: "Setting",
 		character: "Characters",

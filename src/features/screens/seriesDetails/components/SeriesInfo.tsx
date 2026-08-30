@@ -165,7 +165,8 @@ export function SeriesInfo({ seriesDetails }: SeriesInfoProps) {
 					</span>
 					<RatingStars
 						rating={seriesDetails.rating}
-						shouldShowIfNoRating={true}
+						shouldShowIfNoRating
+						shouldShowValue
 					/>
 				</div>
 			)}

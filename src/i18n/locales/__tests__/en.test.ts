@@ -133,6 +133,13 @@ describe("en locale", () => {
 		}
 	});
 
+	it("defines the rating label the stars render", () => {
+		const value = resolveKey(en, "rating.outOfFive");
+
+		expect(value).toBeTypeOf("string");
+		expect(value).toContain("{{rating}}");
+	});
+
 	describe.each(TAXONOMY_ENTITIES)("%s", (entity) => {
 		it(`defines every per-entity key the ${entity} panel renders`, () => {
 			for (const suffix of PER_ENTITY_UI_KEY_SUFFIXES) {
