@@ -348,6 +348,7 @@ type StatsQueryRow = {
 	completedCount: string;
 	purchasedCount: string;
 	droppedCount: string;
+	averageRating: string | null;
 };
 
 /**
@@ -380,19 +381,28 @@ describe("runItemStatsQuery", () => {
 			completedCount: "4",
 			purchasedCount: "6",
 			droppedCount: "1",
+			averageRating: "4.25",
 		});
 		// @ts-expect-error — assigning to mocked module
 		db.select = vi.fn(() => chain);
 
 		const stats = await runItemStatsQuery({}, "user-1");
 
-		for (const value of Object.values(stats)) {
-			expect(value).toBeTypeOf("number");
+		// The average is parsed separately below: it is the one field allowed to
+		// come back null, so "every value is a number" is no longer the invariant.
+		for (const count of [
+			stats.totalCount,
+			stats.completedCount,
+			stats.purchasedCount,
+			stats.droppedCount,
+		]) {
+			expect(count).toBeTypeOf("number");
 		}
 		expect(stats.totalCount).toBe(10);
 		expect(stats.completedCount).toBe(4);
 		expect(stats.purchasedCount).toBe(6);
 		expect(stats.droppedCount).toBe(1);
+		expect(stats.averageRating).toBe(4.25);
 	});
 
 	it("coerces a zero row to numeric zeros, not string zeros", async () => {
@@ -402,6 +412,8 @@ describe("runItemStatsQuery", () => {
 			completedCount: "0",
 			purchasedCount: "0",
 			droppedCount: "0",
+			// Postgres returns null from avg() when no row satisfied the filter.
+			averageRating: null,
 		});
 		// @ts-expect-error — assigning to mocked module
 		db.select = vi.fn(() => chain);
@@ -413,10 +425,51 @@ describe("runItemStatsQuery", () => {
 			completedCount: 0,
 			purchasedCount: 0,
 			droppedCount: 0,
+			averageRating: null,
 		});
-		for (const value of Object.values(stats)) {
-			expect(value).toBeTypeOf("number");
+		for (const count of [
+			stats.totalCount,
+			stats.completedCount,
+			stats.purchasedCount,
+			stats.droppedCount,
+		]) {
+			expect(count).toBeTypeOf("number");
 		}
+	});
+
+	// `toCount` would turn this into 0, which the bar would render as `0.0 ★`.
+	it("keeps a null average null rather than coercing it to 0", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeStatsQueryChain({
+			totalCount: "10",
+			completedCount: "4",
+			purchasedCount: "6",
+			droppedCount: "1",
+			averageRating: null,
+		});
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const stats = await runItemStatsQuery({}, "user-1");
+
+		expect(stats.averageRating).toBeNull();
+	});
+
+	it("reports a genuine average of 0 as 0, not null", async () => {
+		const { db } = await import("#/database/index");
+		const { chain } = makeStatsQueryChain({
+			totalCount: "10",
+			completedCount: "4",
+			purchasedCount: "6",
+			droppedCount: "1",
+			averageRating: "0",
+		});
+		// @ts-expect-error — assigning to mocked module
+		db.select = vi.fn(() => chain);
+
+		const stats = await runItemStatsQuery({}, "user-1");
+
+		expect(stats.averageRating).toBe(0);
 	});
 
 	it("issues one un-paginated aggregate rather than a page of rows", async () => {
@@ -426,6 +479,7 @@ describe("runItemStatsQuery", () => {
 			completedCount: "4",
 			purchasedCount: "6",
 			droppedCount: "1",
+			averageRating: "4.0",
 		});
 		const selectFn = vi.fn(() => chain);
 		// @ts-expect-error — assigning to mocked module

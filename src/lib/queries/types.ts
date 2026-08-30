@@ -34,6 +34,7 @@ export type ItemStats = {
 	completedCount: number;
 	purchasedCount: number;
 	droppedCount: number;
+	averageRating: number | null;
 };
 
 /**
