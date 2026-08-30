@@ -517,6 +517,67 @@ describe("sort by title", () => {
 	});
 });
 
+describe("sort by status", () => {
+	const STATUS_RANKING = [
+		MediaItemStatus.BACKLOG,
+		MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		MediaItemStatus.ON_HOLD,
+		MediaItemStatus.NEXT_UP,
+		MediaItemStatus.IN_PROGRESS,
+		MediaItemStatus.COMPLETED,
+		MediaItemStatus.DROPPED,
+	];
+
+	/** One item per status, titled after its status so order is readable. */
+	async function insertOneItemPerStatus() {
+		for (const status of [...STATUS_RANKING].reverse()) {
+			await insertItem({ title: status, status });
+		}
+	}
+
+	it("returns waiting items ahead of on hold, next up and in progress when ascending", async () => {
+		await insertOneItemPerStatus();
+
+		const result = await runItemQuery(
+			{ sortBy: "status", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(STATUS_RANKING);
+	});
+
+	it("reverses the ranking when descending", async () => {
+		await insertOneItemPerStatus();
+
+		const result = await runItemQuery(
+			{ sortBy: "status", sortDirection: "desc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(
+			[...STATUS_RANKING].reverse(),
+		);
+	});
+
+	it("falls back to title ordering within a status", async () => {
+		await insertItem({
+			title: "Beta",
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+		await insertItem({
+			title: "Alpha",
+			status: MediaItemStatus.WAITING_FOR_NEXT_RELEASE,
+		});
+
+		const result = await runItemQuery(
+			{ sortBy: "status", sortDirection: "asc" },
+			USER,
+		);
+
+		expect(result.items.map((item) => item.title)).toEqual(["Alpha", "Beta"]);
+	});
+});
+
 describe("sort by rating", () => {
 	it("returns items sorted descending by the latest completed instance rating", async () => {
 		const highId = await insertItem({ title: "High Rated" });

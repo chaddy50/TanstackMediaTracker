@@ -266,10 +266,10 @@ export const series = pgTable("series", {
 	statusSortOrder: integer("status_sort_order").generatedAlwaysAs(
 		sql`CASE status
 			WHEN 'backlog' THEN 0
-			WHEN 'next_up' THEN 1
-			WHEN 'in_progress' THEN 2
-			WHEN 'on_hold' THEN 3
-			WHEN 'waiting_for_next_release' THEN 4
+			WHEN 'waiting_for_next_release' THEN 1
+			WHEN 'on_hold' THEN 2
+			WHEN 'next_up' THEN 3
+			WHEN 'in_progress' THEN 4
 			WHEN 'done' THEN 5
 			WHEN 'dropped' THEN 6
 			ELSE 99
@@ -404,10 +404,10 @@ export const mediaItems = pgTable(
 		statusSortOrder: integer("status_sort_order").generatedAlwaysAs(
 			sql`CASE status
 				WHEN 'backlog' THEN 0
-				WHEN 'next_up' THEN 1
-				WHEN 'in_progress' THEN 2
-				WHEN 'on_hold' THEN 3
-				WHEN 'waiting_for_next_release' THEN 4
+				WHEN 'waiting_for_next_release' THEN 1
+				WHEN 'on_hold' THEN 2
+				WHEN 'next_up' THEN 3
+				WHEN 'in_progress' THEN 4
 				WHEN 'done' THEN 5
 				WHEN 'dropped' THEN 6
 				ELSE 99

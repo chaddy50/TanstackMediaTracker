@@ -53,6 +53,28 @@ describe("Filters", () => {
 		expect(screen.queryByText("views.form.purchased")).not.toBeInTheDocument();
 	});
 
+	it("lists status filter options in display order", () => {
+		render(<Filters {...baseProps} />);
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "views.form.statuses" }),
+		);
+
+		const renderedStatuses = screen
+			.getAllByRole("button")
+			.map((option) => option.textContent)
+			.filter((label) => label?.startsWith("status."));
+		expect(renderedStatuses).toEqual([
+			"status.backlog",
+			"status.waiting_for_next_release",
+			"status.on_hold",
+			"status.next_up",
+			"status.in_progress",
+			"status.done",
+			"status.dropped",
+		]);
+	});
+
 	it("shows the '(No genre)' option prepended before real genres", () => {
 		render(<Filters {...baseProps} availableGenres={["Fantasy"]} />);
 

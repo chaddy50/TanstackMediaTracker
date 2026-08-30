@@ -267,6 +267,13 @@
       "when": 1785779418041,
       "tag": "0037_cooing_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788098540468,
+      "tag": "0038_glorious_lifeguard",
+      "breakpoints": true
     }
   ]
 }
