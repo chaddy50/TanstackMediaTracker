@@ -53,7 +53,10 @@ export function useInfiniteScroll<T>({
 	const hasMoreRef = useRef(cachedPages?.hasMore ?? initialHasMore);
 	const fetchMoreRef = useRef(fetchMore);
 	const previousCacheKeyRef = useRef(cacheKey);
-	const refreshTokenRef = useRef(0);
+	// Bumped whenever the query changes or the effect tears down, so both the window
+	// refresh and the sentinel's pagination can tell their own result apart from one
+	// belonging to a list that has since been replaced.
+	const requestGenerationRef = useRef(0);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 
 	// Keep refs in sync with latest values
@@ -71,12 +74,12 @@ export function useInfiniteScroll<T>({
 	// resetting: dropping back to page one is what collapses the scroll container
 	// and loses the reader's place.
 	useEffect(() => {
-		refreshTokenRef.current += 1;
+		requestGenerationRef.current += 1;
 
 		function abandonRefreshInFlight() {
 			// Abandons a refresh still in flight, so its rows cannot land after the
 			// query has moved on.
-			refreshTokenRef.current += 1;
+			requestGenerationRef.current += 1;
 		}
 
 		if (previousCacheKeyRef.current !== cacheKey) {
@@ -102,7 +105,7 @@ export function useInfiniteScroll<T>({
 			return abandonRefreshInFlight;
 		}
 
-		const refreshToken = refreshTokenRef.current;
+		const requestGeneration = requestGenerationRef.current;
 
 		async function refreshLoadedWindow() {
 			// Held across the request so the sentinel cannot append a page that the
@@ -112,7 +115,7 @@ export function useInfiniteScroll<T>({
 				const result = await fetchMoreRef.current(0, targetLength);
 				// A newer refresh, a query change, or an unmount happened while this was
 				// in flight, so its rows belong to a list nobody is showing.
-				if (refreshTokenRef.current !== refreshToken) {
+				if (requestGenerationRef.current !== requestGeneration) {
 					return;
 				}
 
@@ -159,17 +162,29 @@ export function useInfiniteScroll<T>({
 			) {
 				return;
 			}
+			const requestGeneration = requestGenerationRef.current;
 			isLoadingRef.current = true;
 			setIsLoadingMore(true);
 			try {
 				const result = await fetchMoreRef.current(offsetRef.current);
+				// The query changed while this page was in flight. Appending now would
+				// splice the old list's rows onto the new one, push `offsetRef` past what
+				// is on screen, and cache the mixture under the new query's key.
+				if (requestGenerationRef.current !== requestGeneration) {
+					return;
+				}
+
 				setAllItems((previous) => [...previous, ...result.items]);
 				setHasMore(result.hasMore);
 				hasMoreRef.current = result.hasMore;
 				offsetRef.current += result.items.length;
 			} finally {
-				isLoadingRef.current = false;
-				setIsLoadingMore(false);
+				// A newer request owns the loading state now; clearing it here would
+				// unblock the sentinel while that one is still running.
+				if (requestGenerationRef.current === requestGeneration) {
+					isLoadingRef.current = false;
+					setIsLoadingMore(false);
+				}
 			}
 		}
 

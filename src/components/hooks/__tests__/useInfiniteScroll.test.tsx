@@ -533,6 +533,62 @@ describe("useInfiniteScroll", () => {
 		expect(renderedLabels()).toBe("other");
 	});
 
+	it("drops a page that lands after the cacheKey changed", async () => {
+		let resolvePage!: (value: { items: TestItem[]; hasMore: boolean }) => void;
+		const fetchMore = vi.fn().mockReturnValue(
+			new Promise<{ items: TestItem[]; hasMore: boolean }>((resolve) => {
+				resolvePage = resolve;
+			}),
+		);
+
+		const { rerender } = render(
+			<TestList
+				cacheKey="stale-page-a"
+				initialItems={makePage(0, "a")}
+				initialHasMore
+				fetchMore={fetchMore}
+			/>,
+		);
+		await fireSentinel();
+		expect(fetchMore).toHaveBeenCalledTimes(1);
+
+		// The query changes while that page is still in flight.
+		rerender(
+			<TestList
+				cacheKey="stale-page-b"
+				initialItems={makePage(0, "b", 10)}
+				initialHasMore={false}
+				fetchMore={fetchMore}
+			/>,
+		);
+		await flush();
+		expect(renderedLabels()).toBe("b");
+
+		await actSync(() => {
+			resolvePage({ items: makePage(PAGE_SIZE, "a"), hasMore: true });
+		});
+		await flush();
+
+		// The old query's rows must not be spliced onto the new list.
+		expect(renderedCount()).toBe(10);
+		expect(renderedLabels()).toBe("b");
+
+		// Nor cached under the new query's key, where a remount would restore them.
+		const remountFetch = vi.fn().mockReturnValue(neverSettles());
+		cleanup();
+		render(
+			<TestList
+				cacheKey="stale-page-b"
+				initialItems={makePage(0, "b", 10)}
+				initialHasMore={false}
+				fetchMore={remountFetch}
+			/>,
+		);
+
+		expect(renderedCount()).toBe(10);
+		expect(renderedLabels()).toBe("b");
+	});
+
 	it("does not let the sentinel append while a refresh is in flight", async () => {
 		const staleFetch = vi.fn().mockResolvedValue({
 			items: makePage(PAGE_SIZE, "stale"),
