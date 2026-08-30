@@ -41,7 +41,11 @@ export function RatingEditor({
 					<span className="text-sm text-muted-foreground w-32">
 						{t("mediaItemDetails.overallRating")}
 					</span>
-					<RatingStars rating={rating} shouldShowIfNoRating={true} />
+					<RatingStars
+						rating={rating}
+						shouldShowIfNoRating={true}
+						shouldShowValue={true}
+					/>
 					<DeleteButton
 						className="ml-auto"
 						onClick={handleRemoveDetailedRating}

@@ -98,6 +98,34 @@ describe("InstanceRow", () => {
 		expect(screen.getAllByText(/^fictionRating\./)).toHaveLength(5);
 	});
 
+	it("shows the exact instance rating next to its stars", () => {
+		renderInstanceRow({ rating: 3.6 });
+
+		expect(screen.getByText("3.6")).toBeInTheDocument();
+	});
+
+	it("shows the exact rating on a season review", () => {
+		renderInstanceRow({
+			seasonReviews: [
+				{
+					season: 1,
+					startedAt: "",
+					completedAt: "",
+					rating: 4.4,
+					reviewText: "",
+				},
+			],
+		});
+
+		expect(screen.getByText("4.4")).toBeInTheDocument();
+	});
+
+	it("hides the stars for an unrated instance", () => {
+		renderInstanceRow({ rating: 0 });
+
+		expect(screen.queryByTestId("rating-stars")).not.toBeInTheDocument();
+	});
+
 	it("shows a season review's fiction rating categories", () => {
 		renderInstanceRow({
 			seasonReviews: [
