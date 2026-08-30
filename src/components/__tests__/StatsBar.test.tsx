@@ -19,6 +19,7 @@ function makeStats(overrides?: Partial<ItemStats>): ItemStats {
 		completedCount: 22,
 		purchasedCount: 44,
 		droppedCount: 66,
+		averageRating: 3.7,
 		...overrides,
 	};
 }
@@ -33,6 +34,15 @@ function renderStatsBar(
 /** Reads the count rendered alongside a label, so pairings are checked as pairs. */
 function readStatValue(labelKey: string): string | null | undefined {
 	return screen.getByText(labelKey).previousElementSibling?.textContent;
+}
+
+/**
+ * The average is labelled by a star rather than by text, so it is read from its
+ * own section instead of through {@link readStatValue}.
+ */
+function readAverageRating(): string | null | undefined {
+	return screen.queryByTestId("stats-average-rating")?.firstElementChild
+		?.textContent;
 }
 
 afterEach(cleanup);
@@ -94,14 +104,15 @@ describe("StatsBar", () => {
 		renderStatsBar({ droppedCount: 0 });
 
 		expect(screen.queryByText("stats.dropped")).not.toBeInTheDocument();
-		expect(screen.getAllByTestId("stats-divider")).toHaveLength(2);
+		// Items | purchased | completed | average.
+		expect(screen.getAllByTestId("stats-divider")).toHaveLength(3);
 	});
 
 	it("shows dropped and its divider once something was dropped", () => {
 		renderStatsBar({ droppedCount: 1 });
 
 		expect(readStatValue("stats.dropped")).toBe("1");
-		expect(screen.getAllByTestId("stats-divider")).toHaveLength(3);
+		expect(screen.getAllByTestId("stats-divider")).toHaveLength(4);
 	});
 
 	it("labels every count through t()", () => {
@@ -172,10 +183,13 @@ describe("StatsBar", () => {
 
 	// Hiding a section takes its divider with it, so nothing is left dangling.
 	it("leaves no stranded dividers when the filters settle every count", () => {
-		renderStatsBar(undefined, {
-			statuses: [MediaItemStatus.COMPLETED],
-			purchaseStatuses: [PurchaseStatus.PURCHASED],
-		});
+		renderStatsBar(
+			{ averageRating: null },
+			{
+				statuses: [MediaItemStatus.COMPLETED],
+				purchaseStatuses: [PurchaseStatus.PURCHASED],
+			},
+		);
 
 		expect(screen.queryAllByTestId("stats-divider")).toHaveLength(0);
 		expect(readStatValue("stats.items")).toBe("11");
@@ -208,6 +222,8 @@ describe("StatsBar", () => {
 			"22stats.completed",
 			"stats-divider",
 			"66stats.dropped",
+			"stats-divider",
+			"stats-average-rating",
 		]);
 	});
 
@@ -221,5 +237,99 @@ describe("StatsBar", () => {
 			purchasedLabel.compareDocumentPosition(droppedLabel) &
 				Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy();
+	});
+});
+
+describe("StatsBar average rating", () => {
+	it("renders the average rating with its star", () => {
+		renderStatsBar({ averageRating: 4.2 });
+
+		expect(readAverageRating()).toBe("4.2");
+		expect(
+			screen.getByTestId("stats-average-rating").querySelector("svg"),
+		).toBeInTheDocument();
+	});
+
+	it("formats a whole-number average to one decimal", () => {
+		renderStatsBar({ averageRating: 4 });
+
+		expect(readAverageRating()).toBe("4.0");
+	});
+
+	it("rounds the average to one decimal", () => {
+		renderStatsBar({ averageRating: 4.25 });
+
+		expect(readAverageRating()).toBe("4.3");
+
+		cleanup();
+		renderStatsBar({ averageRating: 3.666 });
+
+		expect(readAverageRating()).toBe("3.7");
+	});
+
+	it("hides the average and its divider when nothing is rated", () => {
+		renderStatsBar({ averageRating: null });
+
+		expect(
+			screen.queryByTestId("stats-average-rating"),
+		).not.toBeInTheDocument();
+		expect(screen.queryByText("stats.averageRating")).not.toBeInTheDocument();
+		const dividersWithoutAverage =
+			screen.getAllByTestId("stats-divider").length;
+
+		cleanup();
+		renderStatsBar({ averageRating: 4.2 });
+
+		expect(screen.getAllByTestId("stats-divider")).toHaveLength(
+			dividersWithoutAverage + 1,
+		);
+	});
+
+	// `0` is not a rating the app can store — a cleared rating is filtered out of
+	// the average — but the guard is an explicit null check rather than a falsy
+	// one, and this is what pins that down.
+	it("renders an average of 0 rather than treating it as absent", () => {
+		renderStatsBar({ averageRating: 0 });
+
+		expect(readAverageRating()).toBe("0.0");
+	});
+
+	it("renders the average after completed when nothing was dropped", () => {
+		renderStatsBar({ droppedCount: 0, averageRating: 4.2 });
+
+		const bar = screen.getByTestId("stats-bar");
+		const contents = Array.from(bar.children).map(
+			(child) => child.getAttribute("data-testid") ?? child.textContent,
+		);
+
+		expect(contents).toEqual([
+			"11stats.items",
+			"stats-divider",
+			"44stats.purchased",
+			"stats-divider",
+			"22stats.completed",
+			"stats-divider",
+			"stats-average-rating",
+		]);
+	});
+
+	// No filter can settle an average the way one settles a count, so it survives
+	// even the filters that strip the bar down to its total.
+	it("shows the average in a view of completed items", () => {
+		renderStatsBar(
+			{ averageRating: 4.2 },
+			{ statuses: [MediaItemStatus.COMPLETED] },
+		);
+
+		expect(readAverageRating()).toBe("4.2");
+	});
+
+	it("labels the average through t() for assistive tech", () => {
+		renderStatsBar({ averageRating: 4.2 });
+
+		expect(screen.getByText("stats.averageRating")).toBeInTheDocument();
+		expect(
+			screen.getByTestId("stats-average-rating").querySelector("svg"),
+		).toHaveAttribute("aria-hidden", "true");
 	});
 });

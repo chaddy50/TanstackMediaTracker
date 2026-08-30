@@ -380,7 +380,7 @@ export async function runOrderableItemQuery(
 // ---------------------------------------------------------------------------
 
 /**
- * Aggregate counts for the items a set of filters selects.
+ * Aggregate counts and the average rating for the items a set of filters selects.
  *
  * It shares `buildItemFilterConditions` with the list query rather than counting
  * the rows a page returned: the stats describe the whole result set, and reusing
@@ -396,21 +396,27 @@ export async function runItemStatsQuery(
 ): Promise<ItemStats> {
 	const conditions = buildItemFilterConditions(filters, userId);
 
-	// The joins the filter conditions reach into. The latest-instance LATERAL of
-	// the list query is absent on purpose: it only backs the rating and
-	// completed-at sort columns, and the completed-date filter is a self-contained
-	// EXISTS.
+	// The joins the filter conditions reach into, plus the latest-instance LATERAL
+	// the average rating reads from. It is a LEFT JOIN of at most one row per item,
+	// so it cannot fan out and inflate the counts beside it.
 	const [row] = await db
 		.select({
 			totalCount: sql<string>`count(*)`,
 			completedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.status} = ${MediaItemStatus.COMPLETED})`,
 			purchasedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.purchaseStatus} = ${PurchaseStatus.PURCHASED})`,
 			droppedCount: sql<string>`count(*) FILTER (WHERE ${mediaItems.status} = ${MediaItemStatus.DROPPED})`,
+			// Unrated items are excluded rather than averaged in as zeroes. A cleared
+			// rating is stored as 0 (not NULL) by the instance editor, and the grid
+			// already reads 0 as "no rating", so both are filtered out here.
+			averageRating: sql<
+				string | null
+			>`avg(latest_instance.latest_rating) FILTER (WHERE latest_instance.latest_rating > 0)`,
 		})
 		.from(mediaItems)
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
+		.leftJoin(buildLatestInstanceLateral(), sql`true`)
 		.where(and(...conditions));
 
 	const totalCount = toCount(row?.totalCount);
@@ -422,6 +428,7 @@ export async function runItemStatsQuery(
 		completedCount,
 		purchasedCount: toCount(row?.purchasedCount),
 		droppedCount,
+		averageRating: toAverage(row?.averageRating),
 	};
 }
 
@@ -489,17 +496,6 @@ function buildItemSelectQuery(
 		viewId,
 	);
 
-	const lateralLatestInstance = sql`LATERAL (
-		SELECT
-			${mediaItemInstances.rating} AS latest_rating,
-			${mediaItemInstances.completedAt} AS latest_completed_at
-		FROM ${mediaItemInstances}
-		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
-			AND ${mediaItemInstances.completedAt} IS NOT NULL
-		ORDER BY ${mediaItemInstances.id} DESC
-		LIMIT 1
-	) AS latest_instance`;
-
 	return db
 		.select({
 			id: mediaItems.id,
@@ -522,9 +518,30 @@ function buildItemSelectQuery(
 		.leftJoin(series, eq(mediaItems.seriesId, series.id))
 		.leftJoin(creators, eq(mediaItems.creatorId, creators.id))
 		.leftJoin(genres, eq(mediaItems.genreId, genres.id))
-		.leftJoin(lateralLatestInstance, sql`true`)
+		.leftJoin(buildLatestInstanceLateral(), sql`true`)
 		.where(and(...conditions))
 		.orderBy(...sortClauses);
+}
+
+/**
+ * The most recent *completed* instance of each item, as a lateral join.
+ *
+ * Both the list query and the stats aggregate read an item's rating through this,
+ * which is what keeps the average in the stats bar consistent with the stars on
+ * the cards below it. Built fresh per call rather than shared as a module const,
+ * so no two queries can ever hold a reference to the same fragment.
+ */
+function buildLatestInstanceLateral(): SQL {
+	return sql`LATERAL (
+		SELECT
+			${mediaItemInstances.rating} AS latest_rating,
+			${mediaItemInstances.completedAt} AS latest_completed_at
+		FROM ${mediaItemInstances}
+		WHERE ${mediaItemInstances.mediaItemId} = ${mediaItems.id}
+			AND ${mediaItemInstances.completedAt} IS NOT NULL
+		ORDER BY ${mediaItemInstances.id} DESC
+		LIMIT 1
+	) AS latest_instance`;
 }
 
 /**
@@ -550,6 +567,19 @@ function toItemQueryItem({
 	...item
 }: ItemQueryRow): ItemQueryItem {
 	return { ...item, rating: parseFloat(latestRating ?? "") || 0 };
+}
+
+/**
+ * `avg()` over a numeric column arrives as a string, and as null when no row
+ * satisfied the filter. The null is preserved: "nothing here is rated" is a
+ * different fact from "everything here is rated zero".
+ */
+function toAverage(value: string | null | undefined): number | null {
+	if (value === null || value === undefined) {
+		return null;
+	}
+	const parsed = parseFloat(value);
+	return Number.isNaN(parsed) ? null : parsed;
 }
 
 /** `count(*)` is a bigint, which node-postgres hands back as a string. */

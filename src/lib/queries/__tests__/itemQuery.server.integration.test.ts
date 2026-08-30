@@ -1245,13 +1245,15 @@ describe("runItemStatsQuery aggregate math", () => {
 	it("returns all zeros when nothing matches", async () => {
 		const stats = await runItemStatsQuery({}, USER);
 
-		// An aggregate over no rows still yields one row, so every field reads 0
-		// rather than the query coming back empty.
+		// An aggregate over no rows still yields one row, so every count reads 0
+		// rather than the query coming back empty. The average has nothing to
+		// average, which is a null rather than a zero.
 		expect(stats).toEqual({
 			totalCount: 0,
 			completedCount: 0,
 			purchasedCount: 0,
 			droppedCount: 0,
+			averageRating: null,
 		});
 	});
 
@@ -1280,6 +1282,183 @@ describe("runItemStatsQuery aggregate math", () => {
 		const stats = await runItemStatsQuery({ tags: ["a", "b"] }, USER);
 
 		expect(stats.totalCount).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// runItemStatsQuery — average rating
+// ---------------------------------------------------------------------------
+
+describe("runItemStatsQuery average rating", () => {
+	/** Inserts an item whose latest completed instance carries `rating`. */
+	async function insertRatedItem(
+		title: string,
+		rating: string,
+		overrides: { userId?: string; status?: MediaItemStatus } = {},
+	): Promise<number> {
+		const itemId = await insertItem({
+			title,
+			userId: overrides.userId,
+			status: overrides.status,
+		});
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2025-01-01",
+			rating,
+		});
+		return itemId;
+	}
+
+	it("averages the ratings of the items the filters select", async () => {
+		await insertRatedItem("Good", "4.0");
+		await insertRatedItem("Better", "5.0");
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBe(4.5);
+	});
+
+	it("averages the latest completed instance, not every instance", async () => {
+		const rereadId = await insertItem({ title: "Re-read" });
+		await insertInstance({
+			mediaItemId: rereadId,
+			completedAt: "2024-01-01",
+			rating: "5.0",
+		});
+		await insertInstance({
+			mediaItemId: rereadId,
+			completedAt: "2025-06-01",
+			rating: "3.0",
+		});
+		await insertRatedItem("Read Once", "5.0");
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBe(4.0);
+	});
+
+	it("leaves unrated items out of the denominator", async () => {
+		await insertRatedItem("Good", "4.0");
+		await insertRatedItem("Better", "5.0");
+		await insertItem({ title: "Unread One" });
+		await insertItem({ title: "Unread Two" });
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(4);
+		expect(stats.averageRating).toBe(4.5);
+	});
+
+	// Clearing a rating writes 0 rather than NULL, and the grid already reads 0
+	// as unrated, so the average has to agree with it.
+	it("excludes a rating stored as 0", async () => {
+		await insertRatedItem("Rated", "4.0");
+		await insertRatedItem("Rating Cleared", "0");
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBe(4.0);
+	});
+
+	it("excludes a rating on an instance that was never completed", async () => {
+		const inProgressId = await insertItem({ title: "In Progress" });
+		await insertInstance({ mediaItemId: inProgressId, rating: "4.0" });
+		await insertRatedItem("Finished", "2.0");
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBe(2.0);
+	});
+
+	it("returns null when nothing in the set is rated", async () => {
+		for (let itemIndex = 0; itemIndex < 5; itemIndex++) {
+			await insertItem({ title: `Unrated ${itemIndex}` });
+		}
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(5);
+		expect(stats.averageRating).toBeNull();
+	});
+
+	// The lateral is a LEFT JOIN of at most one row per item, so the counts it
+	// sits beside have to come back untouched.
+	it("does not inflate the counts with the lateral join", async () => {
+		const itemId = await insertItem({
+			title: "Re-read",
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2023-01-01",
+			rating: "1.0",
+		});
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2024-01-01",
+			rating: "2.0",
+		});
+		await insertInstance({
+			mediaItemId: itemId,
+			completedAt: "2025-01-01",
+			rating: "5.0",
+		});
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.totalCount).toBe(1);
+		expect(stats.completedCount).toBe(1);
+		expect(stats.averageRating).toBe(5.0);
+	});
+
+	it("averages only the items the filters keep", async () => {
+		await insertRatedItem("Finished", "5.0", {
+			status: MediaItemStatus.COMPLETED,
+		});
+		await insertRatedItem("Abandoned", "1.0", {
+			status: MediaItemStatus.BACKLOG,
+		});
+
+		const stats = await runItemStatsQuery(
+			{ statuses: [MediaItemStatus.COMPLETED] },
+			USER,
+		);
+
+		expect(stats.averageRating).toBe(5.0);
+	});
+
+	it("ignores another user's ratings", async () => {
+		await insertRatedItem("Mine", "4.0");
+		await insertRatedItem("Theirs", "1.0", { userId: "other-user" });
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBe(4.0);
+	});
+
+	// Rounding is the stats bar's job, so the query hands back the full value.
+	it("returns the unrounded average, leaving formatting to the bar", async () => {
+		await insertRatedItem("One", "4.0");
+		await insertRatedItem("Two", "4.0");
+		await insertRatedItem("Three", "5.0");
+
+		const stats = await runItemStatsQuery({}, USER);
+
+		expect(stats.averageRating).toBeCloseTo(4.333, 3);
+	});
+
+	it("averages within a tag filter", async () => {
+		const firstTaggedId = await insertRatedItem("Tagged Good", "3.0");
+		const secondTaggedId = await insertRatedItem("Tagged Better", "5.0");
+		await insertRatedItem("Untagged", "1.0");
+		const tagId = await insertTag({ userId: USER, name: "favorites" });
+		await linkTag(firstTaggedId, tagId);
+		await linkTag(secondTaggedId, tagId);
+
+		const stats = await runItemStatsQuery({ tags: ["favorites"] }, USER);
+
+		expect(stats.totalCount).toBe(2);
+		expect(stats.averageRating).toBe(4.0);
 	});
 });
 
@@ -1530,6 +1709,8 @@ describe("runItemStatsQuery agreement with runItemQuery", () => {
 			droppedCount: items.filter(
 				(item) => item.status === MediaItemStatus.DROPPED,
 			).length,
+			// None of these items were given an instance, so none of them are rated.
+			averageRating: null,
 		});
 	});
 });

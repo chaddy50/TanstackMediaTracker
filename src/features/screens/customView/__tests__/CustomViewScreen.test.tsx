@@ -41,6 +41,7 @@ const EMPTY_STATS: ItemStats = {
 	completedCount: 0,
 	purchasedCount: 0,
 	droppedCount: 0,
+	averageRating: null,
 };
 
 let stats: ItemStats | null = EMPTY_STATS;
@@ -336,6 +337,7 @@ describe("ViewScreen stats bar", () => {
 			completedCount: 5,
 			purchasedCount: 4,
 			droppedCount: 1,
+			averageRating: 4.2,
 		};
 		stats = loaderStats;
 

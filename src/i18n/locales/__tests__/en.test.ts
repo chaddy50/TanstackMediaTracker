@@ -80,6 +80,7 @@ const STATS_UI_KEYS = [
 	"stats.completed",
 	"stats.purchased",
 	"stats.dropped",
+	"stats.averageRating",
 ];
 
 describe("en locale", () => {
