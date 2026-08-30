@@ -62,4 +62,22 @@ describe("SeasonReviewRow", () => {
 		expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
 		expect(screen.getByText("Best season")).toBeInTheDocument();
 	});
+
+	it("renders the fiction rating categories when collapsed", () => {
+		renderSeasonReviewRow({
+			isExpanded: false,
+			seasonReview: {
+				...baseSeasonReview,
+				fictionRating: {
+					setting: { rating: 3 },
+					character: { rating: 3 },
+					plot: { rating: 3 },
+					enjoyment: { rating: 3 },
+					depth: { rating: 3 },
+				},
+			},
+		});
+
+		expect(screen.getAllByText(/^fictionRating\./)).toHaveLength(5);
+	});
 });

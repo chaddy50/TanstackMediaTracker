@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FictionRating, FictionRatingField } from "#/database/schema";
 import { FictionRatingRow } from "./FictionRatingRow";
+import { FICTION_RATING_FIELDS } from "./fictionRating";
 
 const DEFAULT_FICTION_RATING: FictionRating = {
 	setting: { rating: 0 },
@@ -10,10 +11,6 @@ const DEFAULT_FICTION_RATING: FictionRating = {
 	enjoyment: { rating: 0 },
 	depth: { rating: 0 },
 };
-
-const FICTION_RATING_FIELDS = Object.keys(
-	DEFAULT_FICTION_RATING,
-) as (keyof FictionRating)[];
 
 type FictionRatingFormProps = {
 	initialValue?: FictionRating | null;

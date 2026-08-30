@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TooltipProvider } from "#/components/ui/tooltip";
+import type { FictionRating } from "#/database/schema";
 import {
 	getConsumptionLabel,
 	InstanceRow,
@@ -90,4 +91,37 @@ describe("InstanceRow", () => {
 		});
 		expect(screen.getByText("mediaItemDetails.seasonN")).toBeInTheDocument();
 	});
+
+	it("shows the instance's fiction rating categories", () => {
+		renderInstanceRow({ fictionRating: buildFictionRating() });
+
+		expect(screen.getAllByText(/^fictionRating\./)).toHaveLength(5);
+	});
+
+	it("shows a season review's fiction rating categories", () => {
+		renderInstanceRow({
+			seasonReviews: [
+				{
+					season: 1,
+					startedAt: "",
+					completedAt: "",
+					rating: 0,
+					reviewText: "",
+					fictionRating: buildFictionRating(),
+				},
+			],
+		});
+
+		expect(screen.getAllByText(/^fictionRating\./)).toHaveLength(5);
+	});
 });
+
+function buildFictionRating(): FictionRating {
+	return {
+		setting: { rating: 3 },
+		character: { rating: 3 },
+		plot: { rating: 3 },
+		enjoyment: { rating: 3 },
+		depth: { rating: 3 },
+	};
+}
