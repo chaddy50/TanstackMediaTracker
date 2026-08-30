@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FictionRatingForm } from "#/features/screens/mediaItemDetails/components/history/components/instance/rating/fictionRating/FictionRatingForm";
 
@@ -50,5 +50,34 @@ describe("FictionRatingForm", () => {
 		);
 
 		expect(updateRating).not.toHaveBeenCalled();
+	});
+
+	it("renders the rating rows in the canonical category order", () => {
+		render(
+			<FictionRatingForm
+				initialValue={{
+					setting: { rating: 4 },
+					character: { rating: 2 },
+					plot: { rating: 5 },
+					enjoyment: { rating: 3 },
+					depth: { rating: 1 },
+				}}
+				updateRating={vi.fn()}
+				updateFictionRating={vi.fn()}
+			/>,
+		);
+
+		const categoryLabels = screen
+			.getAllByText(/^fictionRating\./)
+			.map((label) => label.textContent)
+			.filter((text) => text !== "fictionRating.addComment");
+
+		expect(categoryLabels).toEqual([
+			"fictionRating.setting",
+			"fictionRating.character",
+			"fictionRating.plot",
+			"fictionRating.enjoyment",
+			"fictionRating.depth",
+		]);
 	});
 });
