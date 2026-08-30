@@ -13,6 +13,7 @@ export const en = {
 		completed: "Completed",
 		purchased: "Purchased",
 		dropped: "Dropped",
+		averageRating: "Average rating",
 	},
 	series: {
 		title: "Series",

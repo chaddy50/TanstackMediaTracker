@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FilterAndSortOptions } from "#/database/schema";
 import {
@@ -36,6 +37,9 @@ export function StatsBar({ stats, filters }: StatsBarProps) {
 	// Most views have nothing dropped, and a permanent zero is just noise.
 	const isDroppedShown =
 		stats.droppedCount > 0 && shouldShowDroppedCount(filters?.statuses);
+	// Nothing in the view is rated, so there is no average to show. Distinct from
+	// an average that happens to be low, hence the explicit null check.
+	const isAverageRatingShown = stats.averageRating !== null;
 
 	// Gutters match the top bar's own, since this renders inside its sticky
 	// header rather than above the list. Each optional section carries its own
@@ -64,6 +68,15 @@ export function StatsBar({ stats, filters }: StatsBarProps) {
 				<>
 					<Divider />
 					<Stat label={t("stats.dropped")} value={stats.droppedCount} />
+				</>
+			)}
+			{isAverageRatingShown && (
+				<>
+					<Divider />
+					<AverageRatingStat
+						label={t("stats.averageRating")}
+						value={stats.averageRating}
+					/>
 				</>
 			)}
 		</div>
@@ -96,6 +109,40 @@ function Stat({ label, value }: StatProps) {
 			{/* Tabular figures so the numbers hold their place as counts change. */}
 			<span className="text-lg font-semibold tabular-nums">{value}</span>
 			<span className="text-sm text-muted-foreground">{label}</span>
+		</div>
+	);
+}
+
+interface AverageRatingStatProps {
+	label: string;
+	value: number | null;
+}
+
+/**
+ * The one stat that is not a count, so it reads as `4.2 ★` rather than
+ * `4.2 Average rating` — the star is the label. It is decorative to assistive
+ * tech, which gets the wording instead.
+ */
+function AverageRatingStat({ label, value }: AverageRatingStatProps) {
+	if (value === null) {
+		return null;
+	}
+
+	return (
+		<div
+			className="flex items-baseline gap-1.5"
+			data-testid="stats-average-rating"
+		>
+			<span className="text-lg font-semibold tabular-nums">
+				{value.toFixed(1)}
+			</span>
+			<span className="sr-only">{label}</span>
+			{/* Matches the stars on the cards below, in both themes. */}
+			<Star
+				aria-hidden="true"
+				className="size-4 self-center text-yellow-800 dark:text-yellow-300"
+				fill="currentColor"
+			/>
 		</div>
 	);
 }
