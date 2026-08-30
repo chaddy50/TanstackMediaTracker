@@ -40,11 +40,13 @@ export function FictionRatingForm({
 
 	useEffect(() => {
 		const fields = Object.values(fictionRating);
-		if (fields.every((f) => f.rating > 0)) {
+		if (fields.every((field) => field.rating > 0)) {
 			updateFictionRating(fictionRating);
-			updateRating(
-				fields.reduce((sum, f) => sum + f.rating, 0) / fields.length,
-			);
+			const average =
+				fields.reduce((sum, field) => sum + field.rating, 0) / fields.length;
+			// One decimal is what the rating column holds, so rounding here keeps
+			// the value on screen the same before and after a save.
+			updateRating(Math.round(average * 10) / 10);
 		}
 	}, [fictionRating, updateRating, updateFictionRating]);
 

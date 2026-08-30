@@ -50,7 +50,7 @@ export function InstanceRow({
 							{consumptionLabel}
 						</span>
 					)}
-					<RatingStars rating={instance.rating} />
+					<RatingStars rating={instance.rating} shouldShowValue={true} />
 				</div>
 				<Button
 					variant="ghost"
@@ -89,7 +89,10 @@ export function InstanceRow({
 												{seasonDateRange}
 											</span>
 										)}
-										<RatingStars rating={seasonReview.rating} />
+										<RatingStars
+											rating={seasonReview.rating}
+											shouldShowValue={true}
+										/>
 									</div>
 									{seasonReview.fictionRating && (
 										<FictionRatingComments

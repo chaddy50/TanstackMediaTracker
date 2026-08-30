@@ -81,3 +81,67 @@ describe("FictionRatingForm", () => {
 		]);
 	});
 });
+
+describe("FictionRatingForm overall rating rounding", () => {
+	it("rounds the five-field average to one decimal", () => {
+		const updateRating = vi.fn();
+
+		render(
+			<FictionRatingForm
+				initialValue={{
+					setting: { rating: 4 },
+					character: { rating: 4 },
+					plot: { rating: 3 },
+					enjoyment: { rating: 4 },
+					depth: { rating: 3 },
+				}}
+				updateRating={updateRating}
+				updateFictionRating={vi.fn()}
+			/>,
+		);
+
+		// (4 + 4 + 3 + 4 + 3) / 5 = 3.6
+		expect(updateRating).toHaveBeenCalledWith(3.6);
+	});
+
+	it("rounds an average that lands above a half", () => {
+		const updateRating = vi.fn();
+
+		render(
+			<FictionRatingForm
+				initialValue={{
+					setting: { rating: 5 },
+					character: { rating: 4 },
+					plot: { rating: 4 },
+					enjoyment: { rating: 4 },
+					depth: { rating: 5 },
+				}}
+				updateRating={updateRating}
+				updateFictionRating={vi.fn()}
+			/>,
+		);
+
+		// (5 + 4 + 4 + 4 + 5) / 5 = 4.4
+		expect(updateRating).toHaveBeenCalledWith(4.4);
+	});
+
+	it("leaves a whole average whole", () => {
+		const updateRating = vi.fn();
+
+		render(
+			<FictionRatingForm
+				initialValue={{
+					setting: { rating: 4 },
+					character: { rating: 4 },
+					plot: { rating: 4 },
+					enjoyment: { rating: 4 },
+					depth: { rating: 4 },
+				}}
+				updateRating={updateRating}
+				updateFictionRating={vi.fn()}
+			/>,
+		);
+
+		expect(updateRating).toHaveBeenCalledWith(4);
+	});
+});

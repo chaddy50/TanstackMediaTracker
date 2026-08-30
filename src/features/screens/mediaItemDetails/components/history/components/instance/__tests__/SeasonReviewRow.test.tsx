@@ -63,6 +63,25 @@ describe("SeasonReviewRow", () => {
 		expect(screen.getByText("Best season")).toBeInTheDocument();
 	});
 
+	it("shows the exact rating on a collapsed row", () => {
+		renderSeasonReviewRow({
+			isExpanded: false,
+			seasonReview: { ...baseSeasonReview, rating: 3.6 },
+		});
+
+		expect(screen.getByText("3.6")).toBeInTheDocument();
+	});
+
+	it("leaves the expanded row's editable stars unnumbered", () => {
+		renderSeasonReviewRow({
+			isExpanded: true,
+			seasonReview: { ...baseSeasonReview, rating: 3.6 },
+		});
+
+		expect(screen.getByTestId("rating-stars")).toBeInTheDocument();
+		expect(screen.queryByText("3.6")).not.toBeInTheDocument();
+	});
+
 	it("renders the fiction rating categories when collapsed", () => {
 		renderSeasonReviewRow({
 			isExpanded: false,
