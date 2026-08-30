@@ -434,6 +434,27 @@ describe("ViewScreen reorder mode", () => {
 	});
 });
 
+// The router remounts the screen on a viewId change (see the route's
+// remountDeps), which is only a fix while reorder state lives on the mount
+// rather than in a module-level store.
+describe("ViewScreen reorder state lifetime", () => {
+	it("starts a freshly mounted view outside reorder mode", async () => {
+		view.filters = { sortBy: "custom" };
+		render(<ViewScreen />);
+		fireEvent.click(screen.getByRole("button", { name: "views.reorder" }));
+		await screen.findByTestId("reorderable-grid");
+
+		cleanup();
+		view = { id: 2, name: "Owned films", subject: "items" };
+		render(<ViewScreen />);
+
+		expect(screen.queryByTestId("reorderable-grid")).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "views.reorder" }),
+		).toBeInTheDocument();
+	});
+});
+
 describe("ViewScreen reorder persistence", () => {
 	/** Enters reorder mode and hands back the grid's reorder callback. */
 	async function startReordering() {
