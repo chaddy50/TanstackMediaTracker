@@ -2,6 +2,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "#/components/hooks/useInfiniteScroll";
+import { useListCacheKey } from "#/components/hooks/useListCacheKey";
 import { InfiniteScrollLoader } from "#/components/InfiniteScrollLoader";
 import { SeriesList } from "#/components/SeriesList";
 import { FilterAndSortButton } from "#/features/filterAndSort/FilterAndSortButton";
@@ -19,13 +20,15 @@ export function SeriesScreen() {
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 
 	const effectiveSearch = applySeriesSortDefaults(search, loaderData.settings);
+	const cacheKey = useListCacheKey("series", effectiveSearch);
 
 	const { allItems, isLoadingMore, sentinelRef } =
 		useInfiniteScroll<SeriesListItem>({
+			cacheKey,
 			initialItems: loaderData.items,
 			initialHasMore: loaderData.hasMore,
-			fetchMore: (offset) =>
-				getSeriesList({ data: { ...effectiveSearch, offset } }),
+			fetchMore: (offset, limit) =>
+				getSeriesList({ data: { ...effectiveSearch, offset, limit } }),
 		});
 
 	return (

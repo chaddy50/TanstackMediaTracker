@@ -18,6 +18,7 @@ import {
 import { filterAndSortOptionsSchema } from "#/lib/filterAndSort";
 import { runItemQuery } from "#/lib/queries/itemQuery.server";
 import { runSeriesQuery } from "#/lib/queries/seriesQuery.server";
+import { MAX_QUERY_LIMIT } from "#/lib/queries/types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -51,9 +52,10 @@ export const getViewResults = createServerFn({ method: "GET" })
 			viewId: z.number(),
 			titleQuery: z.string().optional(),
 			offset: z.number().default(0),
+			limit: z.number().int().min(1).max(MAX_QUERY_LIMIT).optional(),
 		}),
 	)
-	.handler(async ({ data: { viewId, titleQuery, offset } }) => {
+	.handler(async ({ data: { viewId, titleQuery, offset, limit } }) => {
 		const user = await getLoggedInUser();
 		const view = await findOwnedView(viewId, user.id);
 
@@ -65,13 +67,13 @@ export const getViewResults = createServerFn({ method: "GET" })
 		if (view.subject === "items") {
 			return {
 				view,
-				results: await runItemQuery(filters, user.id, offset, view.id),
+				results: await runItemQuery(filters, user.id, offset, view.id, limit),
 			};
 		}
 
 		return {
 			view,
-			results: await runSeriesQuery(filters, user.id, offset),
+			results: await runSeriesQuery(filters, user.id, offset, limit),
 		};
 	});
 
