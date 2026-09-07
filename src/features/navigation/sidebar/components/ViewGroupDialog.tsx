@@ -101,7 +101,7 @@ export function ViewGroupDialog({
 					/>
 				</div>
 				{hasFailed && (
-					<p className="text-xs text-destructive">
+					<p role="alert" className="text-xs text-destructive">
 						{t("viewGroups.actionFailed")}
 					</p>
 				)}

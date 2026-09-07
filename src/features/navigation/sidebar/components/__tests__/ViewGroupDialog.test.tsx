@@ -166,9 +166,11 @@ describe("ViewGroupDialog", () => {
 
 		// Closing as though it had saved would leave the user believing the group
 		// exists.
-		expect(
-			await screen.findByText("viewGroups.actionFailed"),
-		).toBeInTheDocument();
+		// A live region, since the message arrives after an await with focus
+		// still on the dialog's buttons.
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"viewGroups.actionFailed",
+		);
 		expect(onClose).not.toHaveBeenCalled();
 	});
 });
