@@ -83,7 +83,27 @@ const STATS_UI_KEYS = [
 	"stats.averageRating",
 ];
 
+/** Every string the sidebar's drag-and-drop renders or announces. */
+const SIDEBAR_DRAG_UI_KEYS = [
+	"viewGroups.collapse",
+	"viewGroups.expand",
+	"viewGroups.rename",
+	"viewGroups.dragToReorder",
+	"viewGroups.empty",
+	"viewGroups.saveFailed",
+	"views.reorderPosition",
+	"views.reorderPositionInGroup",
+];
+
 describe("en locale", () => {
+	it("defines every key the sidebar's drag-and-drop renders", () => {
+		for (const key of SIDEBAR_DRAG_UI_KEYS) {
+			const value = resolveKey(en, key);
+			expect(value, key).toBeTypeOf("string");
+			expect(value, key).toBeTruthy();
+		}
+	});
+
 	it("resolves a label and description for every registered settings tab", () => {
 		for (const tab of SETTINGS_TABS) {
 			expect(resolveKey(en, tab.labelKey)).toBeTypeOf("string");

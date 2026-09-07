@@ -274,6 +274,13 @@
       "when": 1788098540468,
       "tag": "0038_glorious_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788657125736,
+      "tag": "0039_lonely_maximus",
+      "breakpoints": true
     }
   ]
 }

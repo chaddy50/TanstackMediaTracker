@@ -507,10 +507,6 @@ export const mediaItemTags = pgTable(
 );
 
 /**
- * User-defined views — named, saved filter configurations that can show
- * either media items or series.
- */
-/**
  * User-created custom dashboard reports.
  */
 export const customReports = pgTable("custom_reports", {
@@ -571,6 +567,28 @@ export const userSettings = pgTable("user_settings", {
 
 export type UserSettings = typeof userSettings.$inferSelect;
 
+/**
+ * User-defined folders that hold views in the sidebar. A view with no group sits
+ * at the top level alongside the groups themselves, which is why `displayOrder`
+ * here shares one ordering space with an ungrouped view's `displayOrder`.
+ */
+export const viewGroups = pgTable("view_groups", {
+	id: serial("id").primaryKey(),
+	userId: text("user_id").notNull(),
+	name: text("name").notNull(),
+	displayOrder: integer("display_order").notNull().default(0),
+	isCollapsed: boolean("is_collapsed").notNull().default(false),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.notNull()
+		.$onUpdateFn(() => new Date()),
+});
+
+/**
+ * User-defined views — named, saved filter configurations that can show
+ * either media items or series.
+ */
 export const views = pgTable("views", {
 	id: serial("id").primaryKey(),
 	userId: text("user_id").notNull(),
@@ -578,6 +596,11 @@ export const views = pgTable("views", {
 	subject: text("subject").notNull().$type<ViewSubject>(), // 'items' | 'series'
 	filters: jsonb("filters").notNull().default({}).$type<FilterAndSortOptions>(),
 	displayOrder: integer("display_order").notNull().default(0),
+	// Deleting a group returns its views to the top level rather than destroying
+	// them, so this is `set null` and never `cascade`.
+	groupId: integer("group_id").references(() => viewGroups.id, {
+		onDelete: "set null",
+	}),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
