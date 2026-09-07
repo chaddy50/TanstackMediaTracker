@@ -1,0 +1,51 @@
+name: PR Policy
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches: [master]
+
+jobs:
+  no-ai-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title and body for AI attribution
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          PATTERN='(co-authored-by:.*claude|generated with.*claude|claude code|anthropic|🤖)'
+          if echo "$PR_TITLE" | grep -qiE "$PATTERN"; then
+            echo "::error::PR title contains AI attribution. Remove any Claude/Anthropic/assistant mentions."
+            exit 1
+          fi
+          if echo "$PR_BODY" | grep -qiE "$PATTERN"; then
+            echo "::error::PR body contains AI attribution. Remove any Claude/Anthropic/assistant mentions."
+            exit 1
+          fi
+
+      - name: Check commit messages for AI attribution
+        run: |
+          PATTERN='(co-authored-by:.*claude|generated with.*claude|claude code|anthropic|🤖)'
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          if git log --format=%B "$BASE..$HEAD" | grep -qiE "$PATTERN"; then
+            echo "::error::A commit message in this PR contains AI attribution. Amend/rebase to remove it."
+            exit 1
+          fi
+
+  linked-issue-required:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body references an issue
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if ! echo "$PR_BODY" | grep -qiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+'; then
+            echo "::error::No linked issue found. PR body must reference an issue, e.g. 'Closes #123' or 'Fixes #123'."
+            exit 1
+          fi
