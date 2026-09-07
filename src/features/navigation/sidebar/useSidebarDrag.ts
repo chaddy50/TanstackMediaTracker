@@ -66,6 +66,7 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 	const geometry = useRef<RowGeometry[]>([]);
 	const slots = useRef<DropSlot[]>([]);
 	const dragOriginX = useRef(0);
+	const lastPointer = useRef<{ x: number; y: number } | null>(null);
 	const dragged = useRef<DraggedItem | null>(null);
 	const activeSlotRef = useRef<DropSlot | null>(null);
 	const dwellTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +96,28 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 			: [];
 	}, [rows]);
 
+	/**
+	 * Scores a viewport pointer against the current slots and returns the y it
+	 * resolved to in the list's own space, which the dwell timer works in.
+	 */
+	const scoreDrop = useCallback((pointer: { x: number; y: number }) => {
+		const list = listRef.current;
+		if (!list) {
+			return null;
+		}
+
+		const listRect = list.getBoundingClientRect();
+		const contentY = pointer.y - listRect.top + list.scrollTop;
+		const slot = findDropSlot(
+			slots.current,
+			{ x: pointer.x, y: contentY },
+			dragOriginX.current - UNNEST_TRAVEL,
+		);
+		activeSlotRef.current = slot;
+		setActiveSlot(slot);
+		return contentY;
+	}, []);
+
 	// Spring-open is the one thing that moves rows mid-drag. Re-measuring here
 	// means the new slots exist before the next move is scored, so the design's
 	// "nothing moves" assumption holds for every frame that is actually judged.
@@ -103,7 +126,13 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 			return;
 		}
 		measure();
-	}, [measure]);
+		// The rows under a group that just sprang open have shifted, so the slot
+		// picked against the old geometry no longer sits where the cursor does.
+		// Without re-scoring, a release with no further movement would apply it.
+		if (lastPointer.current) {
+			scoreDrop(lastPointer.current);
+		}
+	}, [measure, scoreDrop]);
 
 	function handleDragStart(event: DragStartEvent) {
 		const row = rows.find((candidate) => rowKey(candidate) === event.active.id);
@@ -120,30 +149,22 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 	}
 
 	function handleDragMove(event: DragMoveEvent) {
-		const list = listRef.current;
 		const item = dragged.current;
 		const origin = getEventCoordinates(event.activatorEvent);
-		if (!list || !item || !origin) {
+		if (!item || !origin) {
 			return;
 		}
 
-		const listRect = list.getBoundingClientRect();
-		// y is converted into the scroll-content space the rows were measured in;
-		// x stays in viewport space, where the unnest threshold also lives.
 		const pointer = {
 			x: origin.x + event.delta.x,
-			y: origin.y + event.delta.y - listRect.top + list.scrollTop,
+			y: origin.y + event.delta.y,
 		};
+		lastPointer.current = pointer;
 
-		const slot = findDropSlot(
-			slots.current,
-			pointer,
-			dragOriginX.current - UNNEST_TRAVEL,
-		);
-		activeSlotRef.current = slot;
-		setActiveSlot(slot);
-
-		updateDwell(pointer.y, item);
+		const contentY = scoreDrop(pointer);
+		if (contentY !== null) {
+			updateDwell(contentY, item);
+		}
 	}
 
 	function handleDragEnd() {
@@ -226,6 +247,7 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 	function resetDrag() {
 		cancelDwell();
 		dwellRowKey.current = null;
+		lastPointer.current = null;
 		dragged.current = null;
 		activeSlotRef.current = null;
 		sprungOpenGroupIds.current = new Set();

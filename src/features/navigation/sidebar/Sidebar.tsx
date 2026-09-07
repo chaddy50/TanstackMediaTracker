@@ -150,6 +150,7 @@ export function Sidebar() {
 											isNested={row.groupId !== null}
 											registerRow={registerRow}
 											onHandleKeyDown={keyboard.onHandleKeyDown(row)}
+											onHandleBlur={keyboard.onHandleBlur(row)}
 										/>
 									) : null;
 								}
@@ -168,6 +169,7 @@ export function Sidebar() {
 											onToggleCollapsed={() => toggleGroupCollapsed(group)}
 											onEdit={() => setGroupDialogState({ group })}
 											onHandleKeyDown={keyboard.onHandleKeyDown(row)}
+											onHandleBlur={keyboard.onHandleBlur(row)}
 										/>
 									) : null;
 								}

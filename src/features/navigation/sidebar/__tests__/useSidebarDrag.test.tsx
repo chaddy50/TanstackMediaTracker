@@ -483,6 +483,41 @@ describe("useSidebarDrag spring-open", () => {
 		});
 	});
 
+	it("re-scores the held pointer once the group has opened", () => {
+		vi.useFakeTimers();
+		const entries = collapsedFixture();
+		const { result } = renderDrag(entries, new Set([10]));
+
+		act(() => {
+			result.current.handleDragStart(dragStart("view:1"));
+		});
+		// Low in the closed header's band: the nearest slot there is the one just
+		// below the group, at the top level.
+		act(() => {
+			result.current.handleDragMove(dragMove(HANDLE_X, 60));
+		});
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+
+		// The rows below the header have moved, so the slot chosen before the
+		// group opened no longer sits under the cursor. Releasing here without
+		// moving again must not apply the pre-spring slot.
+		act(() => {
+			result.current.handleDragEnd();
+		});
+
+		const saved = saveLayout.mock.calls[0]?.[0] as SidebarEntry[] | undefined;
+		expect(saved).toBeDefined();
+		expect(
+			(saved as SidebarEntry[]).map((entry) =>
+				entry.kind === "view"
+					? `view:${entry.view.id}`
+					: `group:${entry.group.id}[${entry.views.map((v) => v.id).join(",")}]`,
+			),
+		).toEqual(["group:10[1,2]"]);
+	});
+
 	it("never springs a group open for a group drag", () => {
 		vi.useFakeTimers();
 		const { result } = renderDrag(collapsedFixture());

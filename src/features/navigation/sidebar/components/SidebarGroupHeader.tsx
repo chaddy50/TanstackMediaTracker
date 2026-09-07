@@ -13,6 +13,7 @@ interface SidebarGroupHeaderProps {
 	onToggleCollapsed: () => void;
 	onEdit: () => void;
 	onHandleKeyDown?: (event: React.KeyboardEvent) => void;
+	onHandleBlur?: () => void;
 }
 
 /**
@@ -30,6 +31,7 @@ export function SidebarGroupHeader({
 	onToggleCollapsed,
 	onEdit,
 	onHandleKeyDown,
+	onHandleBlur,
 }: SidebarGroupHeaderProps) {
 	const { t } = useTranslation();
 	const key = rowKey({ kind: "groupHeader", groupId: group.id, viewCount });
@@ -78,6 +80,7 @@ export function SidebarGroupHeader({
 				className="shrink-0 flex items-center justify-center px-1 py-2 text-muted-foreground opacity-0 group-hover/viewgroup:opacity-100 focus-visible:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
 				aria-label={t("viewGroups.dragToReorder", { name: group.name })}
 				onKeyDown={onHandleKeyDown}
+				onBlur={onHandleBlur}
 				{...attributes}
 				{...listeners}
 			>

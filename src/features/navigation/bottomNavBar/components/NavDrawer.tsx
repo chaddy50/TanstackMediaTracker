@@ -48,7 +48,12 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
 	const hasAnyViewsOrGroups = entries.length > 0;
 
 	async function toggleGroupCollapsed(groupId: number, isCollapsed: boolean) {
-		await setViewGroupCollapsed({ data: { id: groupId, isCollapsed } });
+		try {
+			await setViewGroupCollapsed({ data: { id: groupId, isCollapsed } });
+		} catch {
+			// The caller cannot await this, so a rejection has to stop here. The
+			// refetch below puts the chevron back in step with the server.
+		}
 		await queryClient.invalidateQueries({ queryKey: ["viewGroups"] });
 	}
 

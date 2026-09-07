@@ -337,6 +337,7 @@ export const en = {
 		dragToReorder: "Reorder {{name}}",
 		empty: "Drag views here",
 		saveFailed: "Could not save the sidebar layout.",
+		actionFailed: "Something went wrong. Please try again.",
 	},
 	views: {
 		newView: "New View",

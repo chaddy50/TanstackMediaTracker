@@ -156,4 +156,19 @@ describe("ViewGroupDialog", () => {
 		expect(renameViewGroupMock).not.toHaveBeenCalled();
 		expect(deleteViewGroupMock).not.toHaveBeenCalled();
 	});
+
+	it("stays open and reports a save that failed", async () => {
+		createViewGroupMock.mockRejectedValue(new Error("nope"));
+		renderDialog();
+
+		fireEvent.change(nameInput(), { target: { value: "Comics" } });
+		fireEvent.click(saveButton());
+
+		// Closing as though it had saved would leave the user believing the group
+		// exists.
+		expect(
+			await screen.findByText("viewGroups.actionFailed"),
+		).toBeInTheDocument();
+		expect(onClose).not.toHaveBeenCalled();
+	});
 });

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { buildDropSlots, type DraggedItem, type DropSlot } from "./dropSlots";
 import { applyDropTarget, type SidebarEntry } from "./sidebarLayout";
-import type { SidebarRow } from "./sidebarRows";
+import { rowKey, type SidebarRow } from "./sidebarRows";
 import { measureSidebarRows, toDraggedItem } from "./useSidebarDrag";
 
 /**
@@ -24,6 +24,8 @@ interface KeyboardReorderOptions {
 }
 
 interface ReorderState {
+	/** The handle that began the reorder; only its keys may steer or commit it. */
+	rowKey: string;
 	item: DraggedItem;
 	slots: DropSlot[];
 	slotIndex: number;
@@ -55,6 +57,7 @@ export function useSidebarKeyboardReorder({
 		}
 
 		setReorder({
+			rowKey: rowKey(row),
 			item,
 			slots,
 			slotIndex: indexOfCurrentSlot(slots, entries, item),
@@ -100,6 +103,12 @@ export function useSidebarKeyboardReorder({
 				}
 				event.preventDefault();
 				start(row);
+				return;
+			}
+
+			// Every row handle carries this handler, so tabbing to another one and
+			// pressing Enter would otherwise commit the move this reorder started.
+			if (reorder.rowKey !== rowKey(row)) {
 				return;
 			}
 
@@ -159,12 +168,22 @@ export function useSidebarKeyboardReorder({
 		});
 	}
 
+	/** Leaving the handle abandons its reorder, indicator and all. */
+	function onHandleBlur(row: SidebarRow) {
+		return () => {
+			if (reorder?.rowKey === rowKey(row)) {
+				setReorder(null);
+			}
+		};
+	}
+
 	const slot = reorder ? (reorder.slots[reorder.slotIndex] ?? null) : null;
 
 	return {
 		slot,
 		announcement: slot ? describeSlot(slot) : "",
 		onHandleKeyDown,
+		onHandleBlur,
 	};
 }
 

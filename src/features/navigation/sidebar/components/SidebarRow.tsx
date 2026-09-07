@@ -12,6 +12,7 @@ interface SidebarRowProps {
 	isNested?: boolean;
 	registerRow: (key: string, node: HTMLElement | null) => void;
 	onHandleKeyDown?: (event: React.KeyboardEvent) => void;
+	onHandleBlur?: () => void;
 }
 
 /**
@@ -27,6 +28,7 @@ export function SidebarRow({
 	isNested,
 	registerRow,
 	onHandleKeyDown,
+	onHandleBlur,
 }: SidebarRowProps) {
 	const { t } = useTranslation();
 	const key = rowKey({ kind: "view", viewId: view.id, groupId: null });
@@ -61,6 +63,7 @@ export function SidebarRow({
 				className="shrink-0 flex items-center justify-center px-1 py-2 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
 				aria-label={t("viewGroups.dragToReorder", { name: view.name })}
 				onKeyDown={onHandleKeyDown}
+				onBlur={onHandleBlur}
 				{...attributes}
 				{...listeners}
 			>

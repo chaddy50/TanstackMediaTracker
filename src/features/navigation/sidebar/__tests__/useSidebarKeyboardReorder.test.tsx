@@ -230,6 +230,46 @@ describe("useSidebarKeyboardReorder", () => {
 		expect(result.current.slot).toBeNull();
 	});
 
+	it("ignores keys from a handle that did not start the reorder", () => {
+		const { result, rows } = renderReorder();
+		const starter = rows[0] as SidebarRow;
+		const other = rows[4] as SidebarRow;
+
+		press(result, starter, " ");
+		press(result, starter, "ArrowDown");
+		// Every row handle carries this handler, so tabbing away and pressing
+		// Enter would otherwise commit the move that started on another row.
+		press(result, other, "Enter");
+
+		expect(saveLayout).not.toHaveBeenCalled();
+		expect(result.current.slot).not.toBeNull();
+	});
+
+	it("abandons the reorder when its own handle loses focus", () => {
+		const { result, rows } = renderReorder();
+		const row = rows[0] as SidebarRow;
+
+		press(result, row, " ");
+		act(() => {
+			result.current.onHandleBlur(row)();
+		});
+
+		expect(result.current.slot).toBeNull();
+		expect(saveLayout).not.toHaveBeenCalled();
+	});
+
+	it("keeps a reorder alive when a different handle loses focus", () => {
+		const { result, rows } = renderReorder();
+		const row = rows[0] as SidebarRow;
+
+		press(result, row, " ");
+		act(() => {
+			result.current.onHandleBlur(rows[4] as SidebarRow)();
+		});
+
+		expect(result.current.slot).not.toBeNull();
+	});
+
 	it("abandons the reorder on Escape", () => {
 		const { result, rows } = renderReorder();
 		const row = rows[0] as SidebarRow;
