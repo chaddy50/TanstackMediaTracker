@@ -18,6 +18,7 @@ import {
 	user,
 	userSettings,
 	type ViewSubject,
+	viewGroups,
 	viewItemOrder,
 	views,
 } from "#/database/schema";
@@ -44,11 +45,11 @@ import { testDb } from "./db";
  * Call this in beforeEach so each test starts with a clean slate.
  *
  * Note: `series`, `creators`, `genres`, `tags`, `media_items`,
- * `media_item_instances`, `media_item_tags`, and `views` all use plain-text
- * userId (no FK to `user`), so those need no auth rows. `view_item_order` needs
- * none either — it inherits ownership from the view it points at.
- * `custom_reports` and `user_settings` are the exceptions — both reference
- * `user.id`, so seed a row with `insertUser` before touching them.
+ * `media_item_instances`, `media_item_tags`, `views`, and `view_groups` all use
+ * plain-text userId (no FK to `user`), so those need no auth rows.
+ * `view_item_order` needs none either — it inherits ownership from the view it
+ * points at. `custom_reports` and `user_settings` are the exceptions — both
+ * reference `user.id`, so seed a row with `insertUser` before touching them.
  */
 export async function truncateAll() {
 	// `user` is a reserved word and must stay quoted. Truncating it cascades to
@@ -66,6 +67,7 @@ export async function truncateAll() {
 			genres,
 			tags,
 			views,
+			view_groups,
 			"user"
 		RESTART IDENTITY CASCADE
 	`);
@@ -270,6 +272,7 @@ type InsertViewOptions = {
 	subject?: ViewSubject;
 	filters?: FilterAndSortOptions;
 	displayOrder?: number;
+	groupId?: number;
 };
 
 /** Inserts a `views` row and returns its id. */
@@ -282,10 +285,36 @@ export async function insertView(options: InsertViewOptions): Promise<number> {
 			subject: options.subject ?? "items",
 			filters: options.filters ?? {},
 			displayOrder: options.displayOrder ?? 0,
+			groupId: options.groupId ?? null,
 		})
 		.returning({ id: views.id });
 
 	if (!row) throw new Error("insertView failed");
+	return row.id;
+}
+
+type InsertViewGroupOptions = {
+	userId: string;
+	name?: string;
+	displayOrder?: number;
+	isCollapsed?: boolean;
+};
+
+/** Inserts a `view_groups` row and returns its id. */
+export async function insertViewGroup(
+	options: InsertViewGroupOptions,
+): Promise<number> {
+	const [row] = await testDb
+		.insert(viewGroups)
+		.values({
+			userId: options.userId,
+			name: options.name ?? "Test Group",
+			displayOrder: options.displayOrder ?? 0,
+			isCollapsed: options.isCollapsed ?? false,
+		})
+		.returning({ id: viewGroups.id });
+
+	if (!row) throw new Error("insertViewGroup failed");
 	return row.id;
 }
 

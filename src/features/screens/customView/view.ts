@@ -41,7 +41,7 @@ export const getViews = createServerFn({ method: "GET" }).handler(async () => {
 		.select()
 		.from(views)
 		.where(eq(views.userId, user.id))
-		.orderBy(asc(views.displayOrder));
+		.orderBy(asc(views.displayOrder), asc(views.id));
 });
 
 export type View = Awaited<ReturnType<typeof getViews>>[number];
@@ -157,20 +157,6 @@ export const deleteView = createServerFn({ method: "POST" })
 		await db
 			.delete(views)
 			.where(and(eq(views.id, id), eq(views.userId, user.id)));
-	});
-
-export const reorderViews = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ orderedIds: z.array(z.number()) }))
-	.handler(async ({ data }) => {
-		const user = await getLoggedInUser();
-		await Promise.all(
-			data.orderedIds.map((id, index) =>
-				db
-					.update(views)
-					.set({ displayOrder: index })
-					.where(and(eq(views.id, id), eq(views.userId, user.id))),
-			),
-		);
 	});
 
 export const reorderViewItems = createServerFn({ method: "POST" })
