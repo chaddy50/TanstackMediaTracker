@@ -33,7 +33,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PATTERN='(co-authored-by:.*(claude|gpt|copilot|gemini|cursor)|generated with.*(claude|gpt|copilot|gemini|cursor|ai)|claude code|anthropic|chatgpt|openai|github copilot|cursor ai|🤖)'
-          MESSAGES=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits" --jq '.[].commit.message')
+          COMMIT_COUNT="${{ github.event.pull_request.commits }}"
+          if [ "$COMMIT_COUNT" -gt 250 ]; then
+            echo "::error::PR has $COMMIT_COUNT commits, exceeding the 250 this check can reliably scan. Squash or split the PR."
+            exit 1
+          fi
+          MESSAGES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits?per_page=100" --jq '.[].commit.message')
           if echo "$MESSAGES" | grep -qiE "$PATTERN"; then
             echo "::error::A commit message in this PR contains AI attribution. Amend/rebase to remove it."
             exit 1
