@@ -1,0 +1,65 @@
+name: PR Policy
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+    branches: [master]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  no-ai-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title and body for AI attribution
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          PATTERN='(co-authored-by:.*(claude|gpt|copilot|gemini|cursor)|generated with.*(claude|gpt|copilot|gemini|cursor|ai)|claude code|anthropic|chatgpt|openai|github copilot|cursor ai|🤖)'
+          if echo "$PR_TITLE" | grep -qiE "$PATTERN"; then
+            echo "::error::PR title contains AI attribution. Remove any AI assistant mentions."
+            exit 1
+          fi
+          if echo "$PR_BODY" | grep -qiE "$PATTERN"; then
+            echo "::error::PR body contains AI attribution. Remove any AI assistant mentions."
+            exit 1
+          fi
+
+      - name: Check commit messages for AI attribution
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PATTERN='(co-authored-by:.*(claude|gpt|copilot|gemini|cursor)|generated with.*(claude|gpt|copilot|gemini|cursor|ai)|claude code|anthropic|chatgpt|openai|github copilot|cursor ai|🤖)'
+          COMMIT_COUNT="${{ github.event.pull_request.commits }}"
+          if [ "$COMMIT_COUNT" -gt 250 ]; then
+            echo "::error::PR has $COMMIT_COUNT commits, exceeding the 250 this check can reliably scan. Squash or split the PR."
+            exit 1
+          fi
+          MESSAGES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits?per_page=100" --jq '.[].commit.message')
+          if echo "$MESSAGES" | grep -qiE "$PATTERN"; then
+            echo "::error::A commit message in this PR contains AI attribution. Amend/rebase to remove it."
+            exit 1
+          fi
+
+  linked-issue-required:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body references an existing issue
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUES=$(echo "$PR_BODY" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+' | sort -u)
+          if [ -z "$ISSUES" ]; then
+            echo "::error::No linked issue found. PR body must reference an issue, e.g. 'Closes #123' or 'Fixes #123'."
+            exit 1
+          fi
+          for ISSUE in $ISSUES; do
+            if ! gh issue view "$ISSUE" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "::error::Linked issue #$ISSUE does not exist in ${{ github.repository }}."
+              exit 1
+            fi
+          done
