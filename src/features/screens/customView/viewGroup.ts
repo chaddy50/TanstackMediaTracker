@@ -49,7 +49,7 @@ export type ViewGroup = Awaited<ReturnType<typeof getViewGroups>>[number];
 // ---------------------------------------------------------------------------
 
 export const createViewGroup = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ name: z.string().min(1) }))
+	.inputValidator(z.object({ name: z.string().trim().min(1) }))
 	.handler(async ({ data: { name } }) => {
 		const user = await getLoggedInUser();
 		const [created] = await db
@@ -64,7 +64,7 @@ export const createViewGroup = createServerFn({ method: "POST" })
 	});
 
 export const renameViewGroup = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.number(), name: z.string().min(1) }))
+	.inputValidator(z.object({ id: z.number(), name: z.string().trim().min(1) }))
 	.handler(async ({ data: { id, name } }) => {
 		const user = await getLoggedInUser();
 		await db

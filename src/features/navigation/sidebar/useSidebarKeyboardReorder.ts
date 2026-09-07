@@ -141,7 +141,7 @@ export function useSidebarKeyboardReorder({
 		if (target.kind === "topLevel") {
 			return t("views.reorderPosition", {
 				position: target.index + 1,
-				count: entries.length,
+				count: entries.length + 1,
 			});
 		}
 
@@ -154,7 +154,7 @@ export function useSidebarKeyboardReorder({
 
 		return t("views.reorderPositionInGroup", {
 			position: target.index + 1,
-			count: holder.views.length,
+			count: holder.views.length + 1,
 			group: holder.group.name,
 		});
 	}

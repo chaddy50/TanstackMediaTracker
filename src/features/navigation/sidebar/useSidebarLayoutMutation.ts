@@ -27,6 +27,10 @@ export function useSidebarLayoutMutation() {
 	const [hasSaveFailed, setHasSaveFailed] = useState(false);
 
 	const mutation = useMutation({
+		// Each save writes the whole arrangement, so two in flight at once can
+		// land out of order and leave the server holding the older one. A shared
+		// scope runs them one after another instead.
+		scope: { id: "sidebar-layout" },
 		mutationFn: (layout: SidebarLayout) => saveSidebarLayout({ data: layout }),
 
 		async onMutate(layout: SidebarLayout) {

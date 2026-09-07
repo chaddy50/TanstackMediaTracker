@@ -183,6 +183,7 @@ function NavDrawerGroup({
 				aria-expanded={!group.isCollapsed}
 				aria-label={t(
 					group.isCollapsed ? "viewGroups.expand" : "viewGroups.collapse",
+					{ name: group.name },
 				)}
 				className="flex items-center gap-1 px-2 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
 			>

@@ -216,9 +216,11 @@ export function useSidebarDrag(entries: SidebarEntry[]) {
 
 		void setViewGroupCollapsed({
 			data: { id: slot.target.groupId, isCollapsed: false },
-		}).finally(() => {
-			void queryClient.invalidateQueries({ queryKey: ["viewGroups"] });
-		});
+		})
+			.catch(() => undefined)
+			.finally(() => {
+				void queryClient.invalidateQueries({ queryKey: ["viewGroups"] });
+			});
 	}
 
 	function resetDrag() {

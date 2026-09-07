@@ -6,7 +6,10 @@ import type { View } from "#/features/screens/customView/view";
 import { SidebarRow } from "../SidebarRow";
 
 vi.mock("react-i18next", () => ({
-	useTranslation: () => ({ t: (key: string) => key }),
+	useTranslation: () => ({
+		t: (key: string, options?: Record<string, unknown>) =>
+			options?.name ? `${key}:${options.name}` : key,
+	}),
 }));
 
 // jsdom cannot synthesize a pointer drag, so the draggable hook is stubbed and
@@ -112,8 +115,12 @@ describe("SidebarRow", () => {
 	it("puts the drag affordance on a handle that will not fight a touch scroll", () => {
 		renderRow();
 
+		// The name is in the label because an aria-label replaces the accessible
+		// name — every handle would otherwise announce identically.
 		expect(
-			screen.getByRole("button", { name: "viewGroups.dragToReorder" }),
+			screen.getByRole("button", {
+				name: "viewGroups.dragToReorder:Fantasy books",
+			}),
 		).toHaveClass("touch-none");
 	});
 });

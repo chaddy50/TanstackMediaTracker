@@ -242,12 +242,27 @@ describe("useSidebarKeyboardReorder", () => {
 		expect(result.current.slot).toBeNull();
 	});
 
-	it("announces a top-level position", () => {
+	it("announces a top-level position out of the number of places to drop", () => {
 		const { result, rows } = renderReorder();
 
 		press(result, rows[0] as SidebarRow, " ");
 
-		expect(result.current.announcement).toBe("views.reorderPosition|1|3");
+		// Three entries leave four gaps to drop into, so the count is 4 — counting
+		// the entries instead would let the last position announce "4 of 3".
+		expect(result.current.announcement).toBe("views.reorderPosition|1|4");
+	});
+
+	it("never announces a position beyond the count", () => {
+		const { result, rows } = renderReorder();
+		const row = rows[0] as SidebarRow;
+
+		press(result, row, " ");
+		for (const _ of Array(20)) {
+			press(result, row, "ArrowDown");
+		}
+
+		const [, position, count] = result.current.announcement.split("|");
+		expect(Number(position)).toBeLessThanOrEqual(Number(count));
 	});
 
 	it("announces the group a position sits in", () => {
@@ -258,8 +273,9 @@ describe("useSidebarKeyboardReorder", () => {
 		press(result, row, "ArrowDown");
 		press(result, row, "ArrowDown");
 
+		// Two views in the group, so three places to drop between and around them.
 		expect(result.current.announcement).toBe(
-			"views.reorderPositionInGroup|1|2|Group 10",
+			"views.reorderPositionInGroup|1|3|Group 10",
 		);
 	});
 });

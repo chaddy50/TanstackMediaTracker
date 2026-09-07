@@ -5,7 +5,10 @@ import type { ViewGroup } from "#/features/screens/customView/viewGroup";
 import { SidebarGroupHeader } from "../SidebarGroupHeader";
 
 vi.mock("react-i18next", () => ({
-	useTranslation: () => ({ t: (key: string) => key }),
+	useTranslation: () => ({
+		t: (key: string, options?: Record<string, unknown>) =>
+			options?.name ? `${key}:${options.name}` : key,
+	}),
 }));
 
 let registeredDraggableId: unknown;
@@ -70,7 +73,7 @@ describe("SidebarGroupHeader", () => {
 
 		expect(screen.getByText("Reading now")).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "viewGroups.collapse" }),
+			screen.getByRole("button", { name: "viewGroups.collapse:Reading now" }),
 		).toHaveAttribute("aria-expanded", "true");
 	});
 
@@ -78,8 +81,24 @@ describe("SidebarGroupHeader", () => {
 		renderHeader({ isOpen: false });
 
 		expect(
-			screen.getByRole("button", { name: "viewGroups.expand" }),
+			screen.getByRole("button", { name: "viewGroups.expand:Reading now" }),
 		).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("names the group in every control, not just the toggle", () => {
+		// An aria-label replaces a control's accessible name, so without the group
+		// name each button announces identically and the visible name is lost.
+		renderHeader();
+
+		for (const key of [
+			"viewGroups.collapse",
+			"viewGroups.rename",
+			"viewGroups.dragToReorder",
+		]) {
+			expect(
+				screen.getByRole("button", { name: `${key}:Reading now` }),
+			).toBeInTheDocument();
+		}
 	});
 
 	it("renders the header alone, with none of the group's views inside it", () => {
@@ -95,9 +114,11 @@ describe("SidebarGroupHeader", () => {
 		const { onToggleCollapsed, onEdit } = renderHeader();
 
 		fireEvent.click(
-			screen.getByRole("button", { name: "viewGroups.collapse" }),
+			screen.getByRole("button", { name: "viewGroups.collapse:Reading now" }),
 		);
-		fireEvent.click(screen.getByRole("button", { name: "viewGroups.rename" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "viewGroups.rename:Reading now" }),
+		);
 
 		expect(onToggleCollapsed).toHaveBeenCalledOnce();
 		expect(onEdit).toHaveBeenCalledOnce();

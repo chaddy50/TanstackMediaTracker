@@ -89,9 +89,11 @@ export function Sidebar() {
 	function toggleGroupCollapsed(group: ViewGroup) {
 		void setViewGroupCollapsed({
 			data: { id: group.id, isCollapsed: !group.isCollapsed },
-		}).finally(() => {
-			void queryClient.invalidateQueries({ queryKey: ["viewGroups"] });
-		});
+		})
+			.catch(() => undefined)
+			.finally(() => {
+				void queryClient.invalidateQueries({ queryKey: ["viewGroups"] });
+			});
 	}
 
 	return (

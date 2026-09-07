@@ -50,7 +50,9 @@ export function SidebarGroupHeader({
 				type="button"
 				onClick={onToggleCollapsed}
 				aria-expanded={isOpen}
-				aria-label={t(isOpen ? "viewGroups.collapse" : "viewGroups.expand")}
+				aria-label={t(isOpen ? "viewGroups.collapse" : "viewGroups.expand", {
+					name: group.name,
+				})}
 				className="flex flex-1 min-w-0 items-center gap-1 px-2 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
 			>
 				{/* The name keeps the left edge; the chevron trails it, shrinking
@@ -65,7 +67,7 @@ export function SidebarGroupHeader({
 			<button
 				type="button"
 				onClick={onEdit}
-				aria-label={t("viewGroups.rename")}
+				aria-label={t("viewGroups.rename", { name: group.name })}
 				className="shrink-0 opacity-0 group-hover/viewgroup:opacity-100 focus-visible:opacity-100 transition-opacity px-1 py-2 text-muted-foreground hover:text-foreground"
 			>
 				<Pencil className="size-3.5" />
@@ -74,7 +76,7 @@ export function SidebarGroupHeader({
 			<button
 				type="button"
 				className="shrink-0 flex items-center justify-center px-1 py-2 text-muted-foreground opacity-0 group-hover/viewgroup:opacity-100 focus-visible:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
-				aria-label={t("viewGroups.dragToReorder")}
+				aria-label={t("viewGroups.dragToReorder", { name: group.name })}
 				onKeyDown={onHandleKeyDown}
 				{...attributes}
 				{...listeners}
