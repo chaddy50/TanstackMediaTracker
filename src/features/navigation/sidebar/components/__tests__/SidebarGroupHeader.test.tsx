@@ -116,11 +116,75 @@ describe("SidebarGroupHeader", () => {
 		fireEvent.click(
 			screen.getByRole("button", { name: "viewGroups.collapse:Reading now" }),
 		);
-		fireEvent.click(
-			screen.getByRole("button", { name: "viewGroups.rename:Reading now" }),
-		);
+		fireEvent.click(getRenameButton());
 
 		expect(onToggleCollapsed).toHaveBeenCalledOnce();
 		expect(onEdit).toHaveBeenCalledOnce();
 	});
+
+	// Class assertions, for the same reason as SidebarRow's: jsdom lays nothing
+	// out, but these pin the mechanism the fix depends on.
+	describe("trailing control slot", () => {
+		it("reserves no width for the rename and drag controls until they are wanted", () => {
+			renderHeader();
+
+			expect(getTrailingSlot()).toHaveClass("w-0", "overflow-hidden");
+		});
+
+		it("keeps the rename and drag controls in one slot", () => {
+			// One slot, so the header cannot half-open and shift the name twice.
+			renderHeader();
+
+			expect(getRenameButton().parentElement).toBe(getHandle().parentElement);
+		});
+
+		it("opens the slot on hover", () => {
+			renderHeader();
+
+			expect(getTrailingSlot()).toHaveClass("group-hover/viewgroup:w-12");
+		});
+
+		it("opens the slot when a control takes focus", () => {
+			renderHeader();
+
+			expect(getTrailingSlot()).toHaveClass(
+				"group-focus-within/viewgroup:w-12",
+			);
+		});
+
+		it("keeps the slot open where there is no hover", () => {
+			renderHeader();
+
+			expect(getTrailingSlot()).toHaveClass("pointer-coarse:w-12");
+		});
+
+		it("hangs the slot off the header's named group", () => {
+			// Renaming the group here silently disables every variant above.
+			renderHeader();
+
+			expect(screen.getByText("Reading now").closest("div")).toHaveClass(
+				"group/viewgroup",
+			);
+		});
+
+		it("keeps the group name truncating", () => {
+			renderHeader();
+
+			expect(screen.getByText("Reading now")).toHaveClass("truncate");
+		});
+	});
 });
+
+function getRenameButton() {
+	return screen.getByRole("button", { name: "viewGroups.rename:Reading now" });
+}
+
+function getHandle() {
+	return screen.getByRole("button", {
+		name: "viewGroups.dragToReorder:Reading now",
+	});
+}
+
+function getTrailingSlot() {
+	return getHandle().parentElement;
+}
