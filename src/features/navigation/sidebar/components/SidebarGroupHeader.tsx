@@ -66,26 +66,32 @@ export function SidebarGroupHeader({
 					<ChevronLeft className="size-3.5 shrink-0" />
 				)}
 			</button>
-			<button
-				type="button"
-				onClick={onEdit}
-				aria-label={t("viewGroups.rename", { name: group.name })}
-				className="shrink-0 opacity-0 group-hover/viewgroup:opacity-100 focus-visible:opacity-100 transition-opacity px-1 py-2 text-muted-foreground hover:text-foreground"
-			>
-				<Pencil className="size-3.5" />
-			</button>
-			{/* Same fixed slot as a view's handle, so the two rows line up. */}
-			<button
-				type="button"
-				className="shrink-0 flex items-center justify-center px-1 py-2 text-muted-foreground opacity-0 group-hover/viewgroup:opacity-100 focus-visible:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
-				aria-label={t("viewGroups.dragToReorder", { name: group.name })}
-				onKeyDown={onHandleKeyDown}
-				onBlur={onHandleBlur}
-				{...attributes}
-				{...listeners}
-			>
-				<GripVertical className="size-3.5" />
-			</button>
+			{/*
+			 * Both trailing controls share one zero-width slot, so the name has the
+			 * row to itself until a hover or a focus asks for them. Each is the same
+			 * w-6 as a view's handle, so the two kinds of row line up once open.
+			 */}
+			<div className="shrink-0 flex items-center w-0 overflow-hidden transition-[width] group-hover/viewgroup:w-12 group-focus-within/viewgroup:w-12 pointer-coarse:w-12">
+				<button
+					type="button"
+					onClick={onEdit}
+					aria-label={t("viewGroups.rename", { name: group.name })}
+					className="flex w-6 items-center justify-center py-2 text-muted-foreground hover:text-foreground"
+				>
+					<Pencil className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					className="flex w-6 items-center justify-center py-2 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
+					aria-label={t("viewGroups.dragToReorder", { name: group.name })}
+					onKeyDown={onHandleKeyDown}
+					onBlur={onHandleBlur}
+					{...attributes}
+					{...listeners}
+				>
+					<GripVertical className="size-3.5" />
+				</button>
+			</div>
 		</div>
 	);
 }

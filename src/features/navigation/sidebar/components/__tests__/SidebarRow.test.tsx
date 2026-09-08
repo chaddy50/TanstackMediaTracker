@@ -117,10 +117,67 @@ describe("SidebarRow", () => {
 
 		// The name is in the label because an aria-label replaces the accessible
 		// name — every handle would otherwise announce identically.
-		expect(
-			screen.getByRole("button", {
-				name: "viewGroups.dragToReorder:Fantasy books",
-			}),
-		).toHaveClass("touch-none");
+		expect(getHandle()).toHaveClass("touch-none");
+	});
+
+	// jsdom runs no CSS engine and Tailwind does not compile under Vitest, so
+	// these assert that the utilities are applied — the layout they produce is
+	// manual QA. They still pin the mechanism: a handle that reserves width is
+	// the defect, and an opacity-only reveal is how it came back.
+	describe("drag handle slot", () => {
+		it("renders the view name in a truncating element", () => {
+			renderRow();
+
+			expect(screen.getByText("Fantasy books")).toHaveClass("truncate");
+		});
+
+		it("reserves no width for the handle until the row is wanted", () => {
+			renderRow();
+
+			expect(getHandle().parentElement).toHaveClass("w-0", "overflow-hidden");
+		});
+
+		it("opens the handle slot on hover", () => {
+			renderRow();
+
+			expect(getHandle().parentElement).toHaveClass("group-hover:w-6");
+		});
+
+		it("opens the handle slot when the handle takes focus", () => {
+			// The keyboard reorder steers from this button, so a slot that only
+			// opened on hover would hide the control the user is driving.
+			renderRow();
+
+			expect(getHandle().parentElement).toHaveClass("group-focus-within:w-6");
+		});
+
+		it("keeps the handle open where there is no hover", () => {
+			// Clipped to w-0 the handle is untappable, and the drag registers a
+			// TouchSensor — so a coarse pointer gets it permanently.
+			renderRow();
+
+			expect(getHandle().parentElement).toHaveClass("pointer-coarse:w-6");
+		});
+
+		it("keeps the handle in the tab order", () => {
+			renderRow();
+
+			expect(getHandle()).not.toHaveAttribute("tabindex", "-1");
+		});
+
+		it("hangs the hover slot off the row's group", () => {
+			// Without the group on the row, every group-hover variant above is inert.
+			renderRow();
+
+			expect(
+				screen.getByText("Fantasy books").closest("div[style]"),
+			).toHaveClass("group");
+		});
 	});
 });
+
+function getHandle() {
+	return screen.getByRole("button", {
+		name: "viewGroups.dragToReorder:Fantasy books",
+	});
+}
